@@ -1,21 +1,23 @@
 # Coverage matrix
 
-Status after last `run-all`: `ok` · `bug` · `gap` · `skip`
+Status after `ros -l scripts/bootstrap.lisp -l scripts/run-all.lisp` (2026-08-07):
 
 | Demo | Upstream | Status | Notes |
 |------|----------|--------|-------|
-| pathlib-organize | tfeldmann/organize | TBD | |
-| settings-env | pydantic-settings | TBD | |
-| requests-json | psf/requests | TBD | |
-| jsonlines-io | wbolster/jsonlines | TBD | |
-| object-tape | stdlib pprint | TBD | |
-| click-naval | pallets/click | TBD | |
-| structlog-run | hynek/structlog | TBD | |
-| flask-echo | pallets/flask | TBD | |
-| websockets-echo | websockets | TBD | |
-| sqlalchemy-notes | sqlalchemy | TBD | |
-| pyjwt-hs256 | jpadilla/pyjwt | TBD | |
-| authlib-pkce | authlib | TBD | |
-| records-sql | kennethreitz/records | TBD | |
-| csvkit-report | csvkit | TBD | |
-| asyncio-sleep | asyncio | TBD | |
+| pathlib-organize | tfeldmann/organize | ok | memory FS + bytes |
+| settings-env | pydantic-settings | ok | |
+| requests-json | psf/requests | ok | local echo |
+| jsonlines-io | wbolster/jsonlines | ok | |
+| object-tape | pprint / literal_eval | ok | |
+| click-naval | pallets/click | ok | |
+| structlog-run | hynek/structlog | ok | |
+| flask-echo | pallets/flask | ok | |
+| websockets-echo | websockets | ok | |
+| sqlalchemy-notes | sqlalchemy | ok | |
+| pyjwt-hs256 | jpadilla/pyjwt | ok* | *`expired-p :verify t` bug — [jwt#6](https://github.com/egao1980/cl-stack-jwt/issues/6); demo uses `:verify nil` for expired case only |
+| authlib-pkce | authlib | ok | |
+| records-sql | kennethreitz/records | ok | |
+| csvkit-report | csvkit | ok | |
+| asyncio-sleep | asyncio | ok | |
+
+Python references: `uv run python scripts/run_all.py` → **15/15 ok**.

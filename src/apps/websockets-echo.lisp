@@ -1,12 +1,12 @@
 ;;;; Inspired by python-websockets/websockets example/sync/{echo,client}.py
+;;;; Server side uses Clack + websocket-driver (same as ws-protocol scripts/demo.lisp).
 (in-package #:cl-stack-demos)
 
 (defun run-websockets-echo ()
   (asdf:load-system "ws-backend-websocket-driver")
-  ;; Start a tiny Clack echo (same shape as upstream sync/echo.py).
-  (ql:quickload '("websocket-driver" "clack" "clack-handler-hunchentoot"
-                  "hunchentoot" "bordeaux-threads")
-                :silent t)
+  (asdf:load-system "websocket-driver")
+  (asdf:load-system "clack")
+  (asdf:load-system "clack-handler-hunchentoot")
   (let ((handler nil)
         (port nil)
         (payload (format nil "ws-demo-~A" (get-universal-time)))
@@ -15,7 +15,7 @@
     (labels ((echo-app (env)
                (let ((path (or (getf env :path-info) "")))
                  (if (search "/echo" path)
-                     (let ((wss (websocket-driver:make-server env)))
+                     (let ((wss (websocket-driver.server:make-server env)))
                        (websocket-driver:on :message wss
                                             (lambda (message)
                                               (websocket-driver:send wss message)))

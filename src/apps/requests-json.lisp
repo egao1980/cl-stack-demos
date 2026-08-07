@@ -25,11 +25,11 @@
                           (list (stack-json:encode
                                  `(("json" . ,data) ("url" . "/post")))))))
                  (t '(404 (:content-type "text/plain") ("nope")))))))
-    (let ((port (cl-stack-demos::%ephemeral-port)))
+    (let ((port (%ephemeral-port)))
       (stack-http-server:with-server (s #'app :host "127.0.0.1" :port port)
-        (declare (ignore s))
         (sleep 0.1)
-        (let ((base (format nil "http://127.0.0.1:~A" port)))
+        (let ((base (format nil "http://127.0.0.1:~A"
+                            (stack-http-server:server-port s))))
           (stack-http:with-backend (:dexador)
             (let* ((g (stack-http:get (format nil "~A/get" base)))
                    (gj (stack-http:response-json g))

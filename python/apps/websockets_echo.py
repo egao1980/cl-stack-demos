@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import threading
+import time
 
 from websockets.sync.client import connect
 from websockets.sync.server import serve

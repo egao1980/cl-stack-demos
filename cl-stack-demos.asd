@@ -37,7 +37,11 @@
                "ironclad"
                "babel"
                "uiop"
-               "usocket")
+               "usocket"
+               "clack"
+               "clack-handler-hunchentoot"
+               "websocket-driver"
+               "hunchentoot")
   :serial t
   :pathname "src"
   :components ((:file "package")
