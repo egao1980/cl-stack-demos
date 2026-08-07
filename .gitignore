@@ -1,0 +1,15 @@
+.qlot/
+*.fasl
+*.dx64fasl
+*.lx64fasl
+*.wx64fasl
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
+/tmp/
+*.db

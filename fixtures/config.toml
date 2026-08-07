@@ -1,0 +1,7 @@
+app_name = "demos"
+debug = false
+
+[database]
+host = "localhost"
+port = 5432
+enabled = true
