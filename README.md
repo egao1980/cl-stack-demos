@@ -28,7 +28,8 @@ Provenance: **[SOURCES.md](SOURCES.md)**. Failures: **[ISSUES.md](ISSUES.md)** �
 
 ```bash
 # one-time: OCI client + tomlet pin (see cl-stack QUICKSTART)
-oras pull ghcr.io/egao1980/cl-repository/cl-repository-client:0.11.0 -o /tmp/cl-repo-pull
+oras pull ghcr.io/egao1980/cl-repository/cl-repository-client:0.13.0 -o /tmp/cl-repo-pull
+# or resolve :latest anchor → semver (see cl-stack QUICKSTART)
 # extract to ~/.local/share/cl-repository-client/ …
 ros -l scripts/bootstrap.lisp -l scripts/load-oci-pins.lisp
 ros -l scripts/ql-deps.lisp
