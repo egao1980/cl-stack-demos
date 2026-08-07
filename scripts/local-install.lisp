@@ -48,7 +48,8 @@
                   ("websocket-driver" :ql)
                   ("clack" :ql)
                   ("hunchentoot" :ql)
-                  ("tomlet" :ql)
+                  ;; tomlet is OCI-only (not on QL) — leave default :any so
+                  ;; ensure-system-dependencies hits ghcr.io (cl-stack#165).
                   ("clingon" :ql)
                   ("log4cl" :ql)
                   ("com.inuoe.jzon" :ql)
