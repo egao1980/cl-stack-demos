@@ -41,7 +41,6 @@
        :with with
        :sources '(("babel" :ql)
                   ("trivial-features" :ql)
-                  ("cl-unicode" :ql)
                   ("usocket" :ql)
                   ("dbd-sqlite3" :ql)
                   ("cl-dbi" :ql)

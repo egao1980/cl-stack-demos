@@ -34,7 +34,7 @@ oras pull ghcr.io/egao1980/cl-repository/cl-repository-client:0.13.0 -o /tmp/cl-
 ros -l scripts/bootstrap.lisp -l scripts/load-oci-pins.lisp
 ros -l scripts/ql-deps.lisp
 
-# workspace siblings on ASDF path (needs egao1980/cl-unicode checkout for idna-mapping):
+# workspace siblings on ASDF path (cl-unicode with idna-mapping comes from OCI 0.1.7):
 ros -l scripts/bootstrap.lisp -e '(asdf:load-system "websocket-driver") (asdf:load-system "clack")' \
     -l scripts/run-all.lisp
 ros -l scripts/bootstrap.lisp -l scripts/run-app.lisp click-naval

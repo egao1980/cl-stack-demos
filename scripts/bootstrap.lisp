@@ -24,7 +24,7 @@
     "log-protocol" "http-protocol" "http-server-protocol" "http-backend-async"
     "http-backend-dexador" "ws-protocol" "sql-protocol" "sql-query" "sql-query-sqlite3"
     "sql-query-csv" "sql-orm" "event-protocol" "event-backend-libuv" "event-backend-libev"
-    "quri" "cl-mime" "cl-idna" "cl-unicode" "rove" "http-encoding-chipz" "http-encoding-brotli"
+    "quri" "cl-mime" "cl-idna" "rove" "http-encoding-chipz" "http-encoding-brotli"
     "http-encoding-zstd" "cl-stack-brotli" "cl-stack-zstd"))
 
 (defun %oci-client-dir ()
