@@ -42,6 +42,7 @@
                "clack-handler-hunchentoot"
                "websocket-driver"
                "hunchentoot")
+  :properties (:cl-repo (:ci (:sources (("babel" :ql) ("trivial-features" :ql) ("usocket" :ql) ("dbd-sqlite3" :ql) ("cl-dbi" :ql) ("jose" :ql) ("ironclad" :ql) ("websocket-driver" :ql) ("clack" :ql) ("hunchentoot" :ql)))))
   :serial t
   :pathname "src"
   :components ((:file "package")
