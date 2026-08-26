@@ -36,27 +36,7 @@
    (lambda ()
      (cl-repo:ensure-system-dependencies "cl-stack-demos"
        :also-tests t
-       :with with
-       :sources '(("babel" :ql)
-                  ("trivial-features" :ql)
-                  ("usocket" :ql)
-                  ("dbd-sqlite3" :ql)
-                  ("cl-dbi" :ql)
-                  ("jose" :ql)
-                  ("ironclad" :ql)
-                  ("websocket-driver" :ql)
-                  ("clack" :ql)
-                  ("hunchentoot" :ql)
-                  ;; tomlet is OCI-only (not on QL) — leave default :any so
-                  ;; ensure-system-dependencies hits ghcr.io (cl-stack#165).
-                  ("clingon" :ql)
-                  ("com.inuoe.jzon" :ql)
-                  ("adopt" :ql)
-                  ("alexandria" :ql)
-                  ("bordeaux-threads" :ql)
-                  ("blackbird" :ql)
-                  ("quri" :ql)
-                  ("dexador" :ql))))))
+       :with with))))
 
 (format t "~&; local-install done~%")
 (uiop:quit 0)
