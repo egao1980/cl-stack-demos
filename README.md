@@ -16,7 +16,7 @@ Provenance: **[SOURCES.md](SOURCES.md)**. Failures: **[ISSUES.md](ISSUES.md)** â
 | `click-naval` | pallets/click naval | cli-protocol |
 | `structlog-run` | hynek/structlog | log-protocol |
 | `flask-echo` | pallets/flask | http-server-protocol, cl-stack-http |
-| `websockets-echo` | python-websockets/websockets | ws-protocol |
+| `websockets-echo` | python-websockets/websockets | ws-protocol, ws-backend-websocket-driver |
 | `sqlalchemy-notes` | sqlalchemy ORM tutorial | sql-orm |
 | `pyjwt-hs256` | jpadilla/pyjwt | cl-stack-jwt |
 | `authlib-pkce` | authlib PKCE | cl-stack-oauth2 |
