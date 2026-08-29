@@ -22,7 +22,8 @@
     "cl-stack-pathlib" "cl-stack-config" "cl-stack-http" "cl-stack-jwt" "cl-stack-oauth2"
     "cl-stack-ssl" "json-protocol" "serdes-protocol" "io-protocol" "cli-protocol"
     "log-protocol" "http-protocol" "http-server-protocol" "http-backend-async"
-    "http-backend-dexador" "ws-protocol" "sql-protocol" "sql-query" "sql-query-sqlite3"
+    "http-backend-dexador" "ws-protocol" "ws-backend-websocket-driver"
+    "sql-protocol" "sql-query" "sql-query-sqlite3"
     "sql-query-csv" "sql-orm" "event-protocol" "event-backend-libuv" "event-backend-libev"
     "quri" "cl-mime" "cl-idna" "rove" "http-encoding-chipz" "http-encoding-brotli"
     "http-encoding-zstd" "cl-stack-brotli" "cl-stack-zstd"))

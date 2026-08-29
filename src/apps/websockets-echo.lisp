@@ -1,5 +1,5 @@
 ;;;; Inspired by python-websockets/websockets example/sync/{echo,client}.py
-;;;; Server side uses Clack + websocket-driver (same as ws-protocol scripts/demo.lisp).
+;;;; Server side uses Clack + websocket-driver (same as ws-backend-websocket-driver scripts/demo.lisp).
 (in-package #:cl-stack-demos)
 
 (defun run-websockets-echo ()
