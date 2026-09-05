@@ -34,7 +34,7 @@
                "event-backend-libuv"
                "bordeaux-threads"
                "blackbird"
-               "babel"
+               "encoding-protocol"
                "uiop"
                "usocket")
 
