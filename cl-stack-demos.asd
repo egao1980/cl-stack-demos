@@ -34,14 +34,9 @@
                "event-backend-libuv"
                "bordeaux-threads"
                "blackbird"
-               "ironclad"
                "babel"
                "uiop"
-               "usocket"
-               "clack"
-               "clack-handler-hunchentoot"
-               "websocket-driver"
-               "hunchentoot")
+               "usocket")
 
   :serial t
   :pathname "src"

@@ -7,7 +7,7 @@
 (in-package #:cl-stack-demos)
 
 (defun run-pyjwt-hs256 ()
-  (let* ((key (ironclad:ascii-string-to-byte-array "secret-key-123456789012345678901234"))
+  (let* ((key (babel:string-to-octets "secret-key-123456789012345678901234"))
          (exp (+ (stack-jwt:unix-time) 3600))
          (token (stack-jwt:encode :hs256 key
                                   `(("some" . "payload") ("exp" . ,exp))))

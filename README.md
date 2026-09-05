@@ -35,7 +35,7 @@ ros -l scripts/bootstrap.lisp -l scripts/load-oci-pins.lisp
 ros -l scripts/ql-deps.lisp
 
 # workspace siblings on ASDF path (cl-unicode with idna-mapping comes from OCI 0.1.7):
-ros -l scripts/bootstrap.lisp -e '(asdf:load-system "websocket-driver") (asdf:load-system "clack")' \
+ros -l scripts/bootstrap.lisp -e '(asdf:load-system "ws-backend-websocket-driver")' \
     -l scripts/run-all.lisp
 ros -l scripts/bootstrap.lisp -l scripts/run-app.lisp click-naval
 ```
