@@ -1,43 +1,32 @@
 ;;;; Inspired by python-websockets/websockets example/sync/{echo,client}.py
-;;;; Server side uses Clack + websocket-driver (same as ws-backend-websocket-driver scripts/demo.lisp).
+;;;; Server side uses ws-protocol make-ws-server / start-ws-server.
 (in-package #:cl-stack-demos)
 
 (defun run-websockets-echo ()
   (asdf:load-system "ws-backend-websocket-driver")
-  (asdf:load-system "websocket-driver")
-  (asdf:load-system "clack")
-  (asdf:load-system "clack-handler-hunchentoot")
-  (let ((handler nil)
+  (let ((server nil)
         (port nil)
         (payload (format nil "ws-demo-~A" (get-universal-time)))
         (got nil)
         (err nil))
-    (labels ((echo-app (env)
-               (let ((path (or (getf env :path-info) "")))
-                 (if (search "/echo" path)
-                     (let ((wss (websocket-driver.server:make-server env)))
-                       (websocket-driver:on :message wss
-                                            (lambda (message)
-                                              (websocket-driver:send wss message)))
-                       (lambda (responder)
-                         (declare (ignore responder))
-                         (websocket-driver:start-connection wss)))
-                     '(404 (:content-type "text/plain") ("nope")))))
-             (start ()
+    (labels ((start ()
                (loop for attempt from 1 to 8
                      for p = (+ 19000 (random 3000))
                      do (handler-case
-                            (progn
-                              (setf handler
-                                    (clack:clackup #'echo-app
-                                                   :server :hunchentoot
-                                                   :address "127.0.0.1"
-                                                   :port p
-                                                   :use-thread t
-                                                   :debug nil
-                                                   :silent t)
+                            (let ((backend (ws-backend-websocket-driver:make-websocket-driver-backend)))
+                              (setf server
+                                    (ws-protocol:make-ws-server
+                                     backend
+                                     :host "127.0.0.1"
+                                     :port p
+                                     :path "/echo"
+                                     :on-connect
+                                     (lambda (conn)
+                                       (ws:on conn :message
+                                              (lambda (msg)
+                                                (ws:send conn msg)))))
                                     port p)
-                              (sleep 0.2)
+                              (ws-protocol:start-ws-server server :background t)
                               (return p))
                           (error (e)
                             (when (= attempt 8) (error e)))))))
@@ -57,8 +46,8 @@
              (format t "~&; got ~S~%" got)
              (assert (string= got payload))
              t)
-        (when handler
-          (ignore-errors (clack:stop handler))
+        (when server
+          (ignore-errors (ws-protocol:stop-ws-server server))
           (sleep 0.1))))))
 
 (register-app "websockets-echo"
