@@ -15,3 +15,4 @@ build/
 *.db
 fixtures/_organize-out/
 .venv/
+cl-repo.lock
