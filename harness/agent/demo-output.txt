@@ -1,0 +1,818 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO2.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.011
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.061
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.002
+WARNING:
+   cl-repo: http-backend-async 0.2.17 stays loaded from ~/.cl-repository-client/http-backend-async-0.2.17/http-backend-async.asd; the registry also has 0.2.19 at ~/.local/share/cl-repository/systems/http-backend-async/0.2.19/http-backend-async.asd, which this image will not load. Code that needs 0.2.19 runs against the older copy: upgrade the client or load the project in a fresh image.
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining LLM-PROTOCOL:INVOKE-RETRY in DEFUN
+WARNING: redefining LLM-PROTOCOL:INVOKE-USE-VALUE in DEFUN
+WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
+; compiling file "~/.local/share/cl-repository/systems/pty-backend-native/0.2.1/src/ffi.lisp" (written 19 NOV 2026 03:13:17 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/pty-backend-native/0.2.1/src/ffi-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.009
+; compiling file "~/.local/share/cl-repository/systems/pty-backend-native/0.2.1/src/backend.lisp" (written 19 NOV 2026 03:13:17 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/pty-backend-native/0.2.1/src/backend-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.025
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+
+; compiling file "~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:53:29 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/grovel-cache/grovel.cffi-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:53:28 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/ffi-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.007
+; compiling file "~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/backend.lisp" (written 18 NOV 2026 02:53:28 PM):
+
+; file: ~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/backend.lisp
+; in: DEFUN %STEAL-WAKE-QUEUE
+;     (SHIFTF (EVENT-BACKEND-LIBUV::LIBUV-LOOP-WAKE-QUEUE LOOP) NIL)
+; 
+; note: deleting unreachable code
+
+; in: DEFUN %PUSH-WAKE-QUEUE
+;     (PUSH FUNCTION (EVENT-BACKEND-LIBUV::LIBUV-LOOP-WAKE-QUEUE LOOP))
+; 
+; note: deleting unreachable code
+
+; in: DEFCALLBACK %UV-CLOSE-CB
+;     (CFFI:DEFCALLBACK EVENT-BACKEND-LIBUV::%UV-CLOSE-CB
+;         :VOID
+;         ((EVENT-BACKEND-LIBUV::HANDLE :POINTER))
+;       (LET ((EVENT-BACKEND-LIBUV::ENTRY
+;              (EVENT-BACKEND-LIBUV::%LOOKUP EVENT-BACKEND-LIBUV::HANDLE)))
+;         (WHEN EVENT-BACKEND-LIBUV::ENTRY
+;           (LET (#)
+;             (WHEN EVENT-BACKEND-LIBUV::EH #))))
+;       (REMHASH (EVENT-BACKEND-LIBUV::%ADDR EVENT-BACKEND-LIBUV::HANDLE)
+;                EVENT-BACKEND-LIBUV::*UV-CLOSING*)
+;       (EVENT-BACKEND-LIBUV::%UNREGISTER EVENT-BACKEND-LIBUV::HANDLE)
+;       (CFFI-SYS:FOREIGN-FREE EVENT-BACKEND-LIBUV::HANDLE))
+; --> CFFI-SYS:%DEFCALLBACK SETF LET* LET* ALIEN-SAP SB-ALIEN::ALIEN-LAMBDA 
+; --> SB-ALIEN::%ALIEN-CALLBACK-ALIEN SB-ALIEN::ALIEN-LAMBDA2 LAMBDA FUNCTION 
+; --> LET LET LOCALLY 
+; ==>
+;   (LET ((EVENT-BACKEND-LIBUV::HANDLE EVENT-BACKEND-LIBUV::HANDLE))
+;     (BLOCK EVENT-BACKEND-LIBUV::%UV-CLOSE-CB
+;       (LET ((EVENT-BACKEND-LIBUV::ENTRY #))
+;         (WHEN EVENT-BACKEND-LIBUV::ENTRY
+;           (LET #
+;             #)))
+;       (REMHASH (EVENT-BACKEND-LIBUV::%ADDR EVENT-BACKEND-LIBUV::HANDLE)
+;                EVENT-BACKEND-LIBUV::*UV-CLOSING*)
+;       (EVENT-BACKEND-LIBUV::%UNREGISTER EVENT-BACKEND-LIBUV::HANDLE)
+;       (CFFI-SYS:FOREIGN-FREE EVENT-BACKEND-LIBUV::HANDLE)))
+; 
+; note: doing SAP to pointer coercion (cost 20) to HANDLE
+
+;     (SLOT-VALUE EVENT-BACKEND-LIBUV::EH 'EVENT-BACKEND-LIBUV::PTR)
+; ==>
+;   1
+; 
+; note: doing SAP to pointer coercion (cost 20)
+
+; in: DEFCALLBACK %UV-TIMER-CB
+;     (FUNCALL EVENT-BACKEND-LIBUV::FN)
+; 
+; note: unable to
+;   optimize away possible call to FDEFINITION at runtime
+; because:
+;   FN is not known to be a function
+
+;     (CFFI:DEFCALLBACK EVENT-BACKEND-LIBUV::%UV-TIMER-CB
+;         :VOID
+;         ((EVENT-BACKEND-LIBUV::HANDLE :POINTER))
+;       (LET ((EVENT-BACKEND-LIBUV::ENTRY
+;              (EVENT-BACKEND-LIBUV::%LOOKUP EVENT-BACKEND-LIBUV::HANDLE)))
+;         (WHEN EVENT-BACKEND-LIBUV::ENTRY
+;           (LET* (# # #)
+;             (EVENT-BACKEND-LIBUV::UV-TIMER-STOP EVENT-BACKEND-LIBUV::HANDLE)
+;             (UNWIND-PROTECT # #)))))
+; --> CFFI-SYS:%DEFCALLBACK SETF LET* LET* ALIEN-SAP SB-ALIEN::ALIEN-LAMBDA 
+; --> SB-ALIEN::%ALIEN-CALLBACK-ALIEN SB-ALIEN::ALIEN-LAMBDA2 LAMBDA FUNCTION 
+; --> LET LET LOCALLY 
+; ==>
+;   (LET ((EVENT-BACKEND-LIBUV::HANDLE EVENT-BACKEND-LIBUV::HANDLE))
+;     (BLOCK EVENT-BACKEND-LIBUV::%UV-TIMER-CB
+;       (LET ((EVENT-BACKEND-LIBUV::ENTRY #))
+;         (WHEN EVENT-BACKEND-LIBUV::ENTRY
+;           (LET* #
+;             #
+;             #)))))
+; 
+; note: doing SAP to pointer coercion (cost 20) to HANDLE
+
+; in: DEFCALLBACK %UV-IDLE-CB
+;     (FUNCALL EVENT-BACKEND-LIBUV::FN)
+; 
+; note: unable to
+;   optimize away possible call to FDEFINITION at runtime
+; because:
+;   FN is not known to be a function
+
+;     (CFFI:DEFCALLBACK EVENT-BACKEND-LIBUV::%UV-IDLE-CB
+;         :VOID
+;         ((EVENT-BACKEND-LIBUV::HANDLE :POINTER))
+;       (LET ((EVENT-BACKEND-LIBUV::ENTRY
+;              (EVENT-BACKEND-LIBUV::%LOOKUP EVENT-BACKEND-LIBUV::HANDLE)))
+;         (WHEN EVENT-BACKEND-LIBUV::ENTRY
+;           (LET* (# # #)
+;             (EVENT-BACKEND-LIBUV::UV-IDLE-STOP EVENT-BACKEND-LIBUV::HANDLE)
+;             (UNWIND-PROTECT # #)))))
+; --> CFFI-SYS:%DEFCALLBACK SETF LET* LET* ALIEN-SAP SB-ALIEN::ALIEN-LAMBDA 
+; --> SB-ALIEN::%ALIEN-CALLBACK-ALIEN SB-ALIEN::ALIEN-LAMBDA2 LAMBDA FUNCTION 
+; --> LET LET LOCALLY 
+; ==>
+;   (LET ((EVENT-BACKEND-LIBUV::HANDLE EVENT-BACKEND-LIBUV::HANDLE))
+;     (BLOCK EVENT-BACKEND-LIBUV::%UV-IDLE-CB
+;       (LET ((EVENT-BACKEND-LIBUV::ENTRY #))
+;         (WHEN EVENT-BACKEND-LIBUV::ENTRY
+;           (LET* #
+;             #
+;             #)))))
+; 
+; note: doing SAP to pointer coercion (cost 20) to HANDLE
+
+; in: DEFCALLBACK %UV-ASYNC-CB
+;     (FUNCALL EVENT-BACKEND-LIBUV::FN)
+; 
+; note: unable to
+;   optimize away possible call to FDEFINITION at runtime
+; because:
+;   FN is not known to be a function
+
+;     (EVENT-BACKEND-LIBUV::%LOOKUP EVENT-BACKEND-LIBUV::HANDLE)
+; 
+; note: doing SAP to pointer coercion (cost 20)
+
+; in: DEFCALLBACK %UV-POLL-CB
+;     (FUNCALL EVENT-BACKEND-LIBUV::FN :ERROR EVENT-BACKEND-LIBUV::STATUS)
+; 
+; note: unable to
+;   optimize away possible call to FDEFINITION at runtime
+; because:
+;   FN is not known to be a function
+
+;     (FUNCALL EVENT-BACKEND-LIBUV::FN :OK)
+; 
+; note: unable to
+;   optimize away possible call to FDEFINITION at runtime
+; because:
+;   FN is not known to be a function
+
+;     (EVENT-BACKEND-LIBUV::%LOOKUP EVENT-BACKEND-LIBUV::HANDLE)
+; 
+; note: doing SAP to pointer coercion (cost 20)
+
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/backend-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.046
+; compiling file "~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/submit.lisp" (written 18 NOV 2026 02:53:28 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/src/submit-tmp8V3J6PE9.fasl
+; compilation finished in 0:00:00.002
+; compiling file "<demos>/harness/agent/src/package.lisp" (written 19 NOV 2026 08:29:32 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/package-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.009
+; compiling file "<demos>/harness/agent/src/permissions.lisp" (written 19 NOV 2026 08:23:33 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/permissions-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.008
+; compiling file "<demos>/harness/agent/src/file-tools.lisp" (written 19 NOV 2026 08:24:01 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/file-tools-tmpQ371UGST.fasl
+; compilation finished in 0:00:00.012
+; compiling file "<demos>/harness/agent/src/tui-widgets.lisp" (written 19 NOV 2026 08:32:04 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/tui-widgets-tmp2OWI3Q7U.fasl
+; compilation finished in 0:00:00.014
+; compiling file "<demos>/harness/agent/src/tty.lisp" (written 19 NOV 2026 08:32:04 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/tty-tmp9KKTJMYV.fasl
+; compilation finished in 0:00:00.009
+; compiling file "<demos>/harness/agent/src/llm-cache.lisp" (written 19 NOV 2026 08:32:18 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/llm-cache-tmpJU0JWO19.fasl
+; compilation finished in 0:00:00.010
+; compiling file "<demos>/harness/agent/src/run.lisp" (written 19 NOV 2026 08:27:44 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/agent/src/run-tmpZX2WN8N4.fasl
+; compilation finished in 0:00:00.003
+; 
+; compilation unit finished
+;   printed 13 notes
+
+========================================================================
+== Loaded systems
+========================================================================
+  ai-agent-protocol      0.10.0  ~/.local/share/cl-repository/systems/ai-agent-protocol/0.10.0/
+  agent-tools            0.1.0  ~/.local/share/cl-repository/systems/agent-tools/0.1.0/
+  tui-protocol           0.2.0  ~/.local/share/cl-repository/systems/tui-protocol/0.2.0/
+  tui-backend-terminal   0.1.0  ~/.local/share/cl-repository/systems/tui-backend-terminal/0.1.0/
+  tui-backend-tty        0.1.0  ~/.local/share/cl-repository/systems/tui-backend-tty/0.1.0/
+  terminal-backend-lisp  0.2.0  ~/.local/share/cl-repository/systems/terminal-backend-lisp/0.2.0/
+  pty-backend-native     0.2.1  ~/.local/share/cl-repository/systems/pty-backend-native/0.2.1/
+  llm-protocol           0.5.0  ~/.local/share/cl-repository/systems/llm-protocol/0.5.0/
+  llm-protocol-openai    0.4.0  ~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/
+  http-backend-async     0.2.19  ~/.local/share/cl-repository/systems/http-backend-async/0.2.19/
+  event-backend-libuv    0.2.2  ~/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/
+  cl-stack-pathlib       0.5.0  ~/.local/share/cl-repository/systems/cl-stack-pathlib/0.5.0/
+  diff-protocol          0.2.0  ~/.local/share/cl-repository/systems/diff-protocol/0.2.0/
+
+========================================================================
+== Demo 1: ai-agent-protocol 0.10.0 permissions (mock LLM)
+========================================================================
+
+--- 1a. model calls edit(src/a.lisp) twice; agent rule ("edit" "*" :ask)
+store rules before: NIL
+  [handler] agent approval required for "edit"
+  [handler] call g1-c1 args {"path":"src/a.lisp"} → answering "always" (invoke-approve-always)
+finish reason: :STOP
+approval prompts (call ids): ("g1-c1")
+paths edited (in order): ("src/a.lisp" "src/a.lisp")
+invocations:
+  g1-c1 edit {"path":"src/a.lisp"} → :DONE
+    result: edited src/a.lisp
+  g2-c1 edit {"path":"src/a.lisp"} → :DONE
+    result: edited src/a.lisp
+run's approved permissions (agent-run-approved-permissions):
+  rule "edit" "src/a.lisp" :ALLOW
+saved rules in the in-memory-permission-rule-store:
+  rule "edit" "src/a.lisp" :ALLOW
+final text: "done editing"
+
+--- 1b. a later run with the same store: no prompt at all
+finish reason: :STOP
+prompts: 0
+  g1-c1 edit {"path":"src/a.lisp"} → :DONE
+    result: edited src/a.lisp
+
+--- 1c. same store, plus a run policy ("edit" "*" :deny): the deny still wins
+finish reason: :STOP
+prompts: 0
+paths edited: NIL
+  g1-c1 edit {"path":"src/a.lisp"} → :DENIED error-p
+    result: Tool edit was not run: permission denied for src/a.lisp
+Do not repeat the same call. Continue another way, or ask the user for permission.
+
+--- 1d. agent-layer deny ("edit" "secret/*" :deny) vs a saved allow-everything store
+finish reason: :STOP
+paths edited: NIL
+  g1-c1 edit {"path":"secret/key.pem"} → :DENIED error-p
+    result: Tool edit was not run: permission denied for secret/key.pem
+Feedback: Never edit secrets.
+Do not repeat the same call. Follow the feedback above and continue.
+
+--- 1e. three pending calls; reject all (deny-invocation :all t) with feedback
+finish reason: :APPROVAL
+pending: ("g1-c1" "g1-c2" "g1-c3")
+pending after deny :all t: NIL
+  g1-c1 edit {"path":"src/a.lisp"} → :DENIED error-p
+    result: Tool edit was not run: the user rejected the request
+Feedback: Stop editing; explain the plan first.
+Do not repeat the same call. Follow the feedback above and continue.
+  g1-c2 edit {"path":"src/b.lisp"} → :DENIED error-p
+    result: Tool edit was not run: the user rejected the request
+Feedback: Stop editing; explain the plan first.
+Do not repeat the same call. Follow the feedback above and continue.
+  g1-c3 edit {"path":"src/c.lisp"} → :DENIED error-p
+    result: Tool edit was not run: the user rejected the request
+Feedback: Stop editing; explain the plan first.
+Do not repeat the same call. Follow the feedback above and continue.
+resumed finish reason: :STOP
+paths edited: NIL
+tool results the model saw:
+  g1-c1 error-p=T: Tool edit was not run: the user rejected the request
+Feedback: Stop editing; explain the plan first.
+Do not repeat the same call. Follow the feedback above and continue.
+  g1-c2 error-p=T: Tool edit was not run: the user rejected the request
+Feedback: Stop editing; explain the plan first.
+Do not repeat the same call. Follow the feedback above and continue.
+  g1-c3 error-p=T: Tool edit was not run: the user rejected the request
+Feedback: Stop editing; explain the plan first.
+Do not repeat the same call. Follow the feedback above and continue.
+final text: "OK, I will explain the plan first."
+
+========================================================================
+== Demo 2: agent-tools 0.1.0 file tools
+========================================================================
+root: "<tmp>"
+tools: ("read" "write" "edit" "multi_edit" "glob" "grep" "ls")
+
+--- 2a. read with offset/limit
+> read {"file_path":"src/main.lisp","offset":4,"limit":3}
+result:
+  |      4	(defun greet (name)
+  |      5	  ;; TODO: localize
+  |      6	  (format nil "Hello, ~a" name))
+  | [truncated: lines 4-6 shown; call read with offset=7 for more]
+  | hash: sha256:d9c6ad8ceb4b3e0ea603a76842993e2caf93c8fb469887c73b4e5e986e058753
+
+--- 2b. write a new file (parents created)
+> write {"file_path":"notes/todo.txt","content":"- ship the demo\n"}
+result:
+  | Wrote notes/todo.txt (16 bytes)
+  | hash: sha256:b55c101902df343c81aa1e3c4f9bfa5a0ae2899f7aa8ab23412b11733c46fed6
+
+--- 2c. edit (unique match): unified-diff preview and the new hash
+> read {"file_path":"src/main.lisp","limit":1}
+result:
+  |      1	(defpackage #:app (:use #:cl))
+  | [truncated: lines 1-1 shown; call read with offset=2 for more]
+  | hash: sha256:d9c6ad8ceb4b3e0ea603a76842993e2caf93c8fb469887c73b4e5e986e058753
+> edit {"file_path":"src/main.lisp","old_string":"\"Hello, ~a\"","new_string":"\"Hi there, ~a!\""}
+result:
+  | Edited src/main.lisp: 1 replacement
+  | --- a/src/main.lisp
+  | +++ b/src/main.lisp
+  | @@ -3,7 +3,7 @@
+  |  
+  |  (defun greet (name)
+  |    ;; TODO: localize
+  | -  (format nil "Hello, ~a" name))
+  | +  (format nil "Hi there, ~a!" name))
+  |  
+  |  (defun main ()
+  |    (print (greet "world")))
+  | hash: sha256:274f2c2e89413b955cb66b6c21378d4ad752313358244d2106e874f2c93afe87
+hash before: "sha256:d9c6ad8ceb4b3e0ea603a76842993e2caf93c8fb469887c73b4e5e986e058753"
+hash after: "sha256:274f2c2e89413b955cb66b6c21378d4ad752313358244d2106e874f2c93afe87"
+
+--- 2d. edit with a non-unique old_string
+> edit {"file_path":"src/main.lisp","old_string":"(defun ","new_string":"(defun* "}
+FAILED with AGENT-TOOLS:EDIT-MATCH-ERROR:
+  old_string matched 2 times in src/main.lisp; add surrounding context to make it unique, or set replace_all
+
+--- 2e. edit with a stale expected_hash (the pre-edit hash)
+> edit {"file_path":"src/main.lisp","old_string":"world","new_string":"there","expected_hash":"sha256:d9c6ad8ceb4b3e0ea603a76842993e2caf93c8fb469887c73b4e5e986e058753"}
+FAILED with AGENT-TOOLS:STALE-FILE-ERROR:
+  src/main.lisp changed since it was read (expected sha256:d9c6ad8ceb4b3e0ea603a76842993e2caf93c8fb469887c73b4e5e986e058753, now sha256:274f2c2e89413b955cb66b6c21378d4ad752313358244d2106e874f2c93afe87); read it again and retry
+
+--- 2f. glob and grep respect .gitignore (build/, *.log)
+files on disk: .gitignore README.md build/out.lisp debug.log notes/todo.txt src/main.lisp src/util.lisp
+> glob {"pattern":"**/*"}
+result:
+  | .gitignore
+  | README.md
+  | notes/todo.txt
+  | src/main.lisp
+  | src/util.lisp
+> glob {"pattern":"**/*.log"}
+result: "No files matched **/*.log"
+> grep {"pattern":"TODO"}
+result:
+  | README.md:2:TODO: write docs
+  | src/main.lisp:5:  ;; TODO: localize
+  | src/util.lisp:2:;; TODO: remove
+> grep {"pattern":"todo","case_insensitive":true,"include":"*.lisp"}
+result:
+  | src/main.lisp:5:  ;; TODO: localize
+  | src/util.lisp:2:;; TODO: remove
+an explicit path is never refused for being ignored:
+> read {"file_path":"debug.log"}
+result:
+  |      1	TODO in a log file (ignored)
+  | hash: sha256:9e04c2540fe83b56012ffd63efb51f04eeccb5fad9b30c9cc1ac753d7bb6e08a
+
+--- 2g. root escapes are refused
+> read {"file_path":"../x"}
+FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
+  ../x is outside the project root <tmp> use a path relative to the root
+> read {"file_path":"..\\x"}
+FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
+  ..\x is outside the project root <tmp> use a path relative to the root
+> write {"file_path":"src/../../escape.txt","content":"nope"}
+FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
+  src/../../escape.txt is outside the project root <tmp> use a path relative to the root
+> read {"file_path":"/etc/passwd"}
+FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
+  /etc/passwd is outside the project root <tmp> use a path relative to the root
+escape.txt written outside root?: NIL
+
+--- 2h. tool-permission-resources
+  read {"file_path":"./src/main.lisp"} → ("path:src/main.lisp")
+  edit {"file_path":"src/../README.md","old_string":"a","new_string":"b"} → ("path:README.md")
+  grep {"pattern":"x"} → ("path:.")
+  glob {"pattern":"*","path":"src"} → ("path:src")
+  read {"file_path":"../x"} → ("path:../x")
+  read {"file_path":"..\\x"} → ("path:..\\x")
+  read not json → ("*")
+
+--- 2i. a mock-LLM agent run that uses edit then read
+finish reason: :STOP
+tools the model was offered: ("read" "write" "edit" "multi_edit" "glob" "grep"
+                              "ls")
+tool result g1-c1 (error-p NIL):
+  content:
+  | Edited src/util.lisp: 1 replacement
+  | --- a/src/util.lisp
+  | +++ b/src/util.lisp
+  | @@ -1,3 +1,3 @@
+  |  (in-package #:app)
+  |  ;; TODO: remove
+  | -(defun twice (x) (* 2 x))
+  | +(defun twice (x) (+ x x))
+  | hash: sha256:7dce36198ad0bfde2fbd4985e98e1491a9767fd2c3579d2db73f7b07f844f003
+tool result g2-c1 (error-p NIL):
+  content:
+  |      1	(in-package #:app)
+  |      2	;; TODO: remove
+  |      3	(defun twice (x) (+ x x))
+  | hash: sha256:7dce36198ad0bfde2fbd4985e98e1491a9767fd2c3579d2db73f7b07f844f003
+final text: "Rewrote twice to use addition."
+src/util.lisp on disk:
+  | (in-package #:app)
+  | ;; TODO: remove
+  | (defun twice (x) (+ x x))
+  | 
+
+========================================================================
+== Demo 3: tui-protocol/widgets 0.2.0 on the headless driver
+========================================================================
+
+--- 3a. text-input with history, a wide character, typing and paste
+  screen after start (placeholder):
+   0 |> Ask anything|
+   1 ||
+   2 ||
+   3 ||
+  screen after typing "héllo 世界":
+   0 |> héllo 世界|
+   1 ||
+   2 ||
+   3 ||
+value: "héllo 世界"
+cursor (row col): (0 8)
+cursor display column: 10
+  screen after pasting "\npasted line\r\nwith\ttab":
+   0 |> héllo 世界|
+   1 |  pasted line|
+   2 |  with    tab|
+   3 ||
+value:
+  | héllo 世界
+  | pasted line
+  | with    tab
+lines: ("héllo 世界" "pasted line" "with    tab")
+  screen after Enter (submit):
+   0 |> Ask anything|
+   1 ||
+   2 ||
+   3 ||
+  screen after Up (history: newest):
+   0 |> héllo 世界|
+   1 |  pasted line|
+   2 |  with    tab|
+   3 ||
+  screen after Up #2:
+   0 |> héllo 世界|
+   1 |  pasted line|
+   2 |  with    tab|
+   3 ||
+  cursor (row col): (1 11)
+  screen after Up #3:
+   0 |> héllo 世界|
+   1 |  pasted line|
+   2 |  with    tab|
+   3 ||
+  cursor (row col): (0 8)
+  screen after Up #4:
+   0 |> make test|
+   1 ||
+   2 ||
+   3 ||
+  cursor (row col): (0 9)
+  screen after Up #5:
+   0 |> git status|
+   1 ||
+   2 ||
+   3 ||
+  cursor (row col): (0 10)
+history: ("git status" "make test" "héllo 世界
+pasted line
+with    tab")
+  event: submit-event text="héllo 世界
+pasted line
+with    tab"
+  event: cancel-event
+note: encode-key :digit-1 with no :text → #(); with :text "1" → #(49) (so the demo types digits)
+
+--- 3b. confirm-dialog: allow once (type 1)
+  screen after open:
+   0 |┌─Permission───────────────────────────────┐|
+   1 |│ coder wants to edit src/a.lisp (3 lines) │|
+   2 |│                                          │|
+   3 |│ > 1. Allow once                          │|
+   4 |│   2. Always allow                        │|
+   5 |│   3. Deny                                │|
+   6 |│                                          │|
+   7 |│                                          │|
+   8 |│                                          │|
+   9 |└──────────────────────────────────────────┘|
+program finished: T
+dialog mode: :CHOOSE
+  event: confirm-event choice=:ALLOW-ONCE feedback=NIL
+
+--- 3b. confirm-dialog: always allow (Down, Enter)
+  screen after open:
+   0 |┌─Permission───────────────────────────────┐|
+   1 |│ coder wants to edit src/a.lisp (3 lines) │|
+   2 |│                                          │|
+   3 |│ > 1. Allow once                          │|
+   4 |│   2. Always allow                        │|
+   5 |│   3. Deny                                │|
+   6 |│                                          │|
+   7 |│                                          │|
+   8 |│                                          │|
+   9 |└──────────────────────────────────────────┘|
+  screen after Down:
+   0 |┌─Permission───────────────────────────────┐|
+   1 |│ coder wants to edit src/a.lisp (3 lines) │|
+   2 |│                                          │|
+   3 |│   1. Allow once                          │|
+   4 |│ > 2. Always allow                        │|
+   5 |│   3. Deny                                │|
+   6 |│                                          │|
+   7 |│                                          │|
+   8 |│                                          │|
+   9 |└──────────────────────────────────────────┘|
+program finished: T
+dialog mode: :CHOOSE
+  event: confirm-event choice=:ALLOW-ALWAYS feedback=NIL
+
+--- 3b. confirm-dialog: deny with feedback (type 3, type text, Enter)
+  screen after open:
+   0 |┌─Permission───────────────────────────────┐|
+   1 |│ coder wants to edit src/a.lisp (3 lines) │|
+   2 |│                                          │|
+   3 |│ > 1. Allow once                          │|
+   4 |│   2. Always allow                        │|
+   5 |│   3. Deny                                │|
+   6 |│                                          │|
+   7 |│                                          │|
+   8 |│                                          │|
+   9 |└──────────────────────────────────────────┘|
+  screen after 3 (feedback mode):
+   0 |┌─Permission───────────────────────────────┐|
+   1 |│ coder wants to edit src/a.lisp (3 lines) │|
+   2 |│                                          │|
+   3 |│   1. Allow once                          │|
+   4 |│   2. Always allow                        │|
+   5 |│ > 3. Deny                                │|
+   6 |│ What should it do instead?               │|
+   7 |│ >                                        │|
+   8 |│                                          │|
+   9 |└──────────────────────────────────────────┘|
+  screen after typing feedback:
+   0 |┌─Permission───────────────────────────────┐|
+   1 |│ coder wants to edit src/a.lisp (3 lines) │|
+   2 |│                                          │|
+   3 |│   1. Allow once                          │|
+   4 |│   2. Always allow                        │|
+   5 |│ > 3. Deny                                │|
+   6 |│ What should it do instead?               │|
+   7 |│ > use src/b.lisp instead                 │|
+   8 |│                                          │|
+   9 |└──────────────────────────────────────────┘|
+program finished: T
+dialog mode: :FEEDBACK
+  event: confirm-event choice=:DENY feedback="use src/b.lisp instead"
+
+--- 3c. viewport (follow tail) receiving streamed text + spinner + status-line
+  screen after start:
+   0 | coder · qwen3.5-2b         ctx 12%|
+   1 ||
+   2 ||
+   3 ||
+   4 ||
+   5 ||
+   6 |⠏ thinking…|
+  screen after 3 streamed chunks:
+   0 | coder · qwen3.5-2b         ctx 12%|
+   1 |I'll read src/a.lisp first.|
+   2 |It defines GREET and MAIN.|
+   3 ||
+   4 ||
+   5 ||
+   6 |⠋ thinking…|
+  screen after 5 more chunks (tail followed):
+   0 | coder · qwen3.5-2b         ctx 12%|
+   1 |1. rename greet|
+   2 |2. update callers|
+   3 |3. run the tests|
+   4 |4. commit|
+   5 |Starting with step 1|
+   6 |⠸ thinking…|
+row count / max offset / offset / at bottom / follow: (8 3 3 T T)
+  screen after Home (scrolled to top, follow off):
+   0 | coder · qwen3.5-2b         ctx 12%|
+   1 |I'll read src/a.lisp first.|
+   2 |It defines GREET and MAIN.|
+   3 |Plan:|
+   4 |1. rename greet|
+   5 |2. update callers|
+   6 |⠸ thinking…|
+offset / follow: (0 NIL)
+  screen after a chunk while scrolled up (view stays put):
+   0 | coder · qwen3.5-2b         ctx 12%|
+   1 |I'll read src/a.lisp first.|
+   2 |It defines GREET and MAIN.|
+   3 |Plan:|
+   4 |1. rename greet|
+   5 |2. update callers|
+   6 |⠹ thinking…|
+  screen after End (back at the tail, follow on):
+   0 | coder · qwen3.5-2b         ctx 12%|
+   1 |2. update callers|
+   2 |3. run the tests|
+   3 |4. commit|
+   4 |Starting with step 1 … more text|
+   5 |while scrolled up|
+   6 |⠹ thinking…|
+offset / follow: (4 T)
+spinner frame index: 2
+  screen after stream done (spinner stopped, status right = done):
+   0 | coder · qwen3.5-2b            done|
+   1 |2. update callers|
+   2 |3. run the tests|
+   3 |4. commit|
+   4 |Starting with step 1 … more text|
+   5 |while scrolled up|
+   6 ||
+
+========================================================================
+== Demo 4: tui-backend-tty 0.1.0 (raw mode on a real pty)
+========================================================================
+
+--- 4a. this process (stdout is a file)
+tty-available-p: NIL
+interactive-stream-p *standard-output*: NIL
+run-tui signalled: TUI-BACKEND-TTY:TTY-NOT-A-TERMINAL
+  stream: :INPUT
+  message: "Standard input is not a terminal; use a headless backend (tui-backend-terminal) or run in a terminal"
+  a tui-backend-error?: T
+
+--- 4b. child SBCL on an 80x24 pty under sh: stty -g before / during / after
+child pid: 35904
+READY drawn by the child: T
+sh finished: T
+pty exit code / signal: (0 NIL)
+sh lines from the pty:
+  SH-BEFORE gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600
+  READY 80x24 press a keySH-EXIT 0
+  SH-AFTER gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600
+child report (<tmp>
+  (:BEFORE :STTY-G
+   "gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
+   :FLAGS ("icanon" "echo" "isig") :AVAILABLE T)
+  (:RAW :STTY-G
+   "gfmt1:cflag=4b00:iflag=801:lflag=41:oflag=2:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
+   :FLAGS ("-icanon" "-echo" "-isig"))
+  (:KEY :KEY :K :TEXT "k")
+  (:RETURNED :FINAL-KEY :K)
+  (:AFTER :STTY-G
+   "gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
+   :FLAGS ("icanon" "echo" "isig"))
+stty -g before (sh): "gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
+stty -g while raw (child): "gfmt1:cflag=4b00:iflag=801:lflag=41:oflag=2:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
+stty -g after (sh): "gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
+raw differs from before: T
+restored exactly (before = after): T
+
+========================================================================
+== Demo 5: llm-protocol-openai 0.4.0 prompt cache, live LM Studio
+========================================================================
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/ffi.lisp" (written 08 NOV 2026 10:25:03 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/ffi-tmpOU81XRV0.fasl
+; compilation finished in 0:00:00.006
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/api.lisp" (written 08 NOV 2026 10:25:03 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/api-tmpY2ML9CFA.fasl
+; compilation finished in 0:00:00.020
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/streams.lisp" (written 08 NOV 2026 10:25:03 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/streams-tmpX2JYJDQE.fasl
+; compilation finished in 0:00:00.020
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/compression.lisp" (written 08 NOV 2026 10:25:03 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-brotli/1.2.1.2/src/compression-tmpOPCILR65.fasl
+; compilation finished in 0:00:00.006
+; compiling file "~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/package.lisp" (written 07 OCT 2026 07:32:49 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/package-tmpRV9F8A9A.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/backend.lisp" (written 07 OCT 2026 07:32:49 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/backend-tmpK2ZAJT4I.fasl
+; compilation finished in 0:00:00.004
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/ffi.lisp" (written 18 NOV 2026 05:23:00 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/ffi-tmpUX5S4ADN.fasl
+; compilation finished in 0:00:00.006
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/api.lisp" (written 18 NOV 2026 05:23:00 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/api-tmp10401X32.fasl
+; compilation finished in 0:00:00.016
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/streams.lisp" (written 18 NOV 2026 05:23:00 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/streams-tmpZ7CBRM0G.fasl
+; compilation finished in 0:00:00.015
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/compression.lisp" (written 18 NOV 2026 05:23:00 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-zstd/1.5.7.2/src/compression-tmp9OZEQ0G2.fasl
+; compilation finished in 0:00:00.006
+; compiling file "~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/package.lisp" (written 18 NOV 2026 05:28:47 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/package-tmpB2JTL1W9.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/backend.lisp" (written 18 NOV 2026 05:28:47 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/backend-tmpP3BI68WQ.fasl
+; compilation finished in 0:00:00.003
+LM_API_TOKEN found: T
+
+--- 5a. list models
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/ffi.lisp" (written 18 NOV 2026 05:23:26 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/ffi-tmpQDARA81Z.fasl
+; compilation finished in 0:00:00.002
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/api.lisp" (written 18 NOV 2026 05:23:26 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/api-tmpYEMMM7SE.fasl
+; compilation finished in 0:00:00.007
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/streams.lisp" (written 18 NOV 2026 05:23:26 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/streams-tmp73HU0RPK.fasl
+; compilation finished in 0:00:00.005
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/compression.lisp" (written 18 NOV 2026 05:23:26 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-snappy/1.3.1.2/src/compression-tmpIO5N7K88.fasl
+; compilation finished in 0:00:00.006
+; compiling file "~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/package.lisp" (written 18 NOV 2026 06:10:21 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/package-tmpCM21U60Z.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/backend.lisp" (written 18 NOV 2026 06:10:21 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/backend-tmp9DT7SEFG.fasl
+; compilation finished in 0:00:00.003
+models: ("qwen3.5-2b" "unlimited-ocr" "text-embedding-qwen3-embedding-0.6b"
+         "text-embedding-bge-m3" "text-embedding-nomic-embed-text-v1.5")
+picked chat model: "qwen3.5-2b"
+
+--- 5b. two requests, same long system prompt, prompt_cache_key "harness-demo-run" (reasoning_effort none)
+system prompt chars: 12020
+request 1: Which test framework do the rules ask for?
+  prompt_cache_key sent: "harness-demo-run"
+  reasoning_effort sent: "none"
+  reply: "The rules explicitly require running an **ASDF** (Asdf) test operation before reporting changes to each module."
+  thinking chars: 0
+  finish reason: :STOP
+  request 1 llm-usage: input 2911  cache-read NIL  cache-write NIL  output 24  total 2935  (prompt = 2911)
+  raw usage JSON from LM Studio: "{\"prompt_tokens\":2911,\"completion_tokens\":24,\"total_tokens\":2935,\"completion_tokens_details\":{\"reasoning_tokens\":0}}"
+request 2: Which ASDF operation must run before a report?
+  prompt_cache_key sent: "harness-demo-run"
+  reasoning_effort sent: "none"
+  reply: "ASDF test-op"
+  thinking chars: 0
+  finish reason: :STOP
+  request 2 llm-usage: input 2912  cache-read NIL  cache-write NIL  output 5  total 2917  (prompt = 2912)
+  raw usage JSON from LM Studio: "{\"prompt_tokens\":2912,\"completion_tokens\":5,\"total_tokens\":2917,\"completion_tokens_details\":{\"reasoning_tokens\":0}}"
+
+--- 5c. verdict
+LM Studio did NOT report cached prompt tokens (prompt_tokens_details.cached_tokens per request: (NIL
+                                                                                                 NIL)); llm-usage-cache-read-tokens is therefore NIL/0.
+
+========================================================================
+== Summary
+========================================================================
+demos run: demo-permissions, demo-file-tools, demo-tui-widgets, demo-tty, demo-llm-cache
+demos that raised an error: none

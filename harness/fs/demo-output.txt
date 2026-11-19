@@ -1,0 +1,494 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO2.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.011
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEZ.fasl
+; compilation finished in 0:00:00.060
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.002
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+
+========================================================================
+== Demo 1: cl-stack-pathlib 0.5.0 (H2a reads/writes/ignore/grep, R4a snapshots/areas)
+========================================================================
+
+-- fs-read-range / read-lines / content-hash
+   read-range 6..10: "beta"
+   read-range 40.. (START past EOF): #()
+   read-range 28.. (to EOF): "on
+"
+   read-lines 2..3: ("beta" "gamma")
+   more-p: T
+   read-lines 4..: ("delta" "epsilon")
+   more-p: NIL
+   content-hash: "sha256:31d0cdeb90cb840ea8e3121874b8ed2a1d3cd1860d66228ed8742b2e758d5bcc"
+   octets-hash of the same bytes: "sha256:31d0cdeb90cb840ea8e3121874b8ed2a1d3cd1860d66228ed8742b2e758d5bcc"
+   stat: #<CL-STACK-PATHLIB:FILE-STAT :FILE <tmp> 31>
+   stat mode: "#o644"
+
+-- atomic write, then a compare-and-swap write that loses the race
+   atomic write → path: "<tmp>"
+     hash: "sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c"
+     written-p: T
+   directory after (no temp file left): ("config.txt" "notes.txt")
+   external writer changed config.txt; now writing with :expected-hash = our old hash
+   signalled: CL-STACK-PATHLIB:CONTENT-HASH-MISMATCH
+     report: "content of #P\"<tmp>" changed: expected \"sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c\", found \"sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2\""
+     expected: "sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c"
+     actual: "sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2"
+     restarts offered: (CL-STACK-PATHLIB:OVERWRITE CL-STACK-PATHLIB:USE-CURRENT CL-STACK-PATHLIB:RETRY)
+   choosing USE-CURRENT
+   write-text returned path: "<tmp>"
+     hash (current content): "sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2"
+     written-p: NIL
+   file content now: "v=2 (other writer)
+"
+
+-- create-only write with :expected-hash :absent on an existing file → overwrite restart
+   restarts offered: (CL-STACK-PATHLIB:OVERWRITE CL-STACK-PATHLIB:USE-CURRENT CL-STACK-PATHLIB:RETRY)
+   choosing OVERWRITE
+   hash: "sha256:c95dcbca58915107161114b71e62c4ec9b15214f15a28772318c4fe01a0bd27f"
+   written-p: T
+   file content now: "v=4 (forced)
+"
+
+-- .gitignore semantics: walk / glob / grep with :ignore :auto
+   walk :ignore nil  files: (".git/HEAD" ".gitignore" "README.md" "app.log" "build/out.txt" "keep.log"
+                             "secret.txt" "src/.gitignore" "src/generated.lisp" "src/main.lisp"
+                             "src/util.lisp")
+   walk :ignore :auto files: (".gitignore" "README.md" "keep.log" "src/.gitignore" "src/main.lisp"
+                              "src/util.lisp")
+   rglob :ignore :auto (expected = fnmatch semantics; mismatches are cl-stack-pathlib#28):
+     "*.lisp"     → ("src/main.lisp" "src/util.lisp")
+     "*.l*"       → NIL   MISMATCH, expected ("keep.log" "src/main.lisp" "src/util.lisp")
+     "m*.lisp"    → (".gitignore" "README.md" "keep.log" "src/" "src/.gitignore" "src/main.lisp"
+                     "src/util.lisp")   MISMATCH, expected ("src/main.lisp")
+     "util.?isp"  → NIL   MISMATCH, expected ("src/util.lisp")
+     "[km]*"      → (".gitignore" "README.md" "keep.log" "src/" "src/.gitignore" "src/main.lisp"
+                     "src/util.lisp")   MISMATCH, expected ("keep.log" "src/main.lisp")
+   ignore-path-status build/out.txt        → NIL   ignore-path-p → T
+   ignore-path-status app.log              → :IGNORED   ignore-path-p → T
+   ignore-path-status keep.log             → :INCLUDED   ignore-path-p → NIL
+   ignore-path-status src/generated.lisp   → :IGNORED   ignore-path-p → T
+   ignore-path-status src/main.lisp        → NIL   ignore-path-p → NIL
+   grep "TODO" (default :ignore :auto), truncated-p: NIL
+   README.md:2:0: TODO: write docs
+   keep.log:1:10: kept log: TODO re-included
+   src/main.lisp:1:17: (defun main () ; TODO: args
+   grep "todo" :case-insensitive :include "*.lisp" :max-results 1: (#<CL-STACK-PATHLIB:GREP-MATCH <tmp>
+     truncated-p: T
+
+-- fs-snapshot / fs-snapshot-changes / fs-restore
+   snapshot id #1: "sha256:0f83bdc62fc36be00b90de368e0bbb01919eedb384e9f13d9929b843151380ef"
+   entry #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "README.md" :FILE sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03>
+   entry #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "src/a.lisp" :FILE sha256:58ca452a9797bcf540598f3febf3855f54340f60ee23b41f7426bbb3447c8850>
+   entry #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "src/b/c.txt" :FILE sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855>
+   same tree again → same id: T
+   snapshot id #2 (after edits): "sha256:728feb1f931a2638b92dd14b018ae5de489b85cdd6071309242ab4f56ae35878"
+   snapshot-changes #1 → #2:
+   ADDED      NEW.txt  sha256:0f15384d
+   MODE-CHANGED README.md  sha256:5891b5b5 -> sha256:5891b5b5
+   MODIFIED   src/a.lisp  sha256:58ca452a -> sha256:85ee366d
+   REMOVED    src/b/c.txt  sha256:e3b0c442
+   restore-snapshot #1 → changes it made:
+   REMOVED    NEW.txt  sha256:0f15384d
+   MODE-CHANGED README.md  sha256:5891b5b5 -> sha256:5891b5b5
+   MODIFIED   src/a.lisp  sha256:85ee366d -> sha256:58ca452a
+   ADDED      src/b/c.txt  sha256:e3b0c442
+   src/a.lisp after restore: "(defun a () 1)
+"
+   NEW.txt exists after restore: NIL
+   src/b/c.txt exists after restore: T
+   snapshot after restore = #1: T
+
+-- open-area :copy, edits (pathlib + /bin/sh), area-changes, commit with a conflict
+   area-root: "<tmp>"
+   area-mechanism: :COPY
+   area copy files (scratch.tmp ignored): (".gitignore" "app.lisp" "log.txt" "shared.txt")
+   manifest: (#<CL-STACK-PATHLIB:SNAPSHOT-ENTRY ".gitignore" :FILE sha256:cd626bd30aa3875cc7c01d50050e4f88e84d4691457209871f27494ffd5f4ab4>
+              #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "app.lisp" :FILE sha256:f3848ad28b84f26c5577a21f8f981902d326b32d339595629c2c1b95f462e831>
+              #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "log.txt" :FILE sha256:39d031a6c1c196352ec2aea7fb3dc91ff031888b841d140bc400baa403f2d4de>
+              #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "shared.txt" :FILE sha256:c01b68e26cdc47545cae78b2a7dad8b372a93a02bee249ab9729249ef6b4f75c>)
+   area-changes (pathlib edits, a /bin/sh append, an added file; more.tmp ignored):
+   ADDED      added.txt  sha256:3428719b
+   MODIFIED   app.lisp  sha256:f3848ad2 -> sha256:b0a143b8
+   MODIFIED   log.txt  sha256:39d031a6 -> sha256:f714c76d
+   MODIFIED   shared.txt  sha256:c01b68e2 -> sha256:a1af36fd
+   base/shared.txt edited after the area opened; committing
+   signalled: CL-STACK-PATHLIB:AREA-CONFLICT
+     report: "\"shared.txt\" changed in the base and in the area #<CL-STACK-PATHLIB:AREA :COPY <tmp> :OPEN>"
+     path: "shared.txt"
+     open-entry: #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "shared.txt" :FILE sha256:c01b68e26cdc47545cae78b2a7dad8b372a93a02bee249ab9729249ef6b4f75c>
+     base-entry: #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "shared.txt" :FILE sha256:9f70d4392d5bd27f3ed87248f816c099a6dc4e41f7f93d2ced4bbaf49478c91e>
+     area-entry: #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "shared.txt" :FILE sha256:a1af36fdaa32c4958e02f2aba7ad885dabe6331274cd68ad7a3d7da6f25071fb>
+     restarts offered: (CL-STACK-PATHLIB:OVERWRITE CL-STACK-PATHLIB:SKIP-PATH CL-STACK-PATHLIB:ABORT-COMMIT)
+   choosing SKIP-PATH
+   close-area status: :COMMITTED
+   written to the base:
+   ADDED      added.txt  sha256:3428719b
+   MODIFIED   app.lisp  sha256:f3848ad2 -> sha256:b0a143b8
+   MODIFIED   log.txt  sha256:39d031a6 -> sha256:f714c76d
+   area-open-p: NIL
+   area copy deleted: T
+   base/app.lisp: "(defun app () :v2)
+"
+   base/log.txt: "line 1
+line 2 from /bin/sh
+"
+   base/shared.txt: "base edited after open
+"
+   base/added.txt: "added
+"
+   base/scratch.tmp: "ignored
+"
+
+========================================================================
+== Demo 2: process-protocol 0.3.0 / process-backend-uiop 0.2.0
+========================================================================
+   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005F4AAE3}>
+
+-- binary stdout captured as exact octets: printf '\0\377\376'
+   exit-code: 0
+   stdout: #(0 255 254)
+   stdout type: (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (3))
+   typep octet-vector: T
+   stderr: #()
+
+-- same bytes with :output :string → decoding refused (not silently mangled)
+   signalled: PROCESS-PROTOCOL:PROCESS-ERROR
+     report: "process error: cannot decode output as UTF-8: Illegal :UTF-8 character starting at position 2."
+
+-- string :input round trip through cat (UTF-8)
+   exit-code: 0
+   stdout: "héllo, wörld"
+
+-- :env merges into the inherited environment (default :env-mode :merge)
+   parent has HOME: T
+   child HOME = parent HOME: T
+   child DEMO_VAR: "added by :env"
+   child variable count: 63
+
+-- :env with a NIL value unsets an inherited variable
+   child HOME: NIL
+   child DEMO_VAR: "x"
+
+-- :env-mode :replace gives the child exactly :env
+   /usr/bin/env output: ("DEMO_VAR=only me" "OTHER=string form")
+
+-- long-lived cat driven through octet streams (launch :element-type :octets)
+   alive-p after launch: T
+   stdin element-type: CHARACTER
+   sent #(0 1 2 255 254 10) → read 6 octets back #(0 1 2 255 254 10) (equal: T)
+   sent #(104 105 10) → read 3 octets back #(104 105 10) (equal: T)
+   sent #(200 201 202 203) → read 4 octets back #(200 201 202 203) (equal: T)
+   still alive between messages: T
+   exit code after closing stdin: 0
+   alive-p: NIL
+   exit-code: 0
+
+-- run "sleep 30" with :timeout 1: CONTINUE once (wait 1 s more), then give up
+   signalled PROCESS-TIMEOUT-ERROR after 1.1s: process timed out after 1 s: sleep 30
+   restarts offered: (CONTINUE)
+   child alive while signalled: T
+   → CONTINUE
+   signalled PROCESS-TIMEOUT-ERROR after 2.1s: process timed out after 1 s: sleep 30
+   restarts offered: (CONTINUE)
+   child alive while signalled: T
+   unwound with: PROCESS-PROTOCOL:PROCESS-TIMEOUT-ERROR
+     timeout slot: 1
+     command slot: ("sleep" "30")
+   elapsed seconds: 2.1
+   child alive-p after unwinding: NIL
+   child exit-code: 137
+
+-- process-wait :timeout on a launched child does not kill it
+   signalled: PROCESS-PROTOCOL:PROCESS-TIMEOUT-ERROR
+   alive-p after wait timeout: T
+   exit code after kill: 143
+   alive-p: NIL
+
+========================================================================
+== Demo 3: revision-backend-git 0.1.0
+========================================================================
+   built repo with git CLI: (:C1 "f81f7f06bc60" :C2 "dbb632cf794c" :C3 "aa4fac9b0d34" :F1 "cc05228f3efa")
+
+-- make-git-store
+   git-version: "2.54.0"
+   git-store-path: "<tmp>"
+   git-store-bare-p: NIL
+   content-primary: :STATE
+
+-- commit-revision from a tree value (fixed clock → deterministic id)
+   new revision a88a07a10047 "c4: from a tree value" parents=("aa4fac9b0d34") recorded=1700000300 valid=1700000300
+   provenance: (:AUTHOR-NAME "Demo User" :AUTHOR-EMAIL "demo@example.invalid" :COMMITTER-NAME "Demo User"
+                :COMMITTER-EMAIL "demo@example.invalid" :TREE "fba9f428f35c9b2e9b1f8dab601ca1f92e11c56d")
+   git log -1 --format=%H %s: "a88a07a10047d6e1163d7893095df661a9d18dba c4: from a tree value
+"
+   git ls-tree -r main: "100644 blob 8c2cf60ae6a55a3cc3eef253de12906f43b14322	README.md
+100755 blob 4163036efa65bd4a469e752267498f01ea36a55c	bin/run.sh
+100644 blob ba57cb87a62e681aeab3ead835a7e7c1d5dc9cbe	src/app.lisp
+"
+
+-- refs: move-ref (new branch), tag-revision (annotated), list-refs
+   MOVABLE  topic → dbb632cf794c
+   TAG      v2 → aa4fac9b0d34  annotation "second release"
+   tag-revision again, same target + annotation (idempotent): "aa4fac9b0d34b7827679727d0bb3db681a52ca23"
+   re-tag v2 at c1 → signalled: REVISION-PROTOCOL:TAG-IMMUTABLE
+     report: "tag \"v2\" is immutable (points at \"aa4fac9b0d34b7827679727d0bb3db681a52ca23\")"
+     restarts offered: (REVISION-PROTOCOL:CREATE-NEW-TAG)
+   choosing CREATE-NEW-TAG "v2-c1"
+   TAG      v2-c1 → f81f7f06bc60
+   list-refs:
+   MOVABLE  feature → cc05228f3efa
+   MOVABLE  main → a88a07a10047
+   MOVABLE  topic → dbb632cf794c
+   TAG      v1 → f81f7f06bc60  annotation "first release"
+   TAG      v2 → aa4fac9b0d34  annotation "second release"
+   TAG      v2-c1 → f81f7f06bc60
+
+-- walk-revisions / merge-base / designators
+   walk-revisions main :topo (parents first):
+      f81f7f06bc60 "c1: initial" parents=NIL recorded=1700000000 valid=1700000000
+      dbb632cf794c "c2: app v2, guide" parents=("f81f7f06bc60") recorded=1700000100 valid=1700000100
+      aa4fac9b0d34 "c3: rename guide" parents=("dbb632cf794c") recorded=1700000200 valid=1700000200
+      a88a07a10047 "c4: from a tree value" parents=("aa4fac9b0d34") recorded=1700000300 valid=1700000300
+   walk-revisions feature :until main: ("f1: feature")
+   merge-base main feature: "c1: initial"
+     = c1: T
+   ancestor-p v1 main: T
+   ancestor-p feature main: NIL
+   resolve-revision prefix "dbb632c": "c2: app v2, guide"
+   resolve-revision "main~2" (git revspec): "c2: app v2, guide"
+   resolve (rev-parent (rev-ref "main")): "c3: rename guide"
+   resolve (rev-as-of t0+120 :on "main"): "c2: app v2, guide"
+   resolve "nope-not-a-rev" → signalled: REVISION-PROTOCOL:REVISION-NOT-FOUND
+
+-- state-diff c2 → c3 at :summary (a pure rename)
+R tree:/docs/guide.txt tree:/docs/manual.txt
+
+-- state-diff c1 → c3 at :summary
+   diff-level: :SUMMARY
+   footprint: ("tree:/docs/manual.txt" "tree:/src/app.lisp")
+M tree:/src/app.lisp
+A tree:/docs/manual.txt
+
+-- state-diff c1 → c3 at :content, rendered :unified
+diff --git a/docs/manual.txt b/docs/manual.txt
+new file mode 100644
+--- /dev/null
++++ b/docs/manual.txt
+@@ -0,0 +1 @@
++read me
+diff --git a/src/app.lisp b/src/app.lisp
+--- a/src/app.lisp
++++ b/src/app.lisp
+@@ -1,2 +1,3 @@
+ (defun app ()
+-  :v1)
++  ;; second version
++  :v2)
+   delta-inverse non-NIL (reversible): T
+
+-- commit-revision moved the checked-out main without touching files; git reset --hard main to start clean
+   git status --porcelain (stale worktree): "M  README.md
+D  bin/run.sh
+A  docs/manual.txt
+M  src/app.lisp
+"
+
+-- git-working-copy with a stamp ref: dirty, target-drift, capture-revision
+   target-revisions: ("a88a07a10047")
+   drift when clean: NIL
+   git status --porcelain (before): " D README.md
+ D bin/run.sh
+ M src/app.lisp
+?? bin/start.sh
+?? notes/
+"
+   target-drift footprint: ("text:/src/app.lisp/0-2" "tree:/README.md" "tree:/bin/run.sh"
+                            "tree:/bin/start.sh" "tree:/notes/todo.txt" "tree:/src/app.lisp")
+D tree:/README.md
+R tree:/bin/run.sh tree:/bin/start.sh
+M tree:/src/app.lisp text:/src/app.lisp/0-2
+A tree:/notes/todo.txt
+   state-diff HEAD → working copy at :summary (rename detection on the worktree):
+D tree:/README.md
+R tree:/bin/run.sh tree:/bin/start.sh
+M tree:/src/app.lisp
+A tree:/notes/todo.txt
+   captured 1c86e87ecc8b "agent checkpoint" parents=("a88a07a10047") recorded=1795120559 valid=1795120559
+   refs/agent/checkpoint: "1c86e87ecc8b"
+   files in capture: "bin/start.sh
+notes/todo.txt
+src/app.lisp
+"
+   drift after capture: NIL
+   git status unchanged: T
+   index file unchanged: T
+   HEAD unchanged: T
+   worktree file still dirty: "(defun app ()
+  :dirty)
+"
+
+-- read-only revision-filesystem at c1 (older than main)
+   revision-filesystem-revision: "f81f7f06bc60"
+   iterdir /: ("/README.md" "/src")
+   walk / files: ("/README.md" "/src/app.lisp")
+   read-text /src/app.lisp @c1: "(defun app ()
+  :v1)
+"
+   read-lines 2.. @c1: ("  :v1)")
+   content-hash @c1: "sha256:3d3b66f6fcf2f8efbae77187581ea835be36d679a978751b3137e33c27f71a60"
+   file-size: 21
+   read-text /src/app.lisp @main: "(defun app ()
+  :v4)
+"
+   exists-p /docs/guide.txt @c1: NIL
+   exists-p /docs/guide.txt @c2: T
+   write-text on the revision fs → signalled: CL-STACK-PATHLIB:UNSUPPORTED-OPERATION
+
+-- CAS: move-ref main with a stale :expected → ref-conflict
+   main now: "a88a07a10047"
+   caller believes main is: "aa4fac9b0d34"
+   signalled: REVISION-PROTOCOL:REF-CONFLICT
+     report: "ref \"main\" moved: expected \"aa4fac9b0d34b7827679727d0bb3db681a52ca23\", found \"a88a07a10047d6e1163d7893095df661a9d18dba\""
+     expected: "aa4fac9b0d34"
+     actual: "a88a07a10047"
+     restarts offered: (REVISION-PROTOCOL:USE-CURRENT REVISION-PROTOCOL:RETRY)
+   choosing USE-CURRENT
+   move-ref returned: "a88a07a10047"
+   main unchanged: T
+
+========================================================================
+== Demo 4: revision-backend-jj 0.1.0
+========================================================================
+   built repo with jj CLI: (:BASE "wprzpsvzvvwk" :SECOND "pxmzmynpopto" :LEFT "nlxvpkxqpkrx" :RIGHT
+                            "kznkwytnxwyq" :MERGE "omqlqrmxkwpu")
+
+-- make-jj-store
+   jj-version: "0.47.1"
+   jj-store-workspace: "default"
+   jj-store-colocated-p: T
+   jj-capabilities: (:PRIMARY :STATE :MERGES T :CHILDREN-INDEX T :VALID-TIME T :REF-CAS NIL :ATOMIC-MULTI-REF
+                     NIL :GC NIL :SIGNED NIL :TRANSACTIONAL-APPLY NIL :PROJECTION NIL :CONFLICTED-REVISIONS T)
+
+-- revisions: change ids (revision-id) vs commit ids (provenance :commit-id)
+     main: change wprzpsvzvvwk commit 5d66895a1630 "base" parents=NIL recorded=1700000000
+     main: change pxmzmynpopto commit fe2d9f56dfa3 "second" parents=("wprzpsvzvvwk") recorded=1700000100
+   jj log (CLI) for comparison: "pxmzmynpopto fe2d9f56dfa3 second
+wprzpsvzvvwk 5d66895a1630 base"
+
+-- commit-revision from a tree value onto main (fixed clock)
+   new revision change vxpvlkuqmnto commit c5198909ba5b "third: from a tree value" parents=("pxmzmynpopto") recorded=1700000300
+   provenance: (:COMMIT-ID "c5198909ba5b0e2741c39a86b8c09a170a20e272" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
+                "demo@example.invalid" :COMMITTER-NAME "Demo User" :COMMITTER-EMAIL "demo@example.invalid"
+                :CONFLICT NIL :EMPTY NIL)
+
+-- refs: bookmark + tag, list-refs
+   MOVABLE  main → vxpvlkuqmnto
+   TAG      v1 → wprzpsvzvvwk
+   merge-base left right: "base"
+   heads: ("" "merge left+right (conflict left in)" "third: from a tree value")
+
+-- rewrite a mutable change with jj describe: same change id, new commit id
+   before change pxmzmynpopto commit fe2d9f56dfa3 "second" parents=("wprzpsvzvvwk") recorded=1700000100
+   after  change pxmzmynpopto commit ad3441d9b942 "second (reworded)" parents=("wprzpsvzvvwk") recorded=1700000400
+   same change id: T
+   commit id changed: T
+   old commit id still resolves (hidden commit): "second"
+
+-- operation log and rev-as-of :recorded
+   op bb0fd5f0966d end 1700000405000 "describe commit fe2d9f56dfa3d60a387efe28ffde09c2ceb9528e"
+   op a2b104cf7490 end 1795120562513 "set tag v1 to commit 5d66895a16303cbc6f8d075892c7f0a307a6e803"
+   op 367cb9da1e71 end 1795120562212 "point bookmark main to commit c5198909ba5b0e2741c39a86b8c09a170a20e272"
+   op 5d2bc193cbcf end 1795120561999 "forget workspace rbjj-v1pal2ixg9o3"
+   op 12dedbcbad93 end 1795120561879 "commit efde6ec3516062735e47624fce9c0a453b0126b9"
+   op 6413044c42a9 end 1795120561843 "snapshot working copy"
+   op before describe: "a2b104cf7490"
+   rev-as-of t0+350 :recorded on main: "second"
+   rev-as-of t0+120 :recorded on main change pxmzmynpopto commit fe2d9f56dfa3 "second" parents=("wprzpsvzvvwk") recorded=1700000100
+   rev-as-of t0+50 :valid on main: "base"
+
+-- state-diff base → third at :summary and :content (unified)
+M tree:/a.txt
+M tree:/src/lib.lisp
+A tree:/notes.txt
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1,3 @@
+ one
++two
++three
+diff --git a/notes.txt b/notes.txt
+new file mode 100644
+--- /dev/null
++++ b/notes.txt
+@@ -0,0 +1 @@
++second change
+diff --git a/src/lib.lisp b/src/lib.lisp
+--- a/src/lib.lisp
++++ b/src/lib.lisp
+@@ -1 +1 @@
+-(defun lib () 1)
++(defun lib () 3)
+
+-- a committed conflict: merge(left, right) with a.txt unresolved
+   merge change omqlqrmxkwpu commit 8e4e08ec1933 "merge left+right (conflict left in)" parents=("nlxvpkxqpkrx"
+                                                                                                "kznkwytnxwyq") recorded=1700000250
+   provenance :conflict: T
+   revision-conflicts: (("a.txt" . 2))
+   read-text /a.txt @merge (materialized conflict): "<<<<<<< conflict 1 of 1
+%%%%%%% diff from: wprzpsvz 5d66895a \"base\"
+\\\\\\\\\\\\\\        to: nlxvpkxq dc1831fa \"left\"
+-one
++left
++++++++ kznkwytn 7377db07 \"right\"
+right
+>>>>>>> conflict 1 of 1 ends
+"
+   read-text /a.txt @left: "left
+"
+diff --git a/a.txt b/a.txt
+--- a/a.txt
++++ b/a.txt
+@@ -1 +1,8 @@
+-left
++<<<<<<< conflict 1 of 1
++%%%%%%% diff from: wprzpsvz 5d66895a "base"
++\\\\\\\        to: nlxvpkxq dc1831fa "left"
++-one
+++left
+++++++++ kznkwytn 7377db07 "right"
++right
++>>>>>>> conflict 1 of 1 ends
+
+-- CAS: move-ref main with a stale :expected → ref-conflict
+   main now: "vxpvlkuqmnto"
+   caller believes main is: "wprzpsvzvvwk"
+   signalled: REVISION-PROTOCOL:REF-CONFLICT
+     report: "ref \"main\" moved: expected \"wprzpsvzvvwkzquopzxvwtzmlvuvlnxw\", found \"vxpvlkuqmntootzxwvpvqqlqkqsrsvlx\""
+     restarts offered: (REVISION-PROTOCOL:USE-CURRENT REVISION-PROTOCOL:RETRY)
+   choosing USE-CURRENT
+   move-ref returned: "vxpvlkuqmnto"
+   main unchanged: T
+
+========================================================================
+Demos run: 4, failed: none

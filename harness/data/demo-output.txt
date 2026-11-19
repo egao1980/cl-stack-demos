@@ -1,0 +1,529 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO3.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG6.fasl
+; compilation finished in 0:00:00.011
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGF0.fasl
+; compilation finished in 0:00:00.061
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTD.fasl
+; compilation finished in 0:00:00.002
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-ERROR>
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-WARNING>
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-INTERFACE-ERROR>
+WARNING:
+   redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-UNIMPLEMENTED-ERROR>
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-DATABASE-ERROR>
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-DATA-ERROR>
+WARNING:
+   redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-OPERATIONAL-ERROR>
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-INTEGRITY-ERROR>
+WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-INTERNAL-ERROR>
+WARNING:
+   redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-PROGRAMMING-ERROR>
+WARNING:
+   redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-NOTSUPPORTED-ERROR>
+WARNING:
+   redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-ALREADY-COMMITED-ERROR>
+WARNING:
+   redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-ALREADY-ROLLED-BACK-ERROR>
+WARNING: redefining DEFTYPE type to be a class: DBI.DRIVER:<DBI-DRIVER>
+WARNING: redefining DEFTYPE type to be a class: DBI.DRIVER:<DBI-CONNECTION>
+WARNING: redefining DEFTYPE type to be a class: DBI.DRIVER:<DBI-QUERY>
+WARNING:
+   bare references to struct types are deprecated. Please use (:POINTER
+                                                               (:STRUCT
+                                                                SQLITE3)) or (:STRUCT
+                                                                              SQLITE3) instead.
+WARNING:
+   bare references to struct types are deprecated. Please use (:POINTER
+                                                               (:STRUCT
+                                                                SQLITE3-STMT)) or (:STRUCT
+                                                                                   SQLITE3-STMT) instead.
+WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3>
+WARNING:
+   redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-CONNECTION>
+WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
+
+========================================================================
+== Demo 1: diff-protocol 0.2.0
+========================================================================
+
+--- 1a. text diff of two files at :changes, rendered :unified
+    context 0 hunks (2 changes, level :CHANGES, engine text):
+      (:ADD (9) NIL ("text:/9-9"))
+      (:MODIFY (1) NIL ("text:/1-2"))
+    render :unified (context 0):
+      | @@ -2 +2 @@
+      | -beta
+      | +BETA
+      | @@ -9,0 +10 @@
+      | +kappa
+    render :unified (:context 3, git-style hunk merge):
+      | @@ -1,5 +1,5 @@
+      |  alpha
+      | -beta
+      | +BETA
+      |  gamma
+      |  delta
+      |  epsilon
+      | @@ -7,3 +7,4 @@
+      |  eta
+      |  theta
+      |  iota
+      | +kappa
+    apply-diff a diff = b => T
+    apply-diff b (invert-diff diff) = a => T
+
+--- 1b. three-way merge with a real conflict: merge-texts
+    merge-texts (default :merge style):
+      | title: Demo
+      | <<<<<<< ours
+      | owner: bob
+      | =======
+      | owner: carol
+      | >>>>>>> theirs
+      | port: 8080
+      | debug: true
+      | end
+    conflicts: 1
+      conflict footprint ("text:/1-2"): ours :MODIFY / theirs :MODIFY
+    merge-texts :style :diff3 (custom labels):
+      | title: Demo
+      | <<<<<<< HEAD
+      | owner: bob
+      | ||||||| base
+      | owner: alice
+      | =======
+      | owner: carol
+      | >>>>>>> feature
+      | port: 8080
+      | debug: true
+      | end
+    conflicts: 1
+    three-way-diff merged diff (non-conflicting part) (1 change, level :CHANGES, engine text):
+      (:MODIFY (3) NIL ("text:/3-4"))
+    base + merged diff (conflict region keeps base):
+      | title: Demo
+      | owner: alice
+      | port: 8080
+      | debug: true
+      | end
+    conflicts: 1
+      conflict footprint ("text:/1-2"): ours :MODIFY / theirs :MODIFY
+
+--- 1c. tree diff: rename detection and a mode change
+    rename threshold 0.5, detect renames T
+    tree diff (2 changes, level :CHANGES, engine tree):
+      (:MOVE ("lib" "x.lisp") ("src" "x.lisp") ("tree:/src/x.lisp" "tree:/lib/x.lisp"))
+      (:MODIFY ("run.sh" DIFF-PROTOCOL:TREE-MODE) NIL ("tree:/run.sh"))
+    render :summary:
+      | R tree:/src/x.lisp tree:/lib/x.lisp
+      | M tree:/run.sh
+    render :unified:
+      | diff --git a/src/x.lisp b/lib/x.lisp
+      | similarity index 75%
+      | rename from src/x.lisp
+      | rename to lib/x.lisp
+      | --- a/src/x.lisp
+      | +++ b/lib/x.lisp
+      | @@ -4 +4 @@
+      | -(d)
+      | +(D)
+      | diff --git a/run.sh b/run.sh
+      | old mode 100644
+      | new mode 100755
+    apply-diff a diff state-equal b => T
+
+--- 1d. parse-diff :unified on real `git diff` output, then apply-diff
+    git version: git version 2.54.0 (Apple Git-157)
+    git diff -M HEAD~1 HEAD:
+      | diff --git a/README b/README
+      | index 377d70c..e117347 100644
+      | --- a/README
+      | +++ b/README
+      | @@ -1,3 +1,3 @@
+      |  Demo repo
+      |  
+      | -Line three.
+      | +Line three, edited.
+      | diff --git a/docs/new.md b/docs/new.md
+      | new file mode 100644
+      | index 0000000..7bcf00c
+      | --- /dev/null
+      | +++ b/docs/new.md
+      | @@ -0,0 +1,3 @@
+      | +# New
+      | +
+      | +Added file.
+      | diff --git a/src/util.lisp b/lib/util.lisp
+      | similarity index 73%
+      | rename from src/util.lisp
+      | rename to lib/util.lisp
+      | index 4000ee0..e6b8e6d 100644
+      | --- a/src/util.lisp
+      | +++ b/lib/util.lisp
+      | @@ -1,4 +1,4 @@
+      |  (defun one () 1)
+      |  (defun two () 2)
+      |  (defun three () 3)
+      | -(defun four () 4)
+      | +(defun four () 44)
+      | diff --git a/old.txt b/old.txt
+      | deleted file mode 100644
+      | index 6e263ab..0000000
+      | --- a/old.txt
+      | +++ /dev/null
+      | @@ -1 +0,0 @@
+      | -obsolete
+      | diff --git a/run.sh b/run.sh
+      | old mode 100644
+      | new mode 100755
+    parsed engine: tree
+    parsed diff (6 changes, level :CHANGES, engine tree):
+      (:REMOVE ("old.txt") NIL ("tree:/old.txt"))
+      (:MOVE ("lib" "util.lisp") ("src" "util.lisp") ("tree:/src/util.lisp" "tree:/lib/util.lisp"))
+      (:MODIFY ("README" 0) NIL ("tree:/README" "text:/README/0-3"))
+      (:MODIFY ("lib" "util.lisp" 0) NIL ("tree:/lib/util.lisp" "text:/lib/util.lisp/0-4"))
+      (:MODIFY ("run.sh" DIFF-PROTOCOL:TREE-MODE) NIL ("tree:/run.sh"))
+      (:ADD ("docs" "new.md") NIL ("tree:/docs/new.md"))
+    apply-diff before parsed state-equal after (the new tree) => T
+    apply-diff after (invert-diff parsed) state-equal before => T
+    re-render of the parsed diff :unified:
+      | diff --git a/README b/README
+      | --- a/README
+      | +++ b/README
+      | @@ -1,3 +1,3 @@
+      |  Demo repo
+      |  
+      | -Line three.
+      | +Line three, edited.
+      | diff --git a/docs/new.md b/docs/new.md
+      | new file mode 100644
+      | --- /dev/null
+      | +++ b/docs/new.md
+      | @@ -0,0 +1,3 @@
+      | +# New
+      | +
+      | +Added file.
+      | diff --git a/src/util.lisp b/lib/util.lisp
+      | rename from src/util.lisp
+      | rename to lib/util.lisp
+      | --- a/src/util.lisp
+      | +++ b/lib/util.lisp
+      | @@ -1,4 +1,4 @@
+      |  (defun one () 1)
+      |  (defun two () 2)
+      |  (defun three () 3)
+      | -(defun four () 4)
+      | +(defun four () 44)
+      | diff --git a/old.txt b/old.txt
+      | deleted file mode 100644
+      | --- a/old.txt
+      | +++ /dev/null
+      | @@ -1 +0,0 @@
+      | -obsolete
+      | diff --git a/run.sh b/run.sh
+      | old mode 100644
+      | new mode 100755
+
+--- 1e. sexp diff, invert-diff, apply-diff round trip
+    sexp diff (3 changes, level :CHANGES, engine sexp):
+      (:MODIFY (:REPLICAS) NIL ("sexp:/replicas"))
+      (:ADD (:PORTS 2) NIL ("sexp:/ports/2"))
+      (:ADD (:ENV :TRACE) NIL ("sexp:/env/trace"))
+    render :summary:
+      | M sexp:/replicas
+      | A sexp:/ports/2
+      | A sexp:/env/trace
+    render :sexp => (:DIFF :VERSION 1 :ENGINE :SEXP :LEVEL :CHANGES :CHANGES ((:CHANGE :KIND :MODIFY :PATH (:REPLICAS) :FOOTPRINT ("sexp:/replicas") :BEFORE 2 :AFTER 3) (:CHANGE :KIND :ADD :PATH (:PORTS 2) :FOOTPRINT ("sexp:/ports/2") :AFTER 8443) (:CHANGE :KIND :ADD :PATH (:ENV :TRACE) :FOOTPRINT ("sexp:/env/trace") :AFTER COMMON-LISP:T)))
+    invert-diff (3 changes, level :CHANGES, engine sexp):
+      (:REMOVE (:ENV :TRACE) NIL ("sexp:/env/trace"))
+      (:REMOVE (:PORTS 2) NIL ("sexp:/ports/2"))
+      (:MODIFY (:REPLICAS) NIL ("sexp:/replicas"))
+    apply-diff a diff => (:NAME "svc" :REPLICAS 3 :PORTS (80 443 8443) :ENV (:MODE "prod" :TRACE T))
+    apply-diff b inverse => (:NAME "svc" :REPLICAS 2 :PORTS (80 443) :ENV (:MODE "prod"))
+    round trip a -> b -> a state-equal => T
+    parse-diff :sexp of render :sexp applies the same => T
+
+--- 1f. diff-protocol#2: list index shift merges cleanly
+    base ("x" "y"), ours ("x") (remove y), theirs ("x" "y" "z") (append z)
+    merged diff (2 changes, level :CHANGES, engine sexp):
+      (:REMOVE (1) NIL ("sexp:/1"))
+      (:ADD (1) NIL ("sexp:/1"))
+    conflicts: 0
+    apply-diff base merged => ("x" "z")
+    merged = ("x" "z") with no conflicts => T
+    nested: base (:L ("x" "y") :N 1), ours (:L ("x") :N 1), theirs (:L ("x" "y" "z") :N 2)
+    merged => (:L ("x" "z") :N 2), conflicts 0
+
+========================================================================
+== Demo 2: revision-protocol 0.2.0
+========================================================================
+
+--- 2a. in-memory store: two branches, a tag, walks, merge-base, as-of
+    refs:
+      feature movable -> f2-owner
+      main movable -> m3-bump
+      v1 tag -> m2-bump  (first release)
+    walk-revisions (main feature) :topo:
+      m1-init  parents NIL  recorded 100  "init"  state (:APP "demo" :VERSION 1 :FLAGS NIL)
+      m2-bump  parents ("m1-init")  recorded 200  "bump to 2"  state (:APP "demo" :VERSION 2 :FLAGS NIL)
+      f1-beta  parents ("m1-init")  recorded 150  "beta flag"  state (:APP "demo" :VERSION 1 :FLAGS ("beta"))
+      m3-bump  parents ("m2-bump")  recorded 300  "bump to 3"  state (:APP "demo" :VERSION 3 :FLAGS NIL)
+      f2-owner  parents ("f1-beta")  recorded 350  "version 9 + owner"  state (:APP "demo" :VERSION 9 :FLAGS ("beta") :OWNER "f-team")
+    walk :time  => ("m1-init" "f1-beta" "m2-bump" "m3-bump" "f2-owner")
+    walk main :first-parent :reverse t (git log) => ("m3-bump" "m2-bump" "m1-init")
+    walk feature :until main => ("f1-beta" "f2-owner")
+    walk main :footprint ("sexp:/version") => ("m1-init" "m2-bump" "m3-bump")
+    merge-base main feature => m1-init
+    ancestor-p v1 main => T
+    resolve (rev-tag "v1") => m2-bump
+    resolve (rev-ancestor main 2) => m1-init
+    resolve id prefix "f2-o" => f2-owner
+    rev-as-of 120 :on main => m1-init
+    rev-as-of 250 :on main => m2-bump
+    rev-as-of 1000 :on main => m3-bump
+    heads => ("f2-owner" "m3-bump")
+
+--- 2b. CAS ref-conflict resolved by the RETRY restart
+    we read main = m3-bump, then someone else commits to main first
+    handler: REF-CONFLICT "main" expected "m3-bump" actual "m4-other"
+    handler: restarts offered (REVISION-PROTOCOL:RETRY REVISION-PROTOCOL:USE-CURRENT ABORT)
+    handler: choosing RETRY
+    committed m5-ours with parents ("m4-other")
+    main now points at m5-ours => T
+
+--- 2c. in-memory target: plan-transition, describe-plan, execute-plan, drift
+    target at ("m2-bump"), state (:APP "demo" :VERSION 2 :FLAGS NIL)
+    plan to feature: start ("m2-bump") goal ("f2-owner") base "m1-init"
+    describe-plan:
+      | down m2-bump -> m1-init sexp:/version
+      | up m1-init -> f1-beta sexp:/flags/0
+      | up f1-beta -> f2-owner sexp:/owner sexp:/version
+    execute-plan => ("f2-owner"), skipped NIL
+    target state (:APP "demo" :VERSION 9 :FLAGS ("beta") :OWNER "f-team")
+    target-drift => NIL
+    someone edits the target by hand: (setf target-state)
+    target-drift (render :summary):
+      | A sexp:/hotfix
+    describe-plan back to m2-bump:
+      | down f2-owner -> f1-beta sexp:/owner sexp:/version
+      | down f1-beta -> m1-init sexp:/flags/0
+      | up m1-init -> m2-bump sexp:/version
+    handler: TARGET-DRIFT-DETECTED, drift A sexp:/hotfix
+    handler: restarts offered (REVISION-PROTOCOL:CAPTURE-AND-CONTINUE REVISION-PROTOCOL:DISCARD-DRIFT ABORT)
+    handler: choosing CAPTURE-AND-CONTINUE
+    execute-plan => (("m2-bump") NIL)
+    target now ("m2-bump"), state (:APP "demo" :VERSION 2 :FLAGS NIL)
+    captured revision (store-generated id): parents ("f2-owner") message NIL state (:APP "demo" :VERSION 9 :FLAGS ("beta") :OWNER "f-team" :HOTFIX T)
+    heads now: 2 (m5-ours + the captured drift revision)
+
+--- 2d. project-merge: conflict as data, then commit-projection with TAKE-OURS
+    parents ("m3-bump" "f2-owner") fidelity :EXACT
+    projected state (base value kept at conflicts): (:APP "demo" :VERSION 1 :FLAGS ("beta") :OWNER "f-team")
+    conflicts: 1
+      conflict footprint ("sexp:/version"): ours :MODIFY / theirs :MODIFY
+      ours 1 -> 3, theirs 1 -> 9
+    handler: MERGE-CONFLICT with 1 conflict(s); restarts (REVISION-PROTOCOL:TAKE-OURS REVISION-PROTOCOL:TAKE-THEIRS REVISION-PROTOCOL:USE-MERGED ABORT)
+    handler: choosing TAKE-OURS
+    merge revision (store-generated id, 40 hex chars) parents ("m3-bump" "f2-owner")
+    merged state (:APP "demo" :VERSION 3 :FLAGS ("beta") :OWNER "f-team")
+
+--- 2e. composite revision: manifest over two stores, restored
+    commit-composite ... :id "ckpt-1" => UNKNOWN-KEYWORD-ARGUMENT: Unknown &KEY argument: :ID  [revision-protocol#6]
+    composite revision (store-generated id; commit-composite takes no :id) manifest parts (#<REVISION-PROTOCOL:MANIFEST-PART :FILES files-2> #<REVISION-PROTOCOL:MANIFEST-PART :DB db-2>)
+    targets before: files ("files-1") (:FILES ("README")) / db ("db-1") (:TABLES ("users"))
+    plan-composite :DB: up db-1 -> db-2 sexp:/tables/1
+    plan-composite :FILES: up files-1 -> files-2 sexp:/files/1
+    restore-composite => (:DB ("db-2") :FILES ("files-2"))
+    targets after:  files ("files-2") (:FILES ("README" "src/app.lisp")) / db ("db-2") (:TABLES ("users" "orders"))
+    both parts at the checkpoint's revisions => T
+
+========================================================================
+== Demo 3: sql-orm 0.2.0 (SQLite in memory)
+========================================================================
+
+--- 3a. diff-schema :complete t, the op list, apply-ops-to-snapshot round trip
+    snapshot v1:
+      ITEMS: ID INTEGER PK AUTOINCREMENT NOT NULL, NAME TEXT NOT NULL, QTY INTEGER, LEGACY TEXT
+      NOTES: ID INTEGER PK AUTOINCREMENT NOT NULL, BODY TEXT
+    snapshot v2:
+      ITEMS: ID INTEGER PK AUTOINCREMENT NOT NULL, NAME TEXT NOT NULL, QTY INTEGER NOT NULL DEFAULT 0, PRICE REAL
+      TAGS: ID INTEGER PK AUTOINCREMENT NOT NULL, LABEL TEXT NOT NULL UNIQUE
+    diff-schema v1 v2 (0.1 policy, :complete nil) (3 ops):
+      1. add-column-op ITEMS: PRICE REAL
+           footprint ("column:items.price")
+      2. drop-column-op ITEMS: LEGACY TEXT
+           footprint ("column:items.legacy")
+      3. create-table-op TAGS
+           footprint ("table:tags")
+    diff-schema v1 v2 :complete t :dialect :sqlite3 (5 ops):
+      1. drop-column-op ITEMS: LEGACY TEXT
+           footprint ("column:items.legacy")
+      2. add-column-op ITEMS: PRICE REAL
+           footprint ("column:items.price")
+      3. alter-column-op ITEMS: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
+           footprint ("column:items.qty")
+      4. create-table-op TAGS
+           footprint ("table:tags")
+      5. drop-table-op NOTES
+           footprint ("table:notes")
+    apply-ops-to-snapshot v1 ops:
+      ITEMS: ID INTEGER PK AUTOINCREMENT NOT NULL, NAME TEXT NOT NULL, QTY INTEGER NOT NULL DEFAULT 0, PRICE REAL
+      TAGS: ID INTEGER PK AUTOINCREMENT NOT NULL, LABEL TEXT NOT NULL UNIQUE
+    (schema-snapshot-equal folded v2 :dialect :sqlite3) => T
+    fold of the inverted ops from v2 = v1 => T
+    diff-schema v2 v2 :complete t => no ops => T
+    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009A52A03}> conflicts with snapshot: no column ITEMS.LEGACY
+
+--- 3b. alter-column-op on SQLite: table rebuild, data preserved
+    op: alter-column-op items: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
+    footprint ("column:items.qty")
+    portable DDL (ANSI): ("ALTER TABLE \"items\" ALTER COLUMN \"qty\" SET NOT NULL" "ALTER TABLE \"items\" ALTER COLUMN \"qty\" SET DEFAULT 0")
+    rows before: ((:ID 1 :NAME "bolt" :QTY 10 :LEGACY "x") (:ID 2 :NAME "nut" :QTY 25 :LEGACY "y"))
+    reflect-schema before:
+      items: id INTEGER PK AUTOINCREMENT NOT NULL, name TEXT NOT NULL, qty INTEGER, legacy TEXT
+      notes: id INTEGER PK AUTOINCREMENT NOT NULL, body TEXT
+    SQLite statements for the op: ("CREATE TABLE \"items__sql_orm_rebuild\" (\"id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \"name\" TEXT NOT NULL, \"qty\" INTEGER NOT NULL DEFAULT 0, \"legacy\" TEXT)"
+                                   "INSERT INTO \"items__sql_orm_rebuild\" (\"id\", \"name\", \"qty\", \"legacy\") SELECT \"id\", \"name\", \"qty\", \"legacy\" FROM \"items\"" "DROP TABLE \"items\""
+                                   "ALTER TABLE \"items__sql_orm_rebuild\" RENAME TO \"items\"")
+    reflect-schema after:
+      items: id INTEGER PK AUTOINCREMENT NOT NULL, name TEXT NOT NULL, qty INTEGER NOT NULL DEFAULT 0, legacy TEXT
+      notes: id INTEGER PK AUTOINCREMENT NOT NULL, body TEXT
+    rows after: ((:ID 1 :NAME "bolt" :QTY 10 :LEGACY "x") (:ID 2 :NAME "nut" :QTY 25 :LEGACY "y"))
+    live schema = (apply-ops-to-snapshot v1 (list op)) => T
+    insert without qty -> DEFAULT applies: ((:NAME "washer" :QTY 0))
+    NULL qty now refused: SQLITE-CONSTRAINT-ERROR
+    downgrade-schema: reflect = v1 => T
+    rows after downgrade: ((:ID 1 :NAME "bolt" :QTY 10) (:ID 2 :NAME "nut" :QTY 25) (:ID 3 :NAME "washer" :QTY 0))
+
+--- 3c. alter-column to NOT NULL over existing NULLs (rebuild must fail atomically)
+    upgrade-schema signalled SQLITE-CONSTRAINT-ERROR: Error while resetting an sqlite statement.
+Code CONSTRAINT: NOT NULL constraint failed: items__sql_orm_rebuild.qty.
+Database: :memory:
+SQL: INSERT INTO "items__sql_orm_rebuild" ("id", "name", "qty", "legacy") SELECT "id", "name", "qty", "legacy" FROM "items"
+    schema still v1 after the failure => T
+    rows: ((:ID 1 :NAME "bolt" :QTY 10) (:ID 2 :NAME "unknown" :QTY NIL))
+    tables: ("items" "notes" "sqlite_sequence")
+
+--- 3d. the whole complete diff executed on SQLite; reflect-schema before/after
+    reflect-schema before:
+      items: id INTEGER PK AUTOINCREMENT NOT NULL, name TEXT NOT NULL, qty INTEGER, legacy TEXT
+      notes: id INTEGER PK AUTOINCREMENT NOT NULL, body TEXT
+    diff-schema (reflect-schema c) v2 :complete t (5 ops):
+      1. drop-column-op items: legacy TEXT
+           footprint ("column:items.legacy")
+      2. add-column-op items: PRICE REAL
+           footprint ("column:items.price")
+      3. alter-column-op items: qty INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
+           footprint ("column:items.qty")
+      4. create-table-op TAGS
+           footprint ("table:tags")
+      5. drop-table-op notes
+           footprint ("table:notes")
+    reflect-schema after:
+      items: id INTEGER PK AUTOINCREMENT NOT NULL, name TEXT NOT NULL, qty INTEGER NOT NULL DEFAULT 0, price REAL
+      tags: id INTEGER PK AUTOINCREMENT NOT NULL, label TEXT NOT NULL UNIQUE
+    live = v2 => T
+    items rows: ((:ID 1 :NAME "bolt" :QTY 10 :PRICE NIL))
+    downgrade-schema ops: live = v1 => T
+    items rows after downgrade: ((:ID 1 :NAME "bolt" :QTY 10 :LEGACY NIL))
+    notes rows after downgrade: NIL (dropped table data is not restored)
+
+========================================================================
+== Demo 4: sql-migrate 0.2.0 (SQLite in memory)
+========================================================================
+
+--- 4a. three migrations: upgrade, current-revision, history, downgrade :count 1
+    history: ("0001 create widgets" "0002 add widgets.color" "0003 create gizmos")
+    head-revision: "0003"
+    current-revision at base: NIL
+    upgrade => ("0001 create widgets" "0002 add widgets.color" "0003 create gizmos")
+    current-revision: "0003"
+    live tables: ("gizmos(id,widget-id,serial)" "sql_migrate_version(version_num)" "widgets(id,name,color)")
+    version table rows: ((:VERSION_NUM "0003"))
+    downgrade :count 1 => ("0003 create gizmos")
+    current-revision: "0002"
+    live tables: ("sql_migrate_version(version_num)" "widgets(id,name,color)")
+    downgrade :target :base => ("0002 add widgets.color" "0001 create widgets")
+    current-revision: NIL, live tables ("sql_migrate_version(version_num)")
+    upgrade :target "nope" caught as rev:revision-not-found (UNKNOWN-REVISION): sql-migrate: unknown revision "nope": unknown revision "nope"
+
+--- 4b. the plan for an upgrade, and offline SQL with render-diff :sql
+    target-revisions ("0001") -> plan goal ("0003")
+    describe-plan:
+      | up 0001 -> 0002 column:widgets.color
+      | up 0002 -> 0003 table:gizmos
+    step 0001 -> 0002 lossy NIL
+      render-diff :sql (engine dialect: ANSI):
+      | ALTER TABLE "widgets" ADD COLUMN "color" CHARACTER VARYING;
+    step 0002 -> 0003 lossy NIL
+      render-diff :sql (engine dialect: ANSI):
+      | CREATE TABLE "gizmos" ("id" INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY NOT NULL, "widget-id" INTEGER NOT NULL, "serial" CHARACTER VARYING UNIQUE);
+    describe-plan 0003 -> 0001 (downgrade):
+      | down 0003 -> 0002 table:gizmos
+      | down 0002 -> 0001 column:widgets.color
+    down step 0003 -> 0002 lossy T
+      render-diff :sql:
+      | DROP TABLE IF EXISTS "gizmos";
+    down step 0002 -> 0001 lossy T
+      render-diff :sql:
+      | ALTER TABLE "widgets" DROP COLUMN "color";
+    0001 -> 0003 as one schema-diff, render-diff :sql with the :sqlite3 dialect:
+      | ALTER TABLE "widgets" ADD COLUMN "color" TEXT;
+      | CREATE TABLE "gizmos" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "widget-id" INTEGER NOT NULL, "serial" TEXT UNIQUE);
+    render-diff :summary:
+      | A column:widgets.color
+      | A table:gizmos
+    the database was not touched: current-revision "0001"
+
+--- 4c. a failing step: one condition, two classes; retry-step
+    trigger installed: stamping 0002 raises 'stamp rejected'
+    condition class: STEP-FAILED/SQLITE-CONSTRAINT-ERROR
+    (typep e 'revision-protocol:step-failed) => T
+    (typep e 'sqlite:sqlite-error) => T
+    step #<REVISION-PROTOCOL:PLAN-STEP up 0001 -> 0002> attempt 1, cause SQLITE-CONSTRAINT-ERROR: Error while resetting an sqlite statement.
+Code CONSTRAINT: stamp rejected.
+Database: :memory:
+SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
+    report (Code/Database/SQL block printed twice, sql-migrate#5): plan step #<REVISION-PROTOCOL:PLAN-STEP up 0001 -> 0002> failed (attempt 1): Error while resetting an sqlite statement.
+Code CONSTRAINT: stamp rejected.
+Database: :memory:
+SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
+Code CONSTRAINT: stamp rejected.
+Database: :memory:
+SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
+    after the failure: current-revision "0001", widgets.color present NIL
+    0.1-style (handler-case (upgrade c dir) (sqlite:sqlite-error () :caught)) => :CAUGHT
+    handler-bind: step 0002 failed (attempt 1); restarts (REVISION-PROTOCOL:RETRY-STEP REVISION-PROTOCOL:SKIP-STEP REVISION-PROTOCOL:ROLLBACK-TO-START)
+    handler-bind: DROP TRIGGER reject_stamp, then RETRY-STEP
+    upgrade => ("0002 add widgets.color" "0003 create gizmos")
+    attempts seen by the handler: (1)
+    current-revision "0003", widgets.color present T, live tables ("gizmos(id,widget-id,serial)" "sql_migrate_version(version_num)" "widgets(id,name,color)")
+
+--- 4d. a fork: head-revision signals multiple-heads
+    history (a forked directory is still listed): ("a widgets" "b color on b" "c color on c")
+    head-revision signalled MULTIPLE-HEADS: heads ("b" "c")
+      also a rev:revision-error? T; message "the directory has 2 heads (\"b\" \"c\")"
+    with a USE-VALUE handler: head-revision => "b"
+    upgrade on the fork signalled MULTIPLE-HEADS: sql-migrate error: the directory has 2 heads ("b" "c")
+    upgrade :target "b" on the fork signalled BRANCH-NOT-SUPPORTED: sql-migrate error: the directory has 2 heads ("b" "c"); branched plans are not supported (S3)
+
+== all demos finished
