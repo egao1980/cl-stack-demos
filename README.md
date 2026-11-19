@@ -24,6 +24,10 @@ Provenance: **[SOURCES.md](SOURCES.md)**. Failures: **[ISSUES.md](ISSUES.md)** â
 | `csvkit-report` | wireservice/csvkit | sql-query-csv |
 | `asyncio-sleep` | asyncio docs | event-protocol |
 
+## Harness demos
+
+Runnable demos of the coding-agent harness packages (revision / diff protocols, git and jj backends, sql-migrate 0.2, pathlib snapshots and areas, agent-tools, TUI widgets and the tty backend, permissions, prompt cache) against the published GHCR versions, with captured output: [`harness/`](harness/README.md).
+
 ## Run Lisp
 
 ```bash

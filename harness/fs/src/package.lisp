@@ -1,0 +1,10 @@
+(defpackage #:harness-demos-fs
+  (:use #:cl)
+  (:local-nicknames (#:pl #:cl-stack-pathlib)
+                    (#:proc #:process-protocol)
+                    (#:rev #:revision-protocol)
+                    (#:diff #:diff-protocol)
+                    (#:dt #:datetime-protocol)
+                    (#:git #:revision-backend-git)
+                    (#:jj #:revision-backend-jj))
+  (:export #:run-demos))
