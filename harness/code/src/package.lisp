@@ -19,4 +19,8 @@
            #:demo-interactive
            #:demo-plan-headless
            #:demo-plan-interactive
-           #:demo-plan-real-model))
+           #:demo-plan-real-model
+           #:demo-checkpoints
+           #:demo-checkpoints-plan
+           #:demo-checkpoints-retention
+           #:demo-checkpoints-interactive))

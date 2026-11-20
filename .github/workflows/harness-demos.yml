@@ -35,7 +35,7 @@ jobs:
         run: git --version
 
       - name: jj ${{ env.JJ_VERSION }}
-        if: matrix.demo == 'fs'
+        if: matrix.demo == 'fs' || matrix.demo == 'code'
         shell: bash
         run: |
           set -euo pipefail

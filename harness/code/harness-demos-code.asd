@@ -1,15 +1,16 @@
 (defsystem "harness-demos-code"
-  :version "0.3.0"
-  :description "Live demo of cl-stack-code: -p (H3a: text, stream-json, headless denial, layered settings, AGENTS.md discovery), the interactive mode (H3b) on the headless terminal, and plan mode (H5a: plan, project, approve, drift, reject; git and copy areas); LM Studio or a scripted model"
+  :version "0.4.0"
+  :description "Live demo of cl-stack-code: -p (H3a: text, stream-json, headless denial, layered settings, AGENTS.md discovery), the interactive mode (H3b) on the headless terminal, and plan mode (H5a: plan, project, approve, drift, reject; git and copy areas) and checkpoints with rewind (H5b: git private refs, jj @ commits, folder snapshots; files / both rewinds, drift restarts, plan checkpoints, retention, the rewind dialog); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
-  :depends-on ((:version "cl-stack-code" "0.4.1")
+  :depends-on ((:version "cl-stack-code" "0.5.0")
                ;; 0.2.1: its package carries the current cli-protocol.asd
                ;; (egao1980/cl-repository#117)
                (:version "cli-backend-clingon" "0.2.1")
                (:version "ai-agent-protocol" "0.14.0")
-               (:version "cl-stack-pathlib" "0.6.0")
-               (:version "revision-backend-git" "0.4.0")
+               (:version "cl-stack-pathlib" "0.8.0")
+               (:version "revision-backend-git" "0.5.1")
+               (:version "revision-backend-jj" "0.3.1")
                (:version "diff-protocol" "0.3.0")
                (:version "llm-protocol" "0.5.0")
                (:version "llm-protocol-openai" "0.4.0")
@@ -36,4 +37,5 @@
                (:file "demos")
                (:file "interactive")
                (:file "plan")
+               (:file "rewind")
                (:file "run")))
