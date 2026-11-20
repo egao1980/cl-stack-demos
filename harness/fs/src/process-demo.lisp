@@ -27,7 +27,7 @@
     (show "stdout" out)))
 
 (defun env-of (&rest keys)
-  (let ((out (nth-value 1 (apply (function proc:run) (list "/usr/bin/env") :output :string keys))))
+  (let ((out (nth-value 1 (apply (function proc:run) (list (posix-tool "/usr/bin/env")) :output :string keys))))
     (sort (remove "" (uiop:split-string out :separator '(#\Newline)) :test #'string=)
           #'string<)))
 

@@ -22,6 +22,14 @@
         (finish-output)
         nil))))
 
+(defun %shell-keys ()
+  "Extra MAKE-SHELL-TOOLS keys: on Windows a POSIX shell (Git for Windows' sh on
+PATH) instead of the default cmd.exe, so the bash commands below mean the same;
+the executor stays :PROCESS there (no pty). NIL elsewhere."
+  (when (uiop:os-windows-p)
+    (let ((sh (find-on-path "sh")))
+      (and sh (list :shell (list sh "-c"))))))
+
 (defun %elapsed (start)
   (/ (round (* 10 (- (get-internal-real-time) start)) internal-time-units-per-second) 10.0))
 
@@ -36,7 +44,7 @@
   (%call-shell tools "bash" "command" "   ")
 
   (stage "7c. the output cap: head + tail with the omitted count")
-  (let ((small (at:make-shell-tools :root (at:shell-tools-root tools) :max-output 120)))
+  (let ((small (apply (function at:make-shell-tools) :root (at:shell-tools-root tools) :max-output 120 (%shell-keys))))
     (unwind-protect (%call-shell small "bash" "command" "seq 1 400")
       (at:close-shell-tools small)))
   (show "truncate-shell-output (pure), max 20"
@@ -115,7 +123,7 @@
    an allow on program:ls alone leaves bash:ls src undecided, which asks); deny program:rm")
   (with-agent-loop
     (let* ((files (at:make-file-tools :root (namestring root)))
-           (shell (at:make-shell-tools :root (namestring root)))
+           (shell (apply (function at:make-shell-tools) :root (namestring root) (%shell-keys)))
            (asked '()))
       (unwind-protect
            (let* ((agent (agent:make-ai-agent
@@ -162,7 +170,7 @@
   (banner "Demo 7: agent-tools 0.2.0 shell tools")
   (let ((root (%make-project)))
     (unwind-protect
-         (let ((tools (at:make-shell-tools :root (namestring root))))
+         (let ((tools (apply (function at:make-shell-tools) :root (namestring root) (%shell-keys))))
            (unwind-protect
                 (progn
                   (stage "7a. make-shell-tools")
