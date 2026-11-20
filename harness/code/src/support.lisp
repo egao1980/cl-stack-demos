@@ -97,11 +97,18 @@ login name (ls -l output)."
 
 (defun delete-tree (dir)
   "Delete DIR. On Windows, first clear the read-only attribute: git writes its
-objects read-only, and DELETE-FILE cannot remove those there."
+objects read-only, and DELETE-FILE cannot remove those there. A spawned image
+that was just killed may still hold its working directory there for a moment:
+retry for 10 s, then say so instead of failing the run (the demos' own
+verdicts are already in)."
   (when (and (uiop:os-windows-p) (probe-file dir))
     (uiop:run-program (list "attrib" "-R" (concatenate 'string (%native dir) "*") "/S" "/D")
                       :ignore-error-status t))
-  (uiop:delete-directory-tree dir :validate t :if-does-not-exist :ignore))
+  (loop repeat 20
+        do (handler-case (progn (uiop:delete-directory-tree dir :validate t :if-does-not-exist :ignore)
+                                (return))
+             (file-error () (sleep 0.5)))
+        finally (note "(could not delete ~a: a process still holds it)" (%native dir))))
 
 (defmacro with-scratch (() &body body)
   "Bind *SCRATCH* to a fresh temporary directory, redacted as <tmp>/, and

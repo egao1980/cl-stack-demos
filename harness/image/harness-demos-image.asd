@@ -5,6 +5,9 @@
   :license "MIT"
   :depends-on ((:version "lisp-mcp" "0.7.0")
                (:version "lisp-mcp/agent" "0.7.0")
+               ;; 0.2.8 kills a spawned image's whole tree: on Windows ros.exe runs SBCL
+               ;; as its child, which outlived the kill (egao1980/repl-protocol#11)
+               (:version "repl-protocol" "0.2.8")
                (:version "ai-agent-protocol" "0.12.0")
                (:version "llm-protocol" "0.5.0")
                (:version "llm-protocol-openai" "0.4.0")
