@@ -2,26 +2,27 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Three cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Four cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
 | [`data/`](data/) | `harness-demos-data` | diff-protocol 0.3.0 (engine extension API), diff-backend-lisp-source 0.1.0, revision-protocol 0.3.0, sql-orm 0.3.0, sql-migrate 0.2.1 |
 | [`fs/`](fs/) | `harness-demos-fs` | cl-stack-pathlib 0.6.1, process-protocol 0.4.0, process-backend-uiop 0.3.1, revision-backend-git 0.2.0, revision-backend-jj 0.2.0 |
 | [`agent/`](agent/) | `harness-demos-agent` | ai-agent-protocol 0.10.0, agent-tools 0.2.0 (file and shell tools), tui-protocol 0.2.0 (widgets), tui-markdown 0.1.0, tui-backend-tty 0.1.1, llm-protocol-openai 0.4.0 |
+| [`code/`](code/) | `harness-demos-code` | cl-stack-code 0.1.1 (`-p` headless CLI through `run-cli`), cli-protocol 0.2.1, ai-agent-protocol 0.12.0 (headless denial), http-backend-async 0.2.20 |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent
+cd harness/data   # or fs, agent, code
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1
 ```
 
-Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43; ≥ 2.56 once revision-backend-git 0.4.0 resolves) and `jj` 0.47.1 for `fs/`. The prompt-cache step in `agent/` talks to a local LM Studio (`http://127.0.0.1:1234/v1`, token from `LM_API_TOKEN` in the workspace `.env`; it is never printed) and reports that it was skipped when no server is reachable.
+Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43; ≥ 2.56 once revision-backend-git 0.4.0 resolves) and `jj` 0.47.1 for `fs/`. The prompt-cache step in `agent/` talks to a local LM Studio (`http://127.0.0.1:1234/v1`, token from `LM_API_TOKEN` in the workspace `.env`; it is never printed) and reports that it was skipped when no server is reachable. `code/` uses the same server and token when a model is loaded, and a scripted mock provider otherwise.
 
 ## What each set shows
 
@@ -35,13 +36,20 @@ Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43; ≥ 2.56 once revision-back
   - **Demo 6, tui-markdown 0.1.0** — a model answer (headings, emphasis, strong, strike, inline code, a link with OSC 8 hyperlink, nested and ordered lists, a code block, an aligned table with wide characters, a quote) parsed to its AST and rendered at 60 and 34 cells in a viewport on the headless driver (the screen text is in the output, with per-run styles); a `markdown-stream` fed in chunks whose committed lines never change; a unified diff with line numbers, `⋮` between hunks and a word-level highlight, and a split layout from a diff-protocol value.
   - **Demo 7, agent-tools 0.2.0 shell tools** — foreground `bash` on the pty executor (ANSI and progress-bar cleaning, stderr merged, `[exit code 3]`, `workdir`, the `+shell-environment+`, stdin at EOF), the head + tail output cap, an unhandled timeout (killed after 0.8 s) and the `shell-timeout` restarts (`continue`, then `run-in-background`); a background job driven with `job_output`, `job_input` (a `read` answered), `job_list`, `job_kill`; the scanner's resources for ten command lines (`cd` tracking, writes, `*` for what it cannot model); a mock-model run where `ls` is allowed, `ls && rm …` is refused by `("bash" "program:rm" :deny)` with its feedback, a background job completes, and an undecided command asks. An allow on `program:ls` alone leaves `bash:ls src` undecided (it asks), so the run allows both `bash:ls*` and `program:ls`; that is the documented rule ("every resource must be decided").
 
+- **code** — cl-stack-code 0.1.1, the headless `cl-stack-code -p` CLI, driven through `run-cli` with an argv on small temporary git-rooted projects. The model is a loaded LM Studio model when the server answers (picked from `GET /v1/models`: a coder model first, then one LM Studio marks `tool_use`; this run: `qwen3.5-2b`), else a scripted mock provider; the output says which one ran. When the real model does not show a step's point (no answer, no edit, no write attempt), the same argv runs again on the mock, labelled as such. Real-model output varies run to run.
+  - **a** — `--output-format text`: the model reads `notes.txt` and answers; stdout is just the answer, exit 0.
+  - **b** — `--output-format stream-json --allowed-tools 'edit(greeting.txt)'`: the whole event stream (`system` init, `assistant` per step with usage, `tool_use`, `tool_result` with the edit's diff, `text_delta` folded, `result` last), and the file changed on disk without an approval.
+  - **c** — default mode, no rule for `write`: the write is refused headless, the model gets a `tool_result` with status `denied` and the feedback naming `--allowed-tools`, the file is not created, and the run still ends with a `result` (here `error_max_turns`, the small model kept looking) listing the call in `permission_denials` with reason `headless`.
+  - **d** — layered settings: user `settings.json`, project `.cl-stack-code/settings.json`, local `settings.local.json` and the flags, each layer as parsed, the merge (last scalar wins, rule lists concatenated with duplicates dropped, `env` key by key with a `null` unset that a later layer sets again), the files read, the agent's rule list (mode base rules, allows, asks, denies), a bare deny hiding `job_kill`, and the `system` init event of a run on those files.
+  - **e** — `AGENTS.md` discovery from `pkg/core/`: the user-level file, then the project root's `AGENTS.md` (its `CLAUDE.md` ignored), `pkg/CLAUDE.md` (the fallback), `pkg/core/AGENTS.md`; a blank file and one below the working directory are not in the startup set. Then the assembled system prompt: the base prompt, `# Environment`, each `<instructions path=…>` block and the appended text.
+
 ## Windows
 
-All three projects run on windows-latest in CI. The POSIX tools come from Git for Windows on PATH (`sh`, `env`, `printf`, `cat`, `sleep`); temp directories are cleared of read-only attributes (git objects) before deletion. Skipped there, each with a printed reason: fs Demo 5 symlink probes (no `fs-create-symlink` on Windows), fs Demo 6 process-group / tree-kill steps (POSIX groups and signals), agent Demo 4b (the pty child; Unix-only by design). Agent Demo 7 runs the shell tools with Git for Windows' `sh` instead of `cmd.exe` (executor `:process`).
+All four projects run on windows-latest in CI. The POSIX tools come from Git for Windows on PATH (`sh`, `env`, `printf`, `cat`, `sleep`); temp directories are cleared of read-only attributes (git objects) before deletion. Skipped there, each with a printed reason: fs Demo 5 symlink probes (no `fs-create-symlink` on Windows), fs Demo 6 process-group / tree-kill steps (POSIX groups and signals), agent Demo 4b (the pty child; Unix-only by design). Agent Demo 7 runs the shell tools with Git for Windows' `sh` instead of `cmd.exe` (executor `:process`).
 
 ## Issues found by these demos
 
-Open: egao1980/diff-backend-lisp-source#3 (`:lisp` tree files still render as `Binary files … differ`; no `render-unified-content` method yet — Demo 5f shows the gap), egao1980/cl-stack-pathlib#33 (`file-size` of a directory: local returns `st_size`, memory signals `path-not-found` — fs Demo 5 prints the difference), egao1980/ai-agent-protocol#26 (the permission-denied text lists every resource of the call, the allowed `bash:ls` / `program:ls` included — agent Demo 7g). The agent output still shows native-dependent files (cl-stack-brotli, cl-stack-zstd) compiling mid-run: egao1980/asdf-native#5 is fixed in asdf-native 0.3.2, but the local cl-repository client preloads 0.3.1 (cl-repo prints that warning at the top of the output), so the fix is not active in this image.
+Open: egao1980/diff-backend-lisp-source#3 (`:lisp` tree files still render as `Binary files … differ`; no `render-unified-content` method yet — Demo 5f shows the gap), egao1980/cl-stack-pathlib#33 (`file-size` of a directory: local returns `st_size`, memory signals `path-not-found` — fs Demo 5 prints the difference), egao1980/ai-agent-protocol#26 (the permission-denied text lists every resource of the call, the allowed `bash:ls` / `program:ls` included — agent Demo 7g). The agent output still shows native-dependent files (cl-stack-brotli, cl-stack-zstd) compiling mid-run: egao1980/asdf-native#5 is fixed in asdf-native 0.3.2, but the local cl-repository client preloads 0.3.1 (cl-repo prints that warning at the top of the output), so the fix is not active in this image. The code demo found: egao1980/cl-repository#115 (a dependency the client image runs, installed at a newer version, was then reported "not in the registry" — fixed in client v0.27.25, which cl-stack-code 0.1.1 CI needed on ubuntu), egao1980/cl-repository#117 (a multi-.asd repo's packages carry every sibling .asd: cli-backend-clingon:0.2.0 shipped cli-protocol.asd 0.2.0, which shadowed the cli-protocol 0.2.1 package in the code demo's CI; cli-backend-clingon 0.2.1 is republished with the current one and the demo requires it), egao1980/ai-agent-protocol#30 (an automatic headless denial still reads "the user rejected the request" — code Demo c). egao1980/http-backend-async#52 (`make-async-backend` loading ASDF systems per call) is fixed in 0.2.20, so cl-stack-code 0.1.1 no longer caches the backend.
 
 Fixed since the first run, confirmed by these outputs: egao1980/cl-stack-pathlib#28 (glob patterns, 0.6.0), egao1980/sql-migrate#5 (doubled report, 0.2.1), egao1980/revision-protocol#6 (`:id` on composite / projection / capture commits, 0.3.0), egao1980/json-protocol#19 (jzon tag version; the agent project now pins json-backend-jzon 0.2.1).
 
