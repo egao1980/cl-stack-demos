@@ -2,7 +2,7 @@
 
 (defparameter *demos*
   '(demo-text demo-stream-json demo-headless-denial demo-settings demo-instructions
-    demo-interactive))
+    demo-interactive demo-plan-headless demo-plan-interactive demo-plan-real-model))
 
 (defun run-demos (&key (demos *demos*))
   "Run each demo; an error is printed and the next demo runs. → T when none
@@ -11,7 +11,7 @@ raised an error."
     (with-scratch ()
       (banner "Loaded systems")
       (dolist (name '("cl-stack-code" "ai-agent-protocol" "agent-tools" "cli-protocol"
-                      "cli-backend-clingon" "llm-protocol" "llm-protocol-openai"
+                      "cli-backend-clingon" "cl-stack-pathlib" "revision-backend-git" "diff-protocol" "llm-protocol" "llm-protocol-openai"
                       "tui-protocol" "tui-markdown" "tui-backend-terminal" "tui-backend-tty"
                       "steer-protocol" "http-backend-async" "event-backend-libuv"))
         (let ((system (asdf:find-system name nil)))

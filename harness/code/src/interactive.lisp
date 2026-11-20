@@ -188,6 +188,7 @@
                                                            (declare (ignore m env))
                                                            backend))))
                    :user-config-dir config
+                   :data-dir (data-dir)
                    :getenv (or getenv (lambda (name) (declare (ignore name)) nil))))
          (tui nil))
     (unwind-protect
