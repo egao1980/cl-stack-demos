@@ -1,6 +1,6 @@
 (in-package #:harness-demos-fs)
 
-;;; Demo 3: revision-backend-git 0.1.0 on a throwaway repository built with git.
+;;; Demo 3: revision-backend-git 0.2.0 on a throwaway repository built with git.
 
 (defparameter +t0+ 1700000000 "Base unix time for deterministic commit dates.")
 
@@ -196,7 +196,7 @@
       (show "main unchanged" (equal current (rev:ref-target (rev:find-ref s "main")))))))
 
 (defun demo-git ()
-  (banner "Demo 3: revision-backend-git 0.1.0")
+  (banner "Demo 3: revision-backend-git 0.2.0")
   (with-temp-dir (root "hd-git")
     (let* ((dir (merge-pathnames "repo/" root))
            (env (isolated-env (merge-pathnames "home/" root))))

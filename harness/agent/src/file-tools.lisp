@@ -1,6 +1,6 @@
 (in-package #:harness-demos-agent)
 
-;;; Demo 2: agent-tools 0.1.0 on a temporary project directory.
+;;; Demo 2: agent-tools 0.2.0 on a temporary project directory.
 
 (defparameter *project-files*
   '((".gitignore" "build/
@@ -61,7 +61,7 @@ TODO: write docs
          (and p (subseq result (+ p 6))))))
 
 (defun demo-file-tools ()
-  (banner "Demo 2: agent-tools 0.1.0 file tools")
+  (banner "Demo 2: agent-tools 0.2.0 file tools")
   (let ((root (%make-project)))
     (unwind-protect
          (let ((tools (at:make-file-tools :root (namestring root))))

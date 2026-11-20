@@ -10,12 +10,17 @@ WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/
 ; compilation finished in 0:00:00.011
 ; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEZ.fasl
-; compilation finished in 0:00:00.060
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.057
 ; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
 
 ; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
 ; compilation finished in 0:00:00.002
+; cl-repo: ensure deps for local harness-demos-fs → process-backend-uiop
+; cl-repo: found process-backend-uiop:0.3.1 in https://ghcr.io (CL-REPO)
+Pulling egao1980/cl-systems/process-backend-uiop:0.3.1 from https://ghcr.io...
+  Recorded file manifest (12 files)
+Installed process-backend-uiop 0.3.1 to ~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -24,9 +29,135 @@ It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
 WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; compiling file "~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/package.lisp" (written 20 NOV 2026 08:40:35 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/package-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/backend.lisp" (written 20 NOV 2026 08:40:35 AM):
+
+; file: ~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/backend.lisp
+; in: DEFUN %CHECK-GROUP-REQUEST
+;     (PROCESS-BACKEND-UIOP::%GROUP-ERROR PROCESS-BACKEND-UIOP::COMMAND
+;      (FORMAT NIL ":process-group t is not supported by this backend on ~a"
+;              (LISP-IMPLEMENTATION-TYPE)))
+; 
+; note: deleting unreachable code
+
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/backend-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.038
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/package.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/package-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/conditions.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/conditions-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/git.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/git-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.049
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/parse.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/parse-tmp8V3J6PE9.fasl
+; compilation finished in 0:00:00.013
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/store.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/store-tmp9V47YWQF.fasl
+; compilation finished in 0:00:00.087
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/working-copy.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/working-copy-tmp9BN22RMA.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/filesystem.lisp" (written 20 NOV 2026 08:26:23 AM):
+
+; file: ~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/filesystem.lisp
+; in: DEFUN %FS-LOAD
+;     'NIL
+; 
+; note: deleting unreachable code
+
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/filesystem-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.050
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/package.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/package-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/conditions.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/conditions-tmpQ371UGST.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/jj.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/jj-tmp2OWI3Q7U.fasl
+; compilation finished in 0:00:00.026
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/parse.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/parse-tmp9KKTJMYV.fasl
+; compilation finished in 0:00:00.009
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/store.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; file: ~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/store.lisp
+; in: DEFUN %UTF8-DECODE-STRICT
+;     (RETURN NIL)
+; 
+; note: deleting unreachable code
+
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/store-tmpJU0JWO19.fasl
+; compilation finished in 0:00:00.145
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/working-copy.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/working-copy-tmpZX2WN8N4.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/filesystem.lisp" (written 20 NOV 2026 08:26:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/filesystem-tmpOU81XRV0.fasl
+; compilation finished in 0:00:00.054
+; compiling file "<repo>/harness/fs/src/package.lisp" (written 20 NOV 2026 08:22:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/package-tmpY2ML9CFA.fasl
+; compilation finished in 0:00:00.000
+; compiling file "<repo>/harness/fs/src/support.lisp" (written 20 NOV 2026 08:22:23 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/support-tmpX2JYJDQE.fasl
+; compilation finished in 0:00:00.007
+; compiling file "<repo>/harness/fs/src/pathlib-demo.lisp" (written 20 NOV 2026 08:31:33 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/pathlib-demo-tmpOPCILR65.fasl
+; compilation finished in 0:00:00.007
+; compiling file "<repo>/harness/fs/src/process-demo.lisp" (written 20 NOV 2026 08:40:26 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/process-demo-tmpRV9F8A9A.fasl
+; compilation finished in 0:00:00.005
+; compiling file "<repo>/harness/fs/src/git-demo.lisp" (written 20 NOV 2026 08:30:50 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/git-demo-tmpK2ZAJT4I.fasl
+; compilation finished in 0:00:00.009
+; compiling file "<repo>/harness/fs/src/jj-demo.lisp" (written 20 NOV 2026 08:30:50 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/jj-demo-tmpUX5S4ADN.fasl
+; compilation finished in 0:00:00.007
+; compiling file "<repo>/harness/fs/src/pathlib-06-demo.lisp" (written 20 NOV 2026 08:31:33 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/pathlib-06-demo-tmp10401X32.fasl
+; compilation finished in 0:00:00.005
+; compiling file "<repo>/harness/fs/src/tree-kill-demo.lisp" (written 20 NOV 2026 08:40:26 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/tree-kill-demo-tmpZ7CBRM0G.fasl
+; compilation finished in 0:00:00.004
+; compiling file "<repo>/harness/fs/src/run.lisp" (written 20 NOV 2026 08:30:41 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/run-tmp9OZEQ0G2.fasl
+; compilation finished in 0:00:00.005
+; 
+; compilation unit finished
+;   printed 3 notes
 
 ========================================================================
-== Demo 1: cl-stack-pathlib 0.5.0 (H2a reads/writes/ignore/grep, R4a snapshots/areas)
+== Demo 1: cl-stack-pathlib 0.6.1 (H2a reads/writes/ignore/grep, R4a snapshots/areas)
 ========================================================================
 
 -- fs-read-range / read-lines / content-hash
@@ -75,14 +206,12 @@ WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-
                              "src/util.lisp")
    walk :ignore :auto files: (".gitignore" "README.md" "keep.log" "src/.gitignore" "src/main.lisp"
                               "src/util.lisp")
-   rglob :ignore :auto (expected = fnmatch semantics; mismatches are cl-stack-pathlib#28):
+   rglob :ignore :auto (expected = fnmatch semantics; cl-stack-pathlib#28, fixed in 0.6.0):
      "*.lisp"     → ("src/main.lisp" "src/util.lisp")
-     "*.l*"       → NIL   MISMATCH, expected ("keep.log" "src/main.lisp" "src/util.lisp")
-     "m*.lisp"    → (".gitignore" "README.md" "keep.log" "src/" "src/.gitignore" "src/main.lisp"
-                     "src/util.lisp")   MISMATCH, expected ("src/main.lisp")
-     "util.?isp"  → NIL   MISMATCH, expected ("src/util.lisp")
-     "[km]*"      → (".gitignore" "README.md" "keep.log" "src/" "src/.gitignore" "src/main.lisp"
-                     "src/util.lisp")   MISMATCH, expected ("keep.log" "src/main.lisp")
+     "*.l*"       → ("keep.log" "src/main.lisp" "src/util.lisp")
+     "m*.lisp"    → ("src/main.lisp")
+     "util.?isp"  → ("src/util.lisp")
+     "[km]*"      → ("keep.log" "src/main.lisp")
    ignore-path-status build/out.txt        → NIL   ignore-path-p → T
    ignore-path-status app.log              → :IGNORED   ignore-path-p → T
    ignore-path-status keep.log             → :INCLUDED   ignore-path-p → NIL
@@ -160,9 +289,9 @@ line 2 from /bin/sh
 "
 
 ========================================================================
-== Demo 2: process-protocol 0.3.0 / process-backend-uiop 0.2.0
+== Demo 2: process-protocol 0.4.0 / process-backend-uiop 0.3.1
 ========================================================================
-   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005F4AAE3}>
+   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005EBCFC3}>
 
 -- binary stdout captured as exact octets: printf '\0\377\376'
    exit-code: 0
@@ -204,7 +333,7 @@ line 2 from /bin/sh
    exit-code: 0
 
 -- run "sleep 30" with :timeout 1: CONTINUE once (wait 1 s more), then give up
-   signalled PROCESS-TIMEOUT-ERROR after 1.1s: process timed out after 1 s: sleep 30
+   signalled PROCESS-TIMEOUT-ERROR after 1.0s: process timed out after 1 s: sleep 30
    restarts offered: (CONTINUE)
    child alive while signalled: T
    → CONTINUE
@@ -225,7 +354,7 @@ line 2 from /bin/sh
    alive-p: NIL
 
 ========================================================================
-== Demo 3: revision-backend-git 0.1.0
+== Demo 3: revision-backend-git 0.2.0
 ========================================================================
    built repo with git CLI: (:C1 "f81f7f06bc60" :C2 "dbb632cf794c" :C3 "aa4fac9b0d34" :F1 "cc05228f3efa")
 
@@ -333,8 +462,8 @@ D tree:/README.md
 R tree:/bin/run.sh tree:/bin/start.sh
 M tree:/src/app.lisp
 A tree:/notes/todo.txt
-   captured 1c86e87ecc8b "agent checkpoint" parents=("a88a07a10047") recorded=1795120559 valid=1795120559
-   refs/agent/checkpoint: "1c86e87ecc8b"
+   captured 2e7d342d877a "agent checkpoint" parents=("a88a07a10047") recorded=1795164044 valid=1795164044
+   refs/agent/checkpoint: "2e7d342d877a"
    files in capture: "bin/start.sh
 notes/todo.txt
 src/app.lisp
@@ -377,10 +506,10 @@ src/app.lisp
    main unchanged: T
 
 ========================================================================
-== Demo 4: revision-backend-jj 0.1.0
+== Demo 4: revision-backend-jj 0.2.0
 ========================================================================
-   built repo with jj CLI: (:BASE "wprzpsvzvvwk" :SECOND "pxmzmynpopto" :LEFT "nlxvpkxqpkrx" :RIGHT
-                            "kznkwytnxwyq" :MERGE "omqlqrmxkwpu")
+   built repo with jj CLI: (:BASE "spyqswymxymv" :SECOND "xlxpwqkokwon" :LEFT "lqpqllkylwtu" :RIGHT
+                            "toyuowpxtwvk" :MERGE "wzunnmxqsolm")
 
 -- make-jj-store
    jj-version: "0.47.1"
@@ -390,40 +519,40 @@ src/app.lisp
                      NIL :GC NIL :SIGNED NIL :TRANSACTIONAL-APPLY NIL :PROJECTION NIL :CONFLICTED-REVISIONS T)
 
 -- revisions: change ids (revision-id) vs commit ids (provenance :commit-id)
-     main: change wprzpsvzvvwk commit 5d66895a1630 "base" parents=NIL recorded=1700000000
-     main: change pxmzmynpopto commit fe2d9f56dfa3 "second" parents=("wprzpsvzvvwk") recorded=1700000100
-   jj log (CLI) for comparison: "pxmzmynpopto fe2d9f56dfa3 second
-wprzpsvzvvwk 5d66895a1630 base"
+     main: change spyqswymxymv commit 9ce590ba9246 "base" parents=NIL recorded=1700000000
+     main: change xlxpwqkokwon commit a06eb5ce0c53 "second" parents=("spyqswymxymv") recorded=1700000100
+   jj log (CLI) for comparison: "xlxpwqkokwon a06eb5ce0c53 second
+spyqswymxymv 9ce590ba9246 base"
 
 -- commit-revision from a tree value onto main (fixed clock)
-   new revision change vxpvlkuqmnto commit c5198909ba5b "third: from a tree value" parents=("pxmzmynpopto") recorded=1700000300
-   provenance: (:COMMIT-ID "c5198909ba5b0e2741c39a86b8c09a170a20e272" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
+   new revision change rpqulusrxmsu commit 0e2394bfcbfd "third: from a tree value" parents=("xlxpwqkokwon") recorded=1700000300
+   provenance: (:COMMIT-ID "0e2394bfcbfd18ab7003b1641710922fa96d5e87" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
                 "demo@example.invalid" :COMMITTER-NAME "Demo User" :COMMITTER-EMAIL "demo@example.invalid"
                 :CONFLICT NIL :EMPTY NIL)
 
 -- refs: bookmark + tag, list-refs
-   MOVABLE  main → vxpvlkuqmnto
-   TAG      v1 → wprzpsvzvvwk
+   MOVABLE  main → rpqulusrxmsu
+   TAG      v1 → spyqswymxymv
    merge-base left right: "base"
    heads: ("" "merge left+right (conflict left in)" "third: from a tree value")
 
 -- rewrite a mutable change with jj describe: same change id, new commit id
-   before change pxmzmynpopto commit fe2d9f56dfa3 "second" parents=("wprzpsvzvvwk") recorded=1700000100
-   after  change pxmzmynpopto commit ad3441d9b942 "second (reworded)" parents=("wprzpsvzvvwk") recorded=1700000400
+   before change xlxpwqkokwon commit a06eb5ce0c53 "second" parents=("spyqswymxymv") recorded=1700000100
+   after  change xlxpwqkokwon commit 8474c906c0dd "second (reworded)" parents=("spyqswymxymv") recorded=1700000400
    same change id: T
    commit id changed: T
    old commit id still resolves (hidden commit): "second"
 
 -- operation log and rev-as-of :recorded
-   op bb0fd5f0966d end 1700000405000 "describe commit fe2d9f56dfa3d60a387efe28ffde09c2ceb9528e"
-   op a2b104cf7490 end 1795120562513 "set tag v1 to commit 5d66895a16303cbc6f8d075892c7f0a307a6e803"
-   op 367cb9da1e71 end 1795120562212 "point bookmark main to commit c5198909ba5b0e2741c39a86b8c09a170a20e272"
-   op 5d2bc193cbcf end 1795120561999 "forget workspace rbjj-v1pal2ixg9o3"
-   op 12dedbcbad93 end 1795120561879 "commit efde6ec3516062735e47624fce9c0a453b0126b9"
-   op 6413044c42a9 end 1795120561843 "snapshot working copy"
-   op before describe: "a2b104cf7490"
+   op a58d0e0b3913 end 1700000405000 "describe commit a06eb5ce0c530fa2131c3ca8b4a85a77bc7b7ee1"
+   op 227d6b29a49e end 1795164048008 "set tag v1 to commit 9ce590ba9246b011d2dbda4ba7eae4826fe35755"
+   op 33f431e3fc38 end 1795164047699 "point bookmark main to commit 0e2394bfcbfd18ab7003b1641710922fa96d5e87"
+   op 7706881b3528 end 1795164047475 "forget workspace rbjj-g58s02fatskq"
+   op bb6638c5c65a end 1795164047353 "commit 803d226f8362e2ba654d8f61e79a242cb618e58d"
+   op b79c996c8662 end 1795164047315 "snapshot working copy"
+   op before describe: "227d6b29a49e"
    rev-as-of t0+350 :recorded on main: "second"
-   rev-as-of t0+120 :recorded on main change pxmzmynpopto commit fe2d9f56dfa3 "second" parents=("wprzpsvzvvwk") recorded=1700000100
+   rev-as-of t0+120 :recorded on main change xlxpwqkokwon commit a06eb5ce0c53 "second" parents=("spyqswymxymv") recorded=1700000100
    rev-as-of t0+50 :valid on main: "base"
 
 -- state-diff base → third at :summary and :content (unified)
@@ -451,16 +580,16 @@ diff --git a/src/lib.lisp b/src/lib.lisp
 +(defun lib () 3)
 
 -- a committed conflict: merge(left, right) with a.txt unresolved
-   merge change omqlqrmxkwpu commit 8e4e08ec1933 "merge left+right (conflict left in)" parents=("nlxvpkxqpkrx"
-                                                                                                "kznkwytnxwyq") recorded=1700000250
+   merge change wzunnmxqsolm commit 2c36cc4c6515 "merge left+right (conflict left in)" parents=("lqpqllkylwtu"
+                                                                                                "toyuowpxtwvk") recorded=1700000250
    provenance :conflict: T
    revision-conflicts: (("a.txt" . 2))
    read-text /a.txt @merge (materialized conflict): "<<<<<<< conflict 1 of 1
-%%%%%%% diff from: wprzpsvz 5d66895a \"base\"
-\\\\\\\\\\\\\\        to: nlxvpkxq dc1831fa \"left\"
+%%%%%%% diff from: spyqswym 9ce590ba \"base\"
+\\\\\\\\\\\\\\        to: lqpqllky 713163a0 \"left\"
 -one
 +left
-+++++++ kznkwytn 7377db07 \"right\"
++++++++ toyuowpx 8d30b616 \"right\"
 right
 >>>>>>> conflict 1 of 1 ends
 "
@@ -472,23 +601,106 @@ diff --git a/a.txt b/a.txt
 @@ -1 +1,8 @@
 -left
 +<<<<<<< conflict 1 of 1
-+%%%%%%% diff from: wprzpsvz 5d66895a "base"
-+\\\\\\\        to: nlxvpkxq dc1831fa "left"
++%%%%%%% diff from: spyqswym 9ce590ba "base"
++\\\\\\\        to: lqpqllky 713163a0 "left"
 +-one
 ++left
-++++++++ kznkwytn 7377db07 "right"
+++++++++ toyuowpx 8d30b616 "right"
 +right
 +>>>>>>> conflict 1 of 1 ends
 
 -- CAS: move-ref main with a stale :expected → ref-conflict
-   main now: "vxpvlkuqmnto"
-   caller believes main is: "wprzpsvzvvwk"
+   main now: "rpqulusrxmsu"
+   caller believes main is: "spyqswymxymv"
    signalled: REVISION-PROTOCOL:REF-CONFLICT
-     report: "ref \"main\" moved: expected \"wprzpsvzvvwkzquopzxvwtzmlvuvlnxw\", found \"vxpvlkuqmntootzxwvpvqqlqkqsrsvlx\""
+     report: "ref \"main\" moved: expected \"spyqswymxymvmsmvmmtvkksmnmxvusqm\", found \"rpqulusrxmsuxsvvqkrpynrtzporsory\""
      restarts offered: (REVISION-PROTOCOL:USE-CURRENT REVISION-PROTOCOL:RETRY)
    choosing USE-CURRENT
-   move-ref returned: "vxpvlkuqmnto"
+   move-ref returned: "rpqulusrxmsu"
    main unchanged: T
 
 ========================================================================
-Demos run: 4, failed: none
+== Demo 5: cl-stack-pathlib 0.6.1 (fnmatch globs on every backend, final-symlink probes)
+========================================================================
+
+-- glob / rglob: the same results on the local and the memory filesystem
+   glob  "file?.txt"        → ("file1.txt" "file2.txt" "fileA.txt")
+   glob  "file[0-9].txt"    → ("file1.txt" "file2.txt")
+   glob  "file[!0-9].txt"   → ("fileA.txt")
+   glob  "[km]*"            → ("km.txt" "m.lisp")
+   glob  "\\[x\\].txt"      → ("[x].txt")
+   glob  "[x].txt"          → NIL
+   glob  "*.l*"             → ("m.lisp")
+   glob  "**/*.lisp"        → ("m.lisp" "src/a.lisp" "src/m/b.lisp" "src/m/deep/c.lisp" "src/main.lisp")
+   glob  "src/*/*.lisp"     → ("src/m/b.lisp")
+   rglob "m*.lisp"          → ("m.lisp" "src/main.lisp")
+   rglob "*.lisp"           → ("m.lisp" "src/a.lisp" "src/m/b.lisp" "src/m/deep/c.lisp" "src/main.lisp")
+
+-- match-p (PurePath.match: trailing segments, or the whole path when absolute)
+   match-p "a/b/c.lisp"   "b/*.lisp"     → T
+   match-p "a/b/c.lisp"   "*.lisp"       → T
+   match-p "a/b/c.lisp"   "a/*.lisp"     → NIL
+   match-p "/a/b/c.lisp"  "/a/*/c.lisp"  → T
+   match-p "/a/b/c.lisp"  "/b/c.lisp"    → NIL
+   match-p "x/[x].txt"    "\\[x\\].txt"  → T
+
+-- probes follow the final symlink (stat(2)); symlink-p and :follow-symlinks nil are lstat(2)
+   target.txt (:EXISTS T :FILE T :DIR NIL :LINK NIL :SIZE 5 :STAT :FILE :LSTAT :FILE)
+   dir        (:EXISTS T :FILE NIL :DIR T :LINK NIL :SIZE 64 :STAT :DIRECTORY :LSTAT :DIRECTORY)
+                MEMORY DIFFERS: (:EXISTS T :FILE NIL :DIR T :LINK NIL :SIZE "PATH-NOT-FOUND" :STAT :DIRECTORY
+                                 :LSTAT :DIRECTORY)
+   to-file    (:EXISTS T :FILE T :DIR NIL :LINK T :SIZE 5 :STAT :FILE :LSTAT :SYMLINK)
+   to-dir     (:EXISTS T :FILE NIL :DIR T :LINK T :SIZE 64 :STAT :DIRECTORY :LSTAT :SYMLINK)
+                MEMORY DIFFERS: (:EXISTS T :FILE NIL :DIR T :LINK T :SIZE "PATH-NOT-FOUND" :STAT :DIRECTORY
+                                 :LSTAT :SYMLINK)
+   dangling   (:EXISTS NIL :FILE NIL :DIR NIL :LINK T :SIZE "PATH-NOT-FOUND" :STAT "PATH-NOT-FOUND" :LSTAT
+               :SYMLINK)
+   loop-a     (:EXISTS NIL :FILE NIL :DIR NIL :LINK T :SIZE "SYMLINK-LOOP" :STAT "SYMLINK-LOOP" :LSTAT
+               :SYMLINK)
+
+-- symlink-loop is a path-error
+   signalled: CL-STACK-PATHLIB:SYMLINK-LOOP
+     path-error-p: T
+
+========================================================================
+== Demo 6: process-protocol 0.4.0 / process-backend-uiop 0.3.1 (process groups, tree kill)
+========================================================================
+
+-- supports-p: capability queries on *process-backend*
+   supports-p :PROCESS-GROUP: T
+   supports-p :PID: T
+   supports-p :JOB-OBJECTS: NIL
+
+-- control: launch without :process-group, plain kill → the grandchild survives
+   pid of the shell (process-pid): T
+   grandchild alive before kill: T
+   shell exit code after kill: 143
+   grandchild alive after kill (expected T: kill reaches the child only): T
+   grandchild alive after cleanup: NIL
+
+-- launch :process-group t, kill :tree t → the grandchild is stopped too
+   process-pid is a positive integer: T
+   process group of the shell = its pid (leads its own group): T
+   grandchild in the same group: T
+   grandchild alive before kill: T
+   kill :tree t: T
+   shell exit code: 143
+   grandchild alive after kill :tree t (expected NIL): NIL
+   process-pid unchanged after exit: T
+
+-- run :process-group t :timeout 1 → unwinding kills the whole tree
+   signalled: PROCESS-PROTOCOL:PROCESS-TIMEOUT-ERROR
+   elapsed seconds: 1.0
+   marker written by the grandchild 2 s later (expected NIL): NIL
+
+-- kill :tree t on a handle launched without :process-group → process-group-error
+   signalled: PROCESS-PROTOCOL:PROCESS-GROUP-ERROR
+     report: "process group error: kill :tree t needs a handle launched with :process-group t (/bin/sh -c sleep 30 & echo $!; wait)"
+     restarts: (CONTINUE)
+   → CONTINUE (kill the direct child only)
+   kill :tree t: T
+   shell exit code: 143
+   grandchild alive (only the child was killed): T
+
+========================================================================
+Demos run: 6, failed: none

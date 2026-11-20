@@ -1,6 +1,6 @@
 (in-package #:harness-demos-data)
 
-;;; Demo 1 — diff-protocol 0.2.0: text, diff3 merge, trees, git unified, sexp.
+;;; Demo 1 — diff-protocol 0.3.0: text, diff3 merge, trees, git unified, sexp.
 
 (defun lines (&rest ls)
   "String of LS, each followed by a newline."
@@ -91,7 +91,7 @@
     ("docs/new.md" ,(lines "# New" "" "Added file."))))
 
 (defun demo-diff ()
-  (banner "Demo 1: diff-protocol 0.2.0")
+  (banner "Demo 1: diff-protocol 0.3.0")
 
   (demo-step ("1a. text diff of two files at :changes, rendered :unified")
     (let* ((a (lines "alpha" "beta" "gamma" "delta" "epsilon" "zeta" "eta" "theta" "iota"))

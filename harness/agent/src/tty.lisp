@@ -1,6 +1,6 @@
 (in-package #:harness-demos-agent)
 
-;;; Demo 4: tui-backend-tty 0.1.0. In this (non-tty) run: TTY-AVAILABLE-P
+;;; Demo 4: tui-backend-tty 0.1.1. In this (non-tty) run: TTY-AVAILABLE-P
 ;;; and the TTY-NOT-A-TERMINAL condition. Then a child SBCL on a real pty
 ;;; (pty-protocol / pty-backend-native) under sh, which prints `stty -g`
 ;;; before and after; the child enters raw mode, reads one key and exits.
@@ -64,7 +64,7 @@
               until (eq form s) collect form)))))
 
 (defun demo-tty ()
-  (banner "Demo 4: tui-backend-tty 0.1.0 (raw mode on a real pty)")
+  (banner "Demo 4: tui-backend-tty 0.1.1 (raw mode on a real pty)")
   (stage "4a. this process (stdout is a file)")
   (show "tty-available-p" (tty:tty-available-p))
   (show "interactive-stream-p *standard-output*" (interactive-stream-p *standard-output*))

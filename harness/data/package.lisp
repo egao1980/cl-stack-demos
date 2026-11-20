@@ -1,6 +1,7 @@
 (defpackage #:harness-demos-data
   (:use #:cl)
   (:local-nicknames (#:d #:diff-protocol)
+                    (#:dl #:diff-backend-lisp-source)
                     (#:rev #:revision-protocol)
                     (#:dt #:datetime-protocol)
                     (#:orm #:sql-orm)

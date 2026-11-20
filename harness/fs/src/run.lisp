@@ -1,7 +1,7 @@
 (in-package #:harness-demos-fs)
 
 (defparameter *demos*
-  '(demo-pathlib demo-process demo-git demo-jj))
+  '(demo-pathlib demo-process demo-git demo-jj demo-pathlib-06 demo-tree-kill))
 
 (defun run-demos ()
   "Run every demo; an error ends that demo only (printed), the rest still run."

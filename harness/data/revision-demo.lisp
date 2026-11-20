@@ -1,6 +1,6 @@
 (in-package #:harness-demos-data)
 
-;;; Demo 2 — revision-protocol 0.2.0: graph, CAS refs, targets and plans,
+;;; Demo 2 — revision-protocol 0.3.0: graph, CAS refs, targets and plans,
 ;;; merge projections, composite revisions. Ids are caller-chosen and every
 ;;; commit runs under a fixed clock, so the output is deterministic.
 
@@ -42,7 +42,7 @@
     s))
 
 (defun demo-revision ()
-  (banner "Demo 2: revision-protocol 0.2.0")
+  (banner "Demo 2: revision-protocol 0.3.0")
   (let ((s (demo-store)))
 
     (demo-step ("2a. in-memory store: two branches, a tag, walks, merge-base, as-of")
