@@ -76,6 +76,9 @@
       (show "  a tui-backend-error?" (typep c 'tui:tui-backend-error))))
 
   (stage "4b. child SBCL on an 80x24 pty under sh: stty -g before / during / after")
+  (when (skipped-on-windows "the pty child"
+                            "raw mode is a POSIX termios feature (sh, stty -g); the pty demo is Unix-only by design")
+    (return-from demo-tty nil))
   (let* ((report (uiop:native-namestring
                   (merge-pathnames (format nil "harness-tty-~36r.sexp"
                                            (random (expt 36 6) (make-random-state t)))

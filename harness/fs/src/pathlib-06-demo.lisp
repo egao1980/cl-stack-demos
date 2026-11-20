@@ -70,6 +70,9 @@
 
 (defun demo-pathlib-links (root)
   (stage "probes follow the final symlink (stat(2)); symlink-p and :follow-symlinks nil are lstat(2)")
+  (when (skipped-on-windows "symlink probes"
+                            "LOCAL-FILESYSTEM has no FS-CREATE-SYMLINK on Windows")
+    (return-from demo-pathlib-links nil))
   (let ((local (pl:join (native root) "links"))
         (mem-rows '()))
     (pl:mkdir local :parents t :exist-ok t)

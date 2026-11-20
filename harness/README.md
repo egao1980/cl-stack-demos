@@ -21,7 +21,7 @@ cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1
 ```
 
-Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43) and `jj` 0.47.1 for `fs/`. The prompt-cache step in `agent/` talks to a local LM Studio (`http://127.0.0.1:1234/v1`, token from `LM_API_TOKEN` in the workspace `.env`; it is never printed) and reports that it was skipped when no server is reachable.
+Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43; ≥ 2.56 once revision-backend-git 0.4.0 resolves) and `jj` 0.47.1 for `fs/`. The prompt-cache step in `agent/` talks to a local LM Studio (`http://127.0.0.1:1234/v1`, token from `LM_API_TOKEN` in the workspace `.env`; it is never printed) and reports that it was skipped when no server is reachable.
 
 ## What each set shows
 
@@ -34,6 +34,10 @@ Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43) and `jj` 0.47.1 for `fs/`. 
 - **agent** — "always allow" approvals saved to a rule store and reject-all-pending on a mock-model agent run; the seven file tools (diff previews, actionable failures, root escapes refused, permission resources); widgets on the headless terminal (text input with wide characters and paste, a permission dialog, a follow-tail viewport with spinner and status line); the real-terminal backend on a pty with `stty -g` identical before and after; `prompt_cache_key` sent to LM Studio and the reported usage.
   - **Demo 6, tui-markdown 0.1.0** — a model answer (headings, emphasis, strong, strike, inline code, a link with OSC 8 hyperlink, nested and ordered lists, a code block, an aligned table with wide characters, a quote) parsed to its AST and rendered at 60 and 34 cells in a viewport on the headless driver (the screen text is in the output, with per-run styles); a `markdown-stream` fed in chunks whose committed lines never change; a unified diff with line numbers, `⋮` between hunks and a word-level highlight, and a split layout from a diff-protocol value.
   - **Demo 7, agent-tools 0.2.0 shell tools** — foreground `bash` on the pty executor (ANSI and progress-bar cleaning, stderr merged, `[exit code 3]`, `workdir`, the `+shell-environment+`, stdin at EOF), the head + tail output cap, an unhandled timeout (killed after 0.8 s) and the `shell-timeout` restarts (`continue`, then `run-in-background`); a background job driven with `job_output`, `job_input` (a `read` answered), `job_list`, `job_kill`; the scanner's resources for ten command lines (`cd` tracking, writes, `*` for what it cannot model); a mock-model run where `ls` is allowed, `ls && rm …` is refused by `("bash" "program:rm" :deny)` with its feedback, a background job completes, and an undecided command asks. An allow on `program:ls` alone leaves `bash:ls src` undecided (it asks), so the run allows both `bash:ls*` and `program:ls`; that is the documented rule ("every resource must be decided").
+
+## Windows
+
+All three projects run on windows-latest in CI. The POSIX tools come from Git for Windows on PATH (`sh`, `env`, `printf`, `cat`, `sleep`); temp directories are cleared of read-only attributes (git objects) before deletion. Skipped there, each with a printed reason: fs Demo 5 symlink probes (no `fs-create-symlink` on Windows), fs Demo 6 process-group / tree-kill steps (POSIX groups and signals), agent Demo 4b (the pty child; Unix-only by design). Agent Demo 7 runs the shell tools with Git for Windows' `sh` instead of `cmd.exe` (executor `:process`).
 
 ## Issues found by these demos
 

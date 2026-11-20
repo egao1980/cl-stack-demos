@@ -27,7 +27,7 @@
     (show "stdout" out)))
 
 (defun env-of (&rest keys)
-  (let ((out (nth-value 1 (apply (function proc:run) (list "/usr/bin/env") :output :string keys))))
+  (let ((out (nth-value 1 (apply (function proc:run) (list (posix-tool "/usr/bin/env")) :output :string keys))))
     (sort (remove "" (uiop:split-string out :separator '(#\Newline)) :test #'string=)
           #'string<)))
 
@@ -100,7 +100,11 @@
       (proc:process-timeout-error (c)
         (show "signalled" (type-of c))))
     (show "alive-p after wait timeout" (proc:alive-p h))
-    (proc:kill h)
+    (if (windows-p)
+        (progn
+          (note "Windows: a plain kill is taskkill without /F, which console programs ignore (process-protocol's documented semantics), so :force t")
+          (proc:kill h :force t))
+        (proc:kill h))
     (show "exit code after kill" (proc:wait h :timeout 5))
     (show "alive-p" (proc:alive-p h))))
 

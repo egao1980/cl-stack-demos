@@ -47,6 +47,23 @@
   (format t "~&~?~%" control args)
   (finish-output))
 
+(defun skipped-on-windows (what reason)
+  "On Windows print that WHAT is skipped and why → T; elsewhere NIL."
+  (when (uiop:os-windows-p)
+    (note "skipped on Windows: ~a — ~a" what reason)
+    t))
+
+(defun find-on-path (name)
+  "Absolute native namestring of the program NAME (NAME.exe on Windows) in a
+PATH directory, or NIL."
+  (let ((file (if (uiop:os-windows-p) (concatenate (quote string) name ".exe") name)))
+    (dolist (dir (uiop:split-string (or (uiop:getenv "PATH") "")
+                                    :separator (if (uiop:os-windows-p) ";" ":")))
+      (unless (string= dir "")
+        (let ((p (probe-file (merge-pathnames file (uiop:ensure-directory-pathname
+                                                    (uiop:parse-native-namestring dir))))))
+          (when p (return (uiop:native-namestring p))))))))
+
 (defun json-args (&rest kv)
   "JSON object string from alternating keys and values (what a model sends)."
   (let ((h (make-hash-table :test #'equal)))

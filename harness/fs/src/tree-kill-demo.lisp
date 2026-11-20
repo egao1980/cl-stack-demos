@@ -25,6 +25,9 @@
   (stage "supports-p: capability queries on *process-backend*")
   (dolist (cap '(:process-group :pid :job-objects))
     (show (format nil "supports-p ~s" cap) (proc:supports-p cap)))
+  (when (skipped-on-windows "the process-group and tree-kill steps"
+                            "they use POSIX process groups and signals (sh, kill, ps -o pgid=); Windows would need job objects")
+    (return-from demo-tree-kill nil))
 
   (stage "control: launch without :process-group, plain kill → the grandchild survives")
   (multiple-value-bind (h grandchild) (launch-tree)
