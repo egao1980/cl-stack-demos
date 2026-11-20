@@ -22,6 +22,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         demo: [data, fs, agent]
+        # POSIX-only demo steps and the pty demo: https://github.com/egao1980/cl-stack-demos/issues/15
+        exclude:
+          - os: windows-latest
+            demo: fs
+          - os: windows-latest
+            demo: agent
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions:
