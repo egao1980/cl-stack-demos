@@ -5,10 +5,15 @@
                     (#:llm #:llm-protocol)
                     (#:oa #:llm-protocol-openai)
                     (#:json #:json-protocol)
-                    (#:hp #:http-protocol))
+                    (#:hp #:http-protocol)
+                    (#:bt #:bordeaux-threads)
+                    (#:w #:tui-protocol/widgets)
+                    (#:h #:tui-backend-terminal)
+                    (#:tl #:terminal-backend-lisp))
   (:export #:run-demos
            #:demo-text
            #:demo-stream-json
            #:demo-headless-denial
            #:demo-settings
-           #:demo-instructions))
+           #:demo-instructions
+           #:demo-interactive))

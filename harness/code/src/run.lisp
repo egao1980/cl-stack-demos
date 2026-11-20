@@ -1,7 +1,8 @@
 (in-package #:harness-demos-code)
 
 (defparameter *demos*
-  '(demo-text demo-stream-json demo-headless-denial demo-settings demo-instructions))
+  '(demo-text demo-stream-json demo-headless-denial demo-settings demo-instructions
+    demo-interactive))
 
 (defun run-demos (&key (demos *demos*))
   "Run each demo; an error is printed and the next demo runs. → T when none
@@ -11,6 +12,7 @@ raised an error."
       (banner "Loaded systems")
       (dolist (name '("cl-stack-code" "ai-agent-protocol" "agent-tools" "cli-protocol"
                       "cli-backend-clingon" "llm-protocol" "llm-protocol-openai"
+                      "tui-protocol" "tui-markdown" "tui-backend-terminal" "tui-backend-tty"
                       "steer-protocol" "http-backend-async" "event-backend-libuv"))
         (let ((system (asdf:find-system name nil)))
           (note "  ~22a ~a" name (and system (asdf:component-version system)))))

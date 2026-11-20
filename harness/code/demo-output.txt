@@ -1,27 +1,5 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable names
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO3.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.010
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.049
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.001
-WARNING: cl-repo: asdf-native 0.3.1 stays loaded from ~/.cl-repository-client/asdf-native-0.3.1/asdf-native.asd; the registry also has 0.3.2 at ~/.local/share/cl-repository/systems/asdf-native/0.3.2/asdf-native.asd, which this image will not load. Code that needs 0.3.2 runs against the older copy: upgrade the client or load the project in a fresh image.
-WARNING:
-   cl-repo: http-protocol 0.3.10 stays loaded from ~/.cl-repository-client/http-protocol-0.3.10/http-protocol.asd; the registry also has 0.4.0 at ~/.local/share/cl-repository/systems/http-protocol/0.4.0/http-protocol.asd, which this image will not load. Code that needs 0.4.0 runs against the older copy: upgrade the client or load the project in a fresh image.
-WARNING:
-   cl-repo: http-backend-async 0.2.17 stays loaded from ~/.cl-repository-client/http-backend-async-0.2.17/http-backend-async.asd; the registry also has 0.2.20 at ~/.local/share/cl-repository/systems/http-backend-async/0.2.20/http-backend-async.asd, which this image will not load. Code that needs 0.2.20 runs against the older copy: upgrade the client or load the project in a fresh image.
-This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
 SBCL is free software, provided as is, with absolutely no warranty.
@@ -32,639 +10,39 @@ WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-
 WARNING: redefining LLM-PROTOCOL:INVOKE-RETRY in DEFUN
 WARNING: redefining LLM-PROTOCOL:INVOKE-USE-VALUE in DEFUN
 WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
-;;; Computing Hangul syllable names
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/package.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/package-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.002
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/conditions.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/conditions-tmpAAURSO1.fasl
-; compilation finished in 0:00:00.003
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/secret.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/secret-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.006
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/octet-stream.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/octet-stream-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.003
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/body-pipe.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/body-pipe-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.011
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/buffered-stream.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/buffered-stream-tmp8V3J6PE9.fasl
-; compilation finished in 0:00:00.009
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/content-encoding.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/content-encoding-tmp9V47YWQF.fasl
-; compilation finished in 0:00:00.037
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/content-disposition.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/content-disposition-tmp9BN22RMA.fasl
-; compilation finished in 0:00:00.009
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/types.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/types-tmp1CXFJSK9.fasl
-; compilation finished in 0:00:00.011
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/http-version.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/http-version-tmpX4BRKI0R.fasl
-; compilation finished in 0:00:00.013
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/timeout.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/timeout-tmpQ371UGST.fasl
-; compilation finished in 0:00:00.007
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/retry.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/retry-tmp2OWI3Q7U.fasl
-; compilation finished in 0:00:00.009
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/proxy.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/proxy.lisp
-; in: DEFUN %PARSE-IPV6-BYTES
-;     'NIL
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/proxy-tmp9KKTJMYV.fasl
-; compilation finished in 0:00:00.033
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/proxy-windows.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/proxy-windows.lisp
-; in: DEFUN WINDOWS-REG-QUERY
-;     (LET* ((HTTP-PROTOCOL::OUT
-;             (UIOP/RUN-PROGRAM:RUN-PROGRAM
-;              (LIST "reg" "query" HTTP-PROTOCOL::KEY "/v" HTTP-PROTOCOL::NAME)
-;              :OUTPUT :STRING :ERROR-OUTPUT NIL :IGNORE-ERROR-STATUS T))
-;            (HTTP-PROTOCOL::LINE
-;             (FIND-IF (LAMBDA # #)
-;                      (UIOP/UTILITY:SPLIT-STRING HTTP-PROTOCOL::OUT :SEPARATOR
-;                                                 '#)))
-;            (HTTP-PROTOCOL::PARTS
-;             (AND HTTP-PROTOCOL::LINE (REMOVE "" # :TEST #'STRING=))))
-;       (WHEN (AND HTTP-PROTOCOL::PARTS (<= 3 (LENGTH HTTP-PROTOCOL::PARTS)))
-;         (VALUES (FORMAT NIL "~{~A~^ ~}" (CDDR HTTP-PROTOCOL::PARTS))
-;                 (SECOND HTTP-PROTOCOL::PARTS))))
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-
-; in: DEFMETHOD LOAD-PROXY-SYSTEM-PLATFORM (HTTP-PROXY-CONFIG)
-;     (HTTP-PROTOCOL:PROXY-CONFIG-USE-SYSTEM-PROXY HTTP-PROTOCOL::CONFIG)
-; 
-; note: deleting unreachable code
-
-;     (LET* ((HTTP-PROTOCOL::SETTINGS (HTTP-PROTOCOL::WINDOWS-INTERNET-SETTINGS))
-;            (HTTP-PROTOCOL::ENABLE
-;             (EQL (GETF HTTP-PROTOCOL::SETTINGS :PROXY-ENABLE) 1))
-;            (HTTP-PROTOCOL::SERVER (GETF HTTP-PROTOCOL::SETTINGS :PROXY-SERVER))
-;            (HTTP-PROTOCOL::OVERRIDE
-;             (GETF HTTP-PROTOCOL::SETTINGS :PROXY-OVERRIDE))
-;            (HTTP-PROTOCOL::PAC (GETF HTTP-PROTOCOL::SETTINGS :AUTO-CONFIG-URL))
-;            (HTTP-PROTOCOL::ALIST
-;             (AND HTTP-PROTOCOL::ENABLE
-;                  (HTTP-PROTOCOL:PARSE-WINDOWS-PROXY-SERVER
-;                   HTTP-PROTOCOL::SERVER)))
-;            (HTTP-PROTOCOL::ENV-ALREADY (NOT (NULL #))))
-;       (WHEN (AND HTTP-PROTOCOL::ALIST (NOT HTTP-PROTOCOL::ENV-ALREADY))
-;         (SETF (HTTP-PROTOCOL:PROXY-CONFIG-PROXY HTTP-PROTOCOL::CONFIG)
-;                 HTTP-PROTOCOL::ALIST))
-;       (WHEN
-;           (AND HTTP-PROTOCOL::OVERRIDE
-;                (NULL
-;                 (HTTP-PROTOCOL:PROXY-CONFIG-NO-PROXY HTTP-PROTOCOL::CONFIG)))
-;         (SETF (HTTP-PROTOCOL:PROXY-CONFIG-NO-PROXY HTTP-PROTOCOL::CONFIG)
-;                 (HTTP-PROTOCOL:PARSE-WINDOWS-PROXY-OVERRIDE
-;                  HTTP-PROTOCOL::OVERRIDE)))
-;       (WHEN HTTP-PROTOCOL::PAC
-;         (SETF (HTTP-PROTOCOL:PROXY-CONFIG-SCRIPT-URL HTTP-PROTOCOL::CONFIG)
-;                 HTTP-PROTOCOL::PAC))
-;       (WHEN (NULL (HTTP-PROTOCOL:PROXY-CONFIG-PROXY HTTP-PROTOCOL::CONFIG))
-;         (SETF (HTTP-PROTOCOL:PROXY-CONFIG-SYSTEM-AUTOMATIC-P
-;                HTTP-PROTOCOL::CONFIG)
-;                 T))
-;       NIL)
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/proxy-windows-tmpJU0JWO19.fasl
-; compilation finished in 0:00:00.011
-WARNING:
+;;; Computing Hangul syllable namesWARNING:
    redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/pool.lisp" (written 20 NOV 2026 11:12:42 AM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/pool-tmpZX2WN8N4.fasl
-; compilation finished in 0:00:00.007
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/pooled-stream.lisp" (written 20 NOV 2026 11:12:42 AM):
+; compiling file "<demos>/harness/code/src/interactive.lisp" (written 20 NOV 2026 01:28:52 PM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/pooled-stream-tmpOU81XRV0.fasl
-; compilation finished in 0:00:00.022
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/body.lisp" (written 20 NOV 2026 11:12:42 AM):
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/code/src/interactive-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.049
+; compiling file "<demos>/harness/code/src/run.lisp" (written 20 NOV 2026 12:54:27 PM):
 
-; file: ~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/body.lisp
-; in: DEFUN BODY-STREAM
-;     (TYPEP HTTP-PROTOCOL::BODY 'HTTP-PROTOCOL::OCTET-INPUT-STREAM)
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/body-tmpY2ML9CFA.fasl
-; compilation finished in 0:00:00.008
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/form.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/form.lisp
-; in: DEFUN APPLY-REQUEST-PARAMS
-;     'NIL
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/form-tmpX2JYJDQE.fasl
-; compilation finished in 0:00:00.007
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/serdes.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/serdes.lisp
-; in: DEFUN RESPONSE-DATA
-;     (DEFUN HTTP-PROTOCOL:RESPONSE-DATA
-;            (HTTP-PROTOCOL::RESPONSE
-;             &OPTIONAL (TYPE :AUTO)
-;             &KEY HTTP-PROTOCOL::CONTENT-TYPE HTTP-PROTOCOL::HEADERS)
-;       "Deserialize RESPONSE body via DECODE-HTTP-DATA.
-;      TYPE defaults to :auto (from Content-Type)."
-;       (CHECK-TYPE HTTP-PROTOCOL::RESPONSE HTTP-PROTOCOL:HTTP-RESPONSE)
-;       (HTTP-PROTOCOL:DECODE-HTTP-DATA
-;        (HTTP-PROTOCOL:RESPONSE-BODY HTTP-PROTOCOL::RESPONSE) TYPE
-;        (OR HTTP-PROTOCOL::CONTENT-TYPE
-;            (HTTP-PROTOCOL:RESPONSE-HEADER HTTP-PROTOCOL::RESPONSE
-;                                           "content-type"))
-;        :HEADERS
-;        (OR HTTP-PROTOCOL::HEADERS
-;            (HTTP-PROTOCOL:RESPONSE-HEADERS HTTP-PROTOCOL::RESPONSE))))
-; --> SB-IMPL::%DEFUN SB-IMPL::%DEFUN SB-INT:NAMED-LAMBDA 
-; ==>
-;   #'(SB-INT:NAMED-LAMBDA HTTP-PROTOCOL:RESPONSE-DATA
-;         (HTTP-PROTOCOL::RESPONSE &OPTIONAL (TYPE :AUTO) &KEY
-;          HTTP-PROTOCOL::CONTENT-TYPE HTTP-PROTOCOL::HEADERS)
-;       (DECLARE (SB-C::TOP-LEVEL-FORM))
-;       "Deserialize RESPONSE body via DECODE-HTTP-DATA.
-;    TYPE defaults to :auto (from Content-Type)."
-;       (BLOCK HTTP-PROTOCOL:RESPONSE-DATA
-;         (CHECK-TYPE HTTP-PROTOCOL::RESPONSE HTTP-PROTOCOL:HTTP-RESPONSE)
-;         (HTTP-PROTOCOL:DECODE-HTTP-DATA
-;          (HTTP-PROTOCOL:RESPONSE-BODY HTTP-PROTOCOL::RESPONSE) TYPE
-;          (OR HTTP-PROTOCOL::CONTENT-TYPE
-;              (HTTP-PROTOCOL:RESPONSE-HEADER HTTP-PROTOCOL::RESPONSE
-;                                             "content-type"))
-;          :HEADERS
-;          (OR HTTP-PROTOCOL::HEADERS
-;              (HTTP-PROTOCOL:RESPONSE-HEADERS HTTP-PROTOCOL::RESPONSE)))))
-; 
-; caught STYLE-WARNING:
-;   &OPTIONAL and &KEY found in the same lambda list: (RESPONSE &OPTIONAL
-;                                                      (TYPE AUTO) &KEY
-;                                                      CONTENT-TYPE HEADERS)
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/serdes-tmpOPCILR65.fasl
-; compilation finished in 0:00:00.026
-WARNING:
-   Lisp compilation had style-warnings while
-   compiling #<CL-SOURCE-FILE "http-protocol" "serdes">
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/multipart.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/multipart.lisp
-; in: DEFUN BUILD-MULTIPART-PARTS
-;     'NIL
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/multipart-tmpRV9F8A9A.fasl
-; compilation finished in 0:00:00.027
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/auth.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/auth-tmpK2ZAJT4I.fasl
-; compilation finished in 0:00:00.003
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/cookies.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/cookies-tmpUX5S4ADN.fasl
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demos>/harness/code/src/run-tmpAR3FSGEY.fasl
 ; compilation finished in 0:00:00.004
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/protocol.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/protocol-tmp10401X32.fasl
-; compilation finished in 0:00:00.007
-; compiling file "~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/facade.lisp" (written 20 NOV 2026 11:12:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-protocol/0.4.0/src/facade-tmpZ7CBRM0G.fasl
-; compilation finished in 0:00:00.015
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/package.lisp" (written 20 NOV 2026 08:42:33 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/package-tmp9OZEQ0G2.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/tools.lisp" (written 20 NOV 2026 08:42:33 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/tools-tmpB2JTL1W9.fasl
-; compilation finished in 0:00:00.016
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/backend.lisp" (written 20 NOV 2026 08:42:33 AM):
-
-; file: ~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/backend.lisp
-; in: DEFUN %REQUEST
-;     (DEFUN LLM-PROTOCOL-ANTHROPIC::%REQUEST
-;            (LLM-PROTOCOL-ANTHROPIC::BACKEND METHOD LLM-PROTOCOL-ANTHROPIC::PATH
-;             &OPTIONAL LLM-PROTOCOL-ANTHROPIC::OBJECT
-;             &KEY LLM-PROTOCOL-ANTHROPIC::WANT-STREAM
-;             LLM-PROTOCOL-ANTHROPIC::ACCEPT)
-;       (LET* ((LLM-PROTOCOL-ANTHROPIC::FN
-;               (OR # #'LLM-PROTOCOL-ANTHROPIC::%HTTP-REQUEST))
-;              (LLM-PROTOCOL-ANTHROPIC::URL
-;               (LLM-PROTOCOL-ANTHROPIC::%JOIN # LLM-PROTOCOL-ANTHROPIC::PATH))
-;              (LLM-PROTOCOL-ANTHROPIC::CONTENT
-;               (AND LLM-PROTOCOL-ANTHROPIC::OBJECT #))
-;              (LLM-PROTOCOL-ANTHROPIC::HEADERS
-;               (LLM-PROTOCOL-ANTHROPIC::%HEADERS LLM-PROTOCOL-ANTHROPIC::BACKEND
-;                :ACCEPT #)))
-;         (MULTIPLE-VALUE-BIND
-;             (LLM-PROTOCOL-ANTHROPIC::STATUS LLM-PROTOCOL-ANTHROPIC::BODY
-;              LLM-PROTOCOL-ANTHROPIC::RETRY-AFTER)
-;             (FUNCALL LLM-PROTOCOL-ANTHROPIC::FN METHOD
-;                      LLM-PROTOCOL-ANTHROPIC::URL :HEADERS
-;                      LLM-PROTOCOL-ANTHROPIC::HEADERS :CONTENT
-;                      LLM-PROTOCOL-ANTHROPIC::CONTENT :WANT-STREAM
-;                      LLM-PROTOCOL-ANTHROPIC::WANT-STREAM)
-;           (VALUES LLM-PROTOCOL-ANTHROPIC::STATUS LLM-PROTOCOL-ANTHROPIC::BODY
-;                   LLM-PROTOCOL-ANTHROPIC::RETRY-AFTER))))
-; --> SB-IMPL::%DEFUN SB-IMPL::%DEFUN SB-INT:NAMED-LAMBDA 
-; ==>
-;   #'(SB-INT:NAMED-LAMBDA LLM-PROTOCOL-ANTHROPIC::%REQUEST
-;         (LLM-PROTOCOL-ANTHROPIC::BACKEND METHOD LLM-PROTOCOL-ANTHROPIC::PATH
-;          &OPTIONAL LLM-PROTOCOL-ANTHROPIC::OBJECT &KEY
-;          LLM-PROTOCOL-ANTHROPIC::WANT-STREAM LLM-PROTOCOL-ANTHROPIC::ACCEPT)
-;       (DECLARE (SB-C::TOP-LEVEL-FORM))
-;       (BLOCK LLM-PROTOCOL-ANTHROPIC::%REQUEST
-;         (LET* ((LLM-PROTOCOL-ANTHROPIC::FN #)
-;                (LLM-PROTOCOL-ANTHROPIC::URL #)
-;                (LLM-PROTOCOL-ANTHROPIC::CONTENT #)
-;                (LLM-PROTOCOL-ANTHROPIC::HEADERS #))
-;           (MULTIPLE-VALUE-BIND
-;               (LLM-PROTOCOL-ANTHROPIC::STATUS LLM-PROTOCOL-ANTHROPIC::BODY
-;                LLM-PROTOCOL-ANTHROPIC::RETRY-AFTER)
-;               (FUNCALL LLM-PROTOCOL-ANTHROPIC::FN METHOD
-;                        LLM-PROTOCOL-ANTHROPIC::URL :HEADERS
-;                        LLM-PROTOCOL-ANTHROPIC::HEADERS :CONTENT
-;                        LLM-PROTOCOL-ANTHROPIC::CONTENT :WANT-STREAM
-;                        LLM-PROTOCOL-ANTHROPIC::WANT-STREAM)
-;             (VALUES LLM-PROTOCOL-ANTHROPIC::STATUS LLM-PROTOCOL-ANTHROPIC::BODY
-;                     LLM-PROTOCOL-ANTHROPIC::RETRY-AFTER)))))
-; 
-; caught STYLE-WARNING:
-;   &OPTIONAL and &KEY found in the same lambda list: (BACKEND METHOD PATH
-;                                                      &OPTIONAL OBJECT &KEY
-;                                                      WANT-STREAM ACCEPT)
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/backend-tmpP3BI68WQ.fasl
-; compilation finished in 0:00:00.073
-WARNING:
-   Lisp compilation had style-warnings while
-   compiling #<CL-SOURCE-FILE "llm-protocol-anthropic" "backend">
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/stream.lisp" (written 20 NOV 2026 08:42:33 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/stream-tmpQDARA81Z.fasl
-; compilation finished in 0:00:00.014
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/compaction.lisp" (written 20 NOV 2026 08:42:33 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-anthropic/0.3.0/src/compaction-tmpYEMMM7SE.fasl
-; compilation finished in 0:00:00.010
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/package.lisp" (written 19 NOV 2026 08:19:56 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/package-tmp73HU0RPK.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/catalog.lisp" (written 19 NOV 2026 08:19:56 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/catalog-tmpIO5N7K88.fasl
-; compilation finished in 0:00:00.004
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/backend.lisp" (written 19 NOV 2026 08:19:56 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/backend-tmpCM21U60Z.fasl
-; compilation finished in 0:00:00.070
-; compiling file "~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/stream.lisp" (written 19 NOV 2026 08:19:56 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/llm-protocol-openai/0.4.0/src/stream-tmp9DT7SEFG.fasl
-; compilation finished in 0:00:00.035
-; compiling file "~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/package.lisp" (written 20 NOV 2026 11:30:00 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/package-tmp8065ESJT.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/conditions.lisp" (written 20 NOV 2026 11:30:00 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/conditions-tmp7S8Z6FGF.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/normalize.lisp" (written 20 NOV 2026 11:30:00 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/normalize-tmpSIT3QPKP.fasl
-; compilation finished in 0:00:00.016
-; compiling file "~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/protocol.lisp" (written 20 NOV 2026 11:30:00 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/protocol-tmpE0PA0714.fasl
-; compilation finished in 0:00:00.014
-; compiling file "~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/backend-clingon/package.lisp" (written 20 NOV 2026 11:30:00 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/backend-clingon/package-tmpJRWHHVG0.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/backend-clingon/backend.lisp" (written 20 NOV 2026 11:30:00 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cli-backend-clingon/0.2.1/src/backend-clingon/backend-tmp4WZVROCX.fasl
-; compilation finished in 0:00:00.028
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-chipz/0.1.1/src/package.lisp" (written 01 NOV 2026 03:04:52 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-chipz/0.1.1/src/package-tmpA0I3UKX8.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-chipz/0.1.1/src/backend.lisp" (written 01 NOV 2026 03:04:52 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-chipz/0.1.1/src/backend-tmp267Y2N80.fasl
-; compilation finished in 0:00:00.007
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/package.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/package-tmpBO0TUGLK.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/pool.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/pool-tmpIIXPIQNW.fasl
-; compilation finished in 0:00:00.008
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/socket.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/socket.lisp
-; in: DEFUN %RESOLVE-INET-ADDRESSES
-;     (FORMAT NIL "DNS returned no addresses for ~A" HTTP-BACKEND-ASYNC::HOST)
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/socket-tmpOHM494YR.fasl
-; compilation finished in 0:00:00.020
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/socks.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/socks-tmpOVFB07XF.fasl
-; compilation finished in 0:00:00.009
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/async-body-stream.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/async-body-stream-tmpG6VFGMYP.fasl
-; compilation finished in 0:00:00.009
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/http1.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/http1-tmp4QIPRMOF.fasl
-; compilation finished in 0:00:00.046
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/http2.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/http2-tmpGW0QV22K.fasl
-; compilation finished in 0:00:00.031
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/redirect.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/redirect-tmp2K9J0HSR.fasl
-; compilation finished in 0:00:00.003
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/tls.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/tls-tmpP44I4E0Y.fasl
-; compilation finished in 0:00:00.018
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/h2-mux.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/h2-mux-tmp63LQ7EX6.fasl
-; compilation finished in 0:00:00.031
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/backend.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/backend-tmp86F1A8FB.fasl
-; compilation finished in 0:00:00.172
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/websocket.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; file: ~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/websocket.lisp
-; in: DEFMETHOD CLOSE-CONNECTION (ASYNC-WS-CONNECTION)
-;     (IGNORE HTTP-BACKEND-ASYNC::CODE)
-; 
-; caught STYLE-WARNING:
-;   IGNORE declaration for a variable from outer scope: CODE
-
-;     (DEFMETHOD WS-PROTOCOL:CLOSE-CONNECTION
-;                (
-;                 (HTTP-BACKEND-ASYNC::CONNECTION
-;                  HTTP-BACKEND-ASYNC::ASYNC-WS-CONNECTION)
-;                 &KEY HTTP-BACKEND-ASYNC::CODE HTTP-BACKEND-ASYNC::REASON)
-;       (DECLARE (IGNORE HTTP-BACKEND-ASYNC::REASON))
-;       (UNLESS
-;           (HTTP-BACKEND-ASYNC::ASYNC-WS-CLOSED-P HTTP-BACKEND-ASYNC::CONNECTION)
-;         (SETF (WS-PROTOCOL:%CONNECTION-READY-STATE
-;                HTTP-BACKEND-ASYNC::CONNECTION)
-;                 :CLOSING)
-;         (IGNORE-ERRORS
-;          (HTTP-BACKEND-ASYNC::%ASYNC-WS-SEND-FRAME HTTP-BACKEND-ASYNC::CONNECTION
-;           #() :TYPE :CLOSE))
-;         (HTTP-BACKEND-ASYNC::%ASYNC-WS-SCHEDULE HTTP-BACKEND-ASYNC::CONNECTION
-;          (LAMBDA ()
-;            (DECLARE #)
-;            (HTTP-BACKEND-ASYNC::%ASYNC-WS-TEARDOWN
-;             HTTP-BACKEND-ASYNC::CONNECTION))))
-;       T)
-; --> EVAL-WHEN SB-PCL::%DEFMETHOD-EXPANDER SB-PCL::LOAD-DEFMETHOD 
-; --> SB-PCL::LOAD-DEFMETHOD LIST* LET* SB-INT:NAMED-LAMBDA 
-; ==>
-;   #'(SB-INT:NAMED-LAMBDA (SB-PCL::FAST-METHOD WS-PROTOCOL:CLOSE-CONNECTION
-;                           (HTTP-BACKEND-ASYNC::ASYNC-WS-CONNECTION))
-;         (SB-PCL::.PV. SB-PCL::.NEXT-METHOD-CALL. HTTP-BACKEND-ASYNC::CONNECTION
-;          &KEY HTTP-BACKEND-ASYNC::CODE HTTP-BACKEND-ASYNC::REASON
-;          &ALLOW-OTHER-KEYS)
-;       (DECLARE (IGNORABLE SB-PCL::.PV. SB-PCL::.NEXT-METHOD-CALL.)
-;                (DISABLE-PACKAGE-LOCKS SB-PCL::PV-ENV-ENVIRONMENT))
-;       (DECLARE (IGNORE HTTP-BACKEND-ASYNC::REASON))
-;       (DECLARE
-;        (SB-C::CURRENT-DEFMETHOD WS-PROTOCOL:CLOSE-CONNECTION NIL
-;         (HTTP-BACKEND-ASYNC::ASYNC-WS-CONNECTION)
-;         (HTTP-BACKEND-ASYNC::CONNECTION &KEY HTTP-BACKEND-ASYNC::CODE
-;          HTTP-BACKEND-ASYNC::REASON)))
-;       (DECLARE
-;        (SB-C::SOURCE-FORM
-;         (LAMBDA
-;             (HTTP-BACKEND-ASYNC::CONNECTION
-;              &KEY HTTP-BACKEND-ASYNC::CODE HTTP-BACKEND-ASYNC::REASON)
-;           (DECLARE #)
-;           (UNLESS # # # #)
-;           T)))
-;       (DECLARE (SB-PCL::%PARAMETER HTTP-BACKEND-ASYNC::CONNECTION))
-;       (DECLARE (IGNORABLE HTTP-BACKEND-ASYNC::CONNECTION))
-;       (SYMBOL-MACROLET ((SB-PCL::PV-ENV-ENVIRONMENT SB-PCL::DEFAULT))
-;         (SB-PCL::FAST-LEXICAL-METHOD-FUNCTIONS ((HTTP-BACKEND-ASYNC::CONNECTION)
-;                                                 SB-PCL::.NEXT-METHOD-CALL.
-;                                                 (HTTP-BACKEND-ASYNC::CONNECTION)
-;                                                 NIL :CALL-NEXT-METHOD-P NIL
-;                                                 :SETQ-P NIL :PARAMETERS-SETQD
-;                                                 NIL :METHOD-CELL
-;                                                 (#:METHOD-CELL) ...)
-;           (DECLARE
-;            (SB-PCL::%CLASS HTTP-BACKEND-ASYNC::CONNECTION
-;             HTTP-BACKEND-ASYNC::ASYNC-WS-CONNECTION))
-;           (LOCALLY
-;            (DECLARE #)
-;            (SYMBOL-MACROLET #
-;              #
-;              #)))))
-; 
-; caught STYLE-WARNING:
-;   The variable CODE is defined but never used.
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/websocket-tmpH7D4HL98.fasl
-; compilation finished in 0:00:00.084
-WARNING:
-   Lisp compilation had style-warnings while
-   compiling #<CL-SOURCE-FILE "http-backend-async" "websocket">
-; compiling file "~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/sync.lisp" (written 20 NOV 2026 10:15:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/sync-tmpCDM7YXYI.fasl
-; compilation finished in 0:00:00.005
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/package.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/package-tmpLM57P5P.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/conditions.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/conditions-tmpZE69DN33.fasl
-; compilation finished in 0:00:00.004
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/settings.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/settings-tmpG8099TO3.fasl
-; compilation finished in 0:00:00.022
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/permissions.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/permissions-tmpTASQCYAW.fasl
-; compilation finished in 0:00:00.010
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/instructions.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/instructions-tmp35U57IV6.fasl
-; compilation finished in 0:00:00.017
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/providers.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/providers-tmpTZOONXRW.fasl
-; compilation finished in 0:00:00.004
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/arguments.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/arguments-tmpWN0UKDSV.fasl
-; compilation finished in 0:00:00.004
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/tools.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/tools-tmpBF3HHBTQ.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/headless.lisp" (written 20 NOV 2026 11:02:56 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/headless-tmpGYUNPZCY.fasl
-; compilation finished in 0:00:00.036
-; compiling file "<checkout>/harness/code/src/package.lisp" (written 20 NOV 2026 11:04:16 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/package-tmpD68Q8WCA.fasl
-; compilation finished in 0:00:00.000
-; compiling file "<checkout>/harness/code/src/support.lisp" (written 20 NOV 2026 11:04:16 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/support-tmp7MK9KM9C.fasl
-; compilation finished in 0:00:00.014
-; compiling file "<checkout>/harness/code/src/model.lisp" (written 20 NOV 2026 11:04:16 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/model-tmpJJ71X849.fasl
-; compilation finished in 0:00:00.008
-; compiling file "<checkout>/harness/code/src/demos.lisp" (written 20 NOV 2026 11:04:16 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/demos-tmp1VUK6SR2.fasl
-; compilation finished in 0:00:00.008
-; compiling file "<checkout>/harness/code/src/run.lisp" (written 20 NOV 2026 11:04:16 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/run-tmpR2FIHSUG.fasl
-; compilation finished in 0:00:00.003
-
-; file: ~/.local/share/cl-repository/systems/http-backend-async/0.2.20/src/http2.lisp
-; in: DEFUN HTTP-BACKEND-ASYNC:H2-SESSION-ENABLE-CONNECT-PROTOCOL-P
-;     'HTTP-BACKEND-ASYNC::ASYNC-H2-CLIENT-CONNECTION
-; 
-; caught STYLE-WARNING:
-;   undefined type: HTTP-BACKEND-ASYNC::ASYNC-H2-CLIENT-CONNECTION
-
-;     (HTTP-BACKEND-ASYNC:H2-ENABLE-CONNECT-PROTOCOL-P HTTP-BACKEND-ASYNC::CONN)
-; 
-; caught STYLE-WARNING:
-;   undefined function: HTTP-BACKEND-ASYNC:H2-ENABLE-CONNECT-PROTOCOL-P
-; 
-; compilation unit finished
-;   Undefined type:
-;     HTTP-BACKEND-ASYNC::ASYNC-H2-CLIENT-CONNECTION
-;   Undefined function:
-;     HTTP-BACKEND-ASYNC:H2-ENABLE-CONNECT-PROTOCOL-P
-;   caught 6 STYLE-WARNING conditions
-;   printed 20 notes
 
 ========================================================================
 == Loaded systems
 ========================================================================
-  cl-stack-code          0.1.1
-  ai-agent-protocol      0.12.0
+  cl-stack-code          0.2.0
+  ai-agent-protocol      0.13.0
   agent-tools            0.2.0
   cli-protocol           0.2.1
   cli-backend-clingon    0.2.1
   llm-protocol           0.5.0
   llm-protocol-openai    0.4.0
+  tui-protocol           0.2.0
+  tui-markdown           0.2.0
+  tui-backend-terminal   0.1.0
+  tui-backend-tty        0.1.1
   steer-protocol         0.3.0
-  http-backend-async     0.2.20
+  http-backend-async     0.2.21
   event-backend-libuv    0.2.2
 
 ========================================================================
 == Model
 ========================================================================
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/package.lisp" (written 07 OCT 2026 07:32:49 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/package-tmp8PYELRKX.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/backend.lisp" (written 07 OCT 2026 07:32:49 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-brotli/0.1.1/src/backend-tmpEHTOKYT0.fasl
-; compilation finished in 0:00:00.004
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/package.lisp" (written 18 NOV 2026 05:28:47 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/package-tmpS6U1VHI9.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/backend.lisp" (written 18 NOV 2026 05:28:47 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-zstd/0.1.1/src/backend-tmpVTFK6ZJW.fasl
-; compilation finished in 0:00:00.007
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/package.lisp" (written 18 NOV 2026 06:10:21 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/package-tmp75WVSJEW.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/backend.lisp" (written 18 NOV 2026 06:10:21 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-encoding-snappy/0.1.1/src/backend-tmpBU5UM3S4.fasl
-; compilation finished in 0:00:00.004
 LM_API_TOKEN found: T
 GET /v1/models:
   | ("qwen3.5-2b" "unlimited-ocr" "text-embedding-qwen3-embedding-0.6b"
@@ -681,7 +59,7 @@ MODEL THAT RAN: LM Studio qwen3.5-2b (real model; its output varies run to run)
 $ cl-stack-code --model openai:qwen3.5-2b -p --output-format text --max-turns 8 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Read notes.txt and tell me the release codename in one sentence.'
 exit code: 0
 stdout:
-  | The release codename in notes.txt is **Juniper**.
+  | The release codename is **Juniper**.
 stderr: (empty)
 
 ========================================================================
@@ -694,16 +72,16 @@ events: 11
 event types in order: ("system" "assistant" "tool_use" "tool_result" "text_delta" "result")
 
 --- the events (text_delta folded)
-  {"type":"system","session_id":"d10173f819a21790e50194487ecd389c","subtype":"init","version":"0.1.1","cwd":"<tmp>/stream/","project_root":"<tmp>/stream/","model":"openai:qwen3.5-2b","permission_mode":"default","tools":["read","write","edit","multi… [499 chars]
-  {"type":"assistant","session_id":"d10173f819a21790e50194487ecd389c","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":3025,"output_tokens":111,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"d10173f819a21790e50194487ecd389c","step":1,"id":"xDb2f11UVjp0jNoX6zLTDJ8eP9KGKSy6","name":"read","input":{"file_path":"greeting.txt","offset":1,"limit":20}}
-  {"type":"tool_result","session_id":"d10173f819a21790e50194487ecd389c","step":1,"id":"xDb2f11UVjp0jNoX6zLTDJ8eP9KGKSy6","name":"read","status":"done","is_error":false,"content":"     1\tHello, world!\nhash: sha256:d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5"}
-  {"type":"assistant","session_id":"d10173f819a21790e50194487ecd389c","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":3222,"output_tokens":166,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"d10173f819a21790e50194487ecd389c","step":2,"id":"sznjJ0vmz1OBy05kRMKSTuMok38MEUhS","name":"edit","input":{"file_path":"greeting.txt","old_string":"Hello, world!","new_string":"Goodbye, world!"}}
-  {"type":"tool_result","session_id":"d10173f819a21790e50194487ecd389c","step":2,"id":"sznjJ0vmz1OBy05kRMKSTuMok38MEUhS","name":"edit","status":"done","is_error":false,"content":"Edited greeting.txt: 1 replacement\n--- a/greeting.txt\n+++ b/greeting.txt\n@@ -1 +1 @@\n-Hello, world!\n+Goodbye, world!\nhash: sha256:50ebc23c1648f6835dc9c9a0e06751732b1707b073f7ced1065613b0d2ab4e99"}
-  {"type":"assistant","session_id":"d10173f819a21790e50194487ecd389c","step":3,"text":"Done.","finish_reason":"stop","usage":{"input_tokens":3509,"output_tokens":38,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"system","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","subtype":"init","version":"0.2.0","cwd":"<tmp>/stream/","project_root":"<tmp>/stream/","model":"openai:qwen3.5-2b","permission_mode":"default","tools":["read","write","edit","multi… [499 chars]
+  {"type":"assistant","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":3025,"output_tokens":101,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":1,"id":"xasoXCZlPWHnhQwYqKUjsOH7dt1NPVDx","name":"read","input":{"file_path":"greeting.txt","limit":10,"offset":1}}
+  {"type":"tool_result","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":1,"id":"xasoXCZlPWHnhQwYqKUjsOH7dt1NPVDx","name":"read","status":"done","is_error":false,"content":"     1\tHello, world!\nhash: sha256:d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5"}
+  {"type":"assistant","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":3212,"output_tokens":120,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":2,"id":"bQdrYh0uHWM7A273E1mmQzvQrDMwVy40","name":"edit","input":{"file_path":"greeting.txt","old_string":"Hello, world!","new_string":"Goodbye, world!"}}
+  {"type":"tool_result","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":2,"id":"bQdrYh0uHWM7A273E1mmQzvQrDMwVy40","name":"edit","status":"done","is_error":false,"content":"Edited greeting.txt: 1 replacement\n--- a/greeting.txt\n+++ b/greeting.txt\n@@ -1 +1 @@\n-Hello, world!\n+Goodbye, world!\nhash: sha256:50ebc23c1648f6835dc9c9a0e06751732b1707b073f7ced1065613b0d2ab4e99"}
+  {"type":"assistant","session_id":"fbf04ec64135a9079eac7fd307f2a6e9","step":3,"text":"Done.","finish_reason":"stop","usage":{"input_tokens":3453,"output_tokens":41,"cache_read_tokens":0,"cache_write_tokens":0}}
     (2 text_delta events before it for step 3)
-  {"type":"result","subtype":"success","is_error":false,"result":"Done.","error":null,"num_turns":3,"duration_ms":6053,"usage":{"input_tokens":9756,"output_tokens":315,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"d10173f819a21790e50194487ecd389c"}
+  {"type":"result","subtype":"success","is_error":false,"result":"Done.","error":null,"num_turns":3,"duration_ms":5151,"usage":{"input_tokens":9690,"output_tokens":262,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"fbf04ec64135a9079eac7fd307f2a6e9"}
 
 --- greeting.txt after the run
 greeting.txt:
@@ -719,20 +97,20 @@ stderr:
   | cl-stack-code: reached max turns (4)
 
 --- tool_use / tool_result / result events
-  {"type":"tool_use","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":1,"id":"EwnbDVR6dyTYcctyk7LXMU6zPLHqJvc8","name":"write","input":{"file_path":"<tmp>/deny/todo.txt","content":"ship it","expected_hash":""}}
-  {"type":"tool_result","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":1,"id":"EwnbDVR6dyTYcctyk7LXMU6zPLHqJvc8","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
-  {"type":"tool_use","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":2,"id":"hdPIbrZvnCaJlblo6rKkAxPjU4RhUfGT","name":"write","input":{"file_path":"<tmp>/deny/todo.txt","content":"ship it"}}
-  {"type":"tool_result","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":2,"id":"hdPIbrZvnCaJlblo6rKkAxPjU4RhUfGT","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
-  {"type":"tool_use","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":3,"id":"sIRuk08OzisLF2yDQJrA99QwY86TDXVW","name":"ls","input":{"path":"<tmp>/cl-stack-code-demo-9JR134/deny"}}
-  {"type":"tool_result","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":3,"id":"sIRuk08OzisLF2yDQJrA99QwY86TDXVW","name":"ls","status":"error","is_error":true,"content":"Tool ls rejected its arguments: <tmp>/cl-stack-code-demo-9JR134/deny not found; check the path with ls\nFix the arguments to match the tool's input schema and call it again."}
-  {"type":"tool_use","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":4,"id":"hx0jY8eOV68e4ycOQFHw7Aflm1MmZ3AF","name":"write","input":{"file_path":"todo.txt","content":"ship it"}}
-  {"type":"tool_result","session_id":"14d3ac9549b9c08e4b7fbe660f19ce09","step":4,"id":"hx0jY8eOV68e4ycOQFHw7Aflm1MmZ3AF","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
-  {"type":"result","subtype":"error_max_turns","is_error":true,"result":"","error":"reached max turns (4)","num_turns":4,"duration_ms":13415,"usage":{"input_tokens":14044,"output_tokens":758,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[{"id":"EwnbDVR6dyTYcctyk7LXMU6zPLHqJvc8","name":"write","input":{"file_path":"<tmp>/deny/todo.txt","content":"ship it","expected_hash":""},"reason":"headless"},{"id":"hdPIbrZvnCaJlblo6rKkAxPjU4RhUfGT","name":"write","input":{"file_path":"<tmp>/… [891 chars]
+  {"type":"tool_use","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":1,"id":"fzus71xt4UxSKmZDPoUFLdVLyiwev7TU","name":"write","input":{"file_path":"todo.txt","content":"ship it"}}
+  {"type":"tool_result","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":1,"id":"fzus71xt4UxSKmZDPoUFLdVLyiwev7TU","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"tool_use","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":2,"id":"EdajfbT081AM9nsjafFjGnWOf8DhzpEm","name":"write","input":{"file_path":"todo.txt","content":"ship it"}}
+  {"type":"tool_result","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":2,"id":"EdajfbT081AM9nsjafFjGnWOf8DhzpEm","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"tool_use","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":3,"id":"mwE12POPw6urQa8KpoBznPBqCdlyLCBH","name":"bash","input":{"command":"cat > todo.txt << 'EOF'\nship it"}}
+  {"type":"tool_result","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":3,"id":"mwE12POPw6urQa8KpoBznPBqCdlyLCBH","name":"bash","status":"denied","is_error":true,"content":"Tool bash was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"tool_use","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":4,"id":"5aibxYfJrYQypFHoYcy6sajj6KugGrSo","name":"ls","input":{}}
+  {"type":"tool_result","session_id":"1f8840fe5bf9e7709c04c7218bf2c457","step":4,"id":"5aibxYfJrYQypFHoYcy6sajj6KugGrSo","name":"ls","status":"done","is_error":false,"content":"README.md"}
+  {"type":"result","subtype":"error_max_turns","is_error":true,"result":"","error":"reached max turns (4)","num_turns":4,"duration_ms":9025,"usage":{"input_tokens":13444,"output_tokens":495,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[{"id":"fzus71xt4UxSKmZDPoUFLdVLyiwev7TU","name":"write","input":{"file_path":"todo.txt","content":"ship it"},"reason":"headless"},{"id":"EdajfbT081AM9nsjafFjGnWOf8DhzpEm","name":"write","input":{"file_path":"todo.txt","content":"ship it"},"reason":"headless"},{"id":"mwE12POPw6urQa8KpoBznPBqCdlyLCBH","name":"bash","input":{"command":"cat > tod… [696 chars]
 
 --- verdict
 todo.txt exists: NIL
 result subtype: error_max_turns
-permission_denials: (("write" "headless") ("write" "headless") ("write" "headless"))
+permission_denials: (("write" "headless") ("write" "headless") ("bash" "headless"))
 a tool_result with status "denied" reached the model and the run finished (error_max_turns).
 
 ========================================================================
@@ -815,7 +193,7 @@ hidden tools (a bare deny): ("job_kill")
 
 --- a mock run on these files: its system init event
 exit: 0
-  {"type":"system","session_id":"29d9e70c2ad50cd9f81dc0a4eaae7587","subtype":"init","version":"0.1.1","cwd":"<tmp>/settings/","project_root":"<tmp>/settings/","model":"mock:flag-model","permission_mode":"acceptEdits","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_list"],"instructions":[]}
+  {"type":"system","session_id":"3b802b11c12ae5582bebc29232dd9c3d","subtype":"init","version":"0.2.0","cwd":"<tmp>/settings/","project_root":"<tmp>/settings/","model":"mock:flag-model","permission_mode":"acceptEdits","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_list"],"instructions":[]}
 
 ========================================================================
 == Demo e: AGENTS.md discovery and the assembled system prompt
@@ -877,8 +255,457 @@ from # Environment to the end:
   | Appended by --append-system-prompt.
 
 ========================================================================
+== Demo f: interactive mode (H3b) on the headless terminal, scripted streaming mock
+========================================================================
+
+--- f1: the first screen (120 × 12): empty transcript, rule, input, status line
+  ┌ screen: start
+   0││
+   1││
+   2││
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  10│> Message, @file, /help│
+  11│ tui-mock · default · <tmp>/… 0 in · 0 out│
+status-line-text left:  tui-mock · default · <tmp>/tui-start/
+status-line-text right: 0 in · 0 out 
+
+--- f2: an @ mention: the completion menu, Tab, and the file attached to the prompt
+project-files: (".gitignore" "README.md" "src/" "src/alpha.lisp" "src/alphabet.lisp")
+mention-candidates "@alp": ("@src/alpha.lisp" "@src/alphabet.lisp")
+  ┌ screen: typing "look at @alp" (the menu sits under the input)
+   0││
+   1││
+   2││
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9│────────────────────────────────────────────────────────────────────────────────│
+  10│> look at @alp│
+  11│> @src/alpha.lisp│
+  12│  @src/alphabet.lisp│
+  13│ tui-mock · default · <tmp>/… 0 in · 0 out│
+  ┌ screen: Tab
+   0││
+   1││
+   2││
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11│────────────────────────────────────────────────────────────────────────────────│
+  12│> look at @src/alpha.lisp│
+  13│ tui-mock · default · <tmp>/… 0 in · 0 out│
+  ┌ screen: Enter and the answer
+   0│> look at @src/alpha.lisp│
+   1││
+   2│Seen alpha: it returns :alpha.│
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11│────────────────────────────────────────────────────────────────────────────────│
+  12│> Message, @file, /help│
+  13│ tui-mock · default · <tmp>/… 10 in · 5 out│
+what the model received (first request, user text):
+  | look at @src/alpha.lisp
+  | 
+  | <file path="src/alpha.lisp">
+  | (defun alpha () :alpha)
+  | </file>
+
+--- f3: a streamed markdown answer: mid-stream (held at a gate) and finished
+  ┌ screen: mid-stream: spinner, partial markdown
+   0│> plan the fix│
+   1││
+   2│Plan│
+   3││
+   4│The bug is in greet: it drops the name.│
+   5││
+   6│1. read src/greet.lisp│
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24│⠙ Working… (Esc to interrupt)│
+  25│────────────────────────────────────────────────────────────────────────────────│
+  26│> Message, @file, /help│
+  27│ tui-mock · default · <tmp>/… 0 in · 0 out│
+  ┌ screen: finished: heading without #, no ** or backticks, code block, table, quote
+   0│> plan the fix│
+   1││
+   2│Plan│
+   3││
+   4│The bug is in greet: it drops the name.│
+   5││
+   6│1. read src/greet.lisp│
+   7│2. fix the format call│
+   8│3. run the tests│
+   9││
+  10│  (defun greet (name)│
+  11│    (format nil "Hello, ~a!" name))│
+  12││
+  13│┌──────┬────────────────┐│
+  14││ step │ file           ││
+  15│├──────┼────────────────┤│
+  16││ fix  │ src/greet.lisp ││
+  17│└──────┴────────────────┘│
+  18││
+  19││ Nothing is written until you approve.│
+  20││
+  21││
+  22││
+  23││
+  24││
+  25│────────────────────────────────────────────────────────────────────────────────│
+  26│> Message, @file, /help│
+  27│ tui-mock · default · <tmp>/… 10 in · 5 out│
+
+--- f4: an edit asks: the dialog with its diff preview, answered "Always allow"
+  ┌ screen: the approval dialog
+   0│> use the name in greet and bye│
+   1││
+   2│● edit src/greet.lisp│
+   3││
+   4││
+   5│────────────────────────────────────────────────────────────────────────────────│
+   6│┌─Permission───────────────────────────────────────────────────────────────────┐│
+   7││ edit src/greet.lisp                                                          ││
+   8││ --- a/src/greet.lisp                                                         ││
+   9││ +++ b/src/greet.lisp                                                         ││
+  10││ @@ -1,7 +1,7 @@                                                              ││
+  11││  (in-package :demo)                                                          ││
+  12││                                                                              ││
+  13││  (defun greet (name)                                                         ││
+  14││ -  (format nil "Hello!"))                                                    ││
+  15││ +  (format nil "Hello, ~a!" name))                                           ││
+  16││                                                                              ││
+  17││  (defun bye (name)                                                           ││
+  18││    (format nil "Bye!"))                                                      ││
+  19││                                                                              ││
+  20││ > 1. Allow once                                                              ││
+  21││   2. Always allow                                                            ││
+  22││   3. Reject                                                                  ││
+  23││   4. Reject all                                                              ││
+  24│└──────────────────────────────────────────────────────────────────────────────┘│
+  25│ tui-mock · default · <tmp>/… 10 in · 5 out│
+nothing written yet: src/greet.lisp has "Hello!": T
+  ┌ screen: after "Always allow": the second edit of the same file did not ask
+   0│> use the name in greet and bye│
+   1││
+   2│● edit src/greet.lisp│
+   3│  src/greet.lisp +1 -1│
+   4│  1  (in-package :demo)│
+   5│  2│
+   6│  3  (defun greet (name)│
+   7│  4 -  (format nil "Hello!"))│
+   8│  4 +  (format nil "Hello, ~a!" name))│
+   9│  5│
+  10│  6  (defun bye (name)│
+  11│  7    (format nil "Bye!"))│
+  12││
+  13│● edit src/greet.lisp│
+  14│  src/greet.lisp +1 -1│
+  15│  4    (format nil "Hello, ~a!" name))│
+  16│  5│
+  17│  6  (defun bye (name)│
+  18│  7 -  (format nil "Bye!"))│
+  19│  7 +  (format nil "Bye, ~a!" name))│
+  20││
+  21│Both functions now use name.│
+  22││
+  23│────────────────────────────────────────────────────────────────────────────────│
+  24│> Message, @file, /help│
+  25│ tui-mock · default · <tmp>/… 30 in · 15 out│
+src/greet.lisp:
+  | (in-package :demo)
+  | 
+  | (defun greet (name)
+  |   (format nil "Hello, ~a!" name))
+  | 
+  | (defun bye (name)
+  |   (format nil "Bye, ~a!" name))
+.cl-stack-code/settings.local.json:
+  | {"permissions":{"allow":["edit(src/greet.lisp)"]}}
+approval dialogs shown: 1
+
+--- f4b: the next start reads the saved rule: /permissions lists it, the edit runs without a dialog
+  ┌ screen: /permissions, then an edit with no dialog
+   0│permission mode: default│
+   1│allow edit(src/greet.lisp)│
+   2││
+   3│> fix the in-package│
+   4││
+   5│● edit src/greet.lisp│
+   6│  src/greet.lisp +1 -1│
+   7│  1 -(in-package :demo)│
+   8│  1 +(in-package #:demo)│
+   9│  2│
+  10│  3  (defun greet (name)│
+  11│  4    (format nil "Hello, ~a!" name))│
+  12││
+  13│Done.│
+  14││
+  15││
+  16││
+  17│────────────────────────────────────────────────────────────────────────────────│
+  18│> Message, @file, /help│
+  19│ tui-mock · default · <tmp>/… 20 in · 10 out│
+
+--- f5: Reject with feedback: the edit is not made and the model reads the feedback
+  ┌ screen: 3 = Reject, typing the feedback
+   0│> change alpha to omega│
+   1││
+   2│● edit a.txt│
+   3││
+   4││
+   5│────────────────────────────────────────────────────────────────────────────────│
+   6│┌─Permission───────────────────────────────────────────────────────────────────┐│
+   7││ edit a.txt                                                                   ││
+   8││ --- a/a.txt                                                                  ││
+   9││ +++ b/a.txt                                                                  ││
+  10││ @@ -1 +1 @@                                                                  ││
+  11││ -alpha                                                                       ││
+  12││ +omega                                                                       ││
+  13││                                                                              ││
+  14││   1. Allow once                                                              ││
+  15││   2. Always allow                                                            ││
+  16││ > 3. Reject                                                                  ││
+  17││   4. Reject all                                                              ││
+  18││ What should it do instead?                                                   ││
+  19││ > leave a.txt alone, use b.txt                                               ││
+  20│└──────────────────────────────────────────────────────────────────────────────┘│
+  21│ tui-mock · default · <tmp>/… 10 in · 5 out│
+  ┌ screen: the model's answer to the feedback
+   0│> change alpha to omega│
+   1││
+   2│● edit a.txt│
+   3│  ⎿ Tool edit was not run: the user rejected the request│
+   4│    … +2 lines│
+   5││
+   6│OK, I will put it in b.txt instead.│
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19│────────────────────────────────────────────────────────────────────────────────│
+  20│> Message, @file, /help│
+  21│ tui-mock · default · <tmp>/… 20 in · 10 out│
+a.txt (unchanged):
+  | alpha
+the tool result the model got:
+  | [tool_result error] Tool edit was not run: the user rejected the request
+  | Feedback: leave a.txt alone, use b.txt
+  | Do not repeat the same call. Follow the feedback above and continue.
+
+--- f6: Esc interrupts a running turn
+  ┌ screen: busy: the spinner above the rule
+   0│> count to a million│
+   1││
+   2││
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9││
+  10│⠏ Working… (Esc to interrupt)│
+  11│────────────────────────────────────────────────────────────────────────────────│
+  12│> Message, @file, /help│
+  13│ tui-mock · default · <tmp>/… 0 in · 0 out│
+  ┌ screen: Esc
+   0│> count to a million│
+   1││
+   2│this answer arrives too late│
+   3││
+   4│interrupted│
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11│────────────────────────────────────────────────────────────────────────────────│
+  12│> Message, @file, /help│
+  13│ tui-mock · default · <tmp>/… 0 in · 0 out│
+  ┌ screen: the next message
+   0│> count to a million│
+   1││
+   2│this answer arrives too late│
+   3││
+   4│interrupted│
+   5││
+   6│> then just say hi│
+   7││
+   8│The conversation goes on.│
+   9││
+  10││
+  11│────────────────────────────────────────────────────────────────────────────────│
+  12│> Message, @file, /help│
+  13│ tui-mock · default · <tmp>/… 10 in · 5 out│
+"too late" text shown: T
+
+--- f7: a follow-up typed while a turn runs is queued, then sent when the turn ends
+  ┌ screen: "two" typed while "one" runs
+   0│> one│
+   1││
+   2││
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11│  queued: two│
+  12│⠏ Working… (Esc to interrupt)│
+  13│────────────────────────────────────────────────────────────────────────────────│
+  14│> Message, @file, /help│
+  15│ tui-mock · default · <tmp>/… 0 in · 0 out│
+state-queue: ("two")
+  ┌ screen: the queue drained: one, First answer, two, Second answer
+   0│> one│
+   1││
+   2│First answer.│
+   3││
+   4│> two│
+   5││
+   6│Second answer, with the first still in the history.│
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13│────────────────────────────────────────────────────────────────────────────────│
+  14│> Message, @file, /help│
+  15│ tui-mock · default · <tmp>/… 20 in · 10 out│
+requests sent: 2
+the second request holds "one" and "First answer.": T
+
+--- f8: /help
+  ┌ screen: /help
+   0│Commands:│
+   1│  /help                 this help│
+   2│  /clear                start a new conversation│
+   3│  /model [MODEL]        show or switch the model (provider or provider:model)│
+   4│  /permissions [MODE]   show the rules, or switch to default, acceptEdits,│
+   5│bypassPermissions or plan│
+   6│  /exit                 quit (also Ctrl-D, or Ctrl-C on an empty input)│
+   7│Keys:│
+   8│  Enter send · Alt+Enter, Shift+Enter or Ctrl+J newline · Up/Down history│
+   9│  @path attach a file (Tab completes) · PgUp/PgDn scroll│
+  10│  Esc interrupt the turn · a message sent while a turn runs is queued│
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────│
+  28│> Message, @file, /help│
+  29│ tui-mock · default · <tmp>/… 0 in · 0 out│
+requests sent to the model: 0
+
+--- f9: run-cli without -p on string streams: not a terminal, exit 2, nothing sent
+exit code: 2
+stdout: (empty)
+stderr:
+  | cl-stack-code: the interactive mode needs a terminal on standard input and output; use -p PROMPT for a headless run
+
+--- f10: one turn on the LM Studio model, same program, same headless terminal
+  ┌ screen: the real model (qwen3.5-2b) answered
+   0│> Read @notes.txt and give the codename in one sentence, in **bold**.│
+   1││
+   2│● read notes.txt│
+   3│  ⎿      1      Release notes│
+   4│    … +3 lines│
+   5││
+   6│Juniper│
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21│────────────────────────────────────────────────────────────────────────────────│
+  22│> Message, @file, /help│
+  23│ openai:qwen3.5-2b · default · <tmp>/… 3965 in · 244 out│
+transcript entry kinds: (:USER :TOOL :ASSISTANT)
+
+--- f: steps that reached their last screen
+  f1   yes
+  f2   yes
+  f3   yes
+  f4   yes
+  f4b  yes
+  f5   yes
+  f6   yes
+  f7   yes
+  f8   yes
+  f9   yes
+  f10  yes
+
+========================================================================
 == Summary
 ========================================================================
 model that ran: LM Studio qwen3.5-2b
-demos run: demo-text, demo-stream-json, demo-headless-denial, demo-settings, demo-instructions
+demos run: demo-text, demo-stream-json, demo-headless-denial, demo-settings, demo-instructions, demo-interactive
 demos that raised an error: none
