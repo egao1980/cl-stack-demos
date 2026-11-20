@@ -190,7 +190,8 @@ text_delta events counted and concatenated per step."
                  (exit (code:run-cli (list "--cwd" (%native project) "-p" "--output-format" "stream-json"
                                            "--model" "mock:flag-model" "hi")
                                      :output s :user-config-dir config
-                                     :providers (model-providers) :getenv (constantly nil))))
+                                     :providers (model-providers) :getenv (constantly nil)
+                                     :data-dir (data-dir))))
             (show "exit" exit)
             (note "  ~a" (json:encode (first (decode-lines (get-output-stream-string s)))))))))))
 

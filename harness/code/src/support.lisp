@@ -40,6 +40,9 @@ project and config directories become <tmp>/…, the home directory ~/.")
   value)
 
 (defun clip (text &optional (n 240))
+  "TEXT redacted, then cut to N characters (redacting first, so a path cut short
+is never printed)."
+  (setf text (redact text))
   (if (> (length text) n)
       (format nil "~a… [~d chars]" (subseq text 0 n) (length text))
       text))
@@ -68,9 +71,37 @@ project and config directories become <tmp>/…, the home directory ~/.")
   "A fresh directory NAME/ under this run's scratch directory."
   (let ((dir (merge-pathnames (format nil "~a/" name) *scratch*)))
     (when (probe-file dir)
-      (uiop:delete-directory-tree dir :validate t))
+      (delete-tree dir))
     (ensure-directories-exist dir)
     (truename dir)))
+
+(defun scratch-redactions (scratch more)
+  "The (from . to) pairs for SCRATCH: its path (also without the leading
+slash, as a model may write it), the project key of sessions and plans
+(cl-stack-code 0.3.0+: the path with / turned into -), the home directory, the
+run directory's own name (the status line cuts a path in the middle) and the
+login name (ls -l output)."
+  (let* ((native (%native scratch))
+         (name (car (last (pathname-directory scratch))))
+         (user (or (uiop:getenv "USER") (uiop:getenv "USERNAME"))))
+    (append (list (cons native "<tmp>/")
+                  (cons (subseq native 1) "<tmp-without-slash>/"))
+            ;; macOS: /private/var/… is also reached as /var/…
+            (and (uiop:string-prefix-p "/private/" native)
+                 (list (cons (subseq native 8) "<tmp>/")))
+            (list (cons (substitute #\- #\/ (string-right-trim "/" native)) "<tmp-key>")
+                  (cons (%native (user-homedir-pathname)) "~/")
+                  (cons name "<run>"))
+            (and user (>= (length user) 4) (list (cons user "<user>")))
+            more)))
+
+(defun delete-tree (dir)
+  "Delete DIR. On Windows, first clear the read-only attribute: git writes its
+objects read-only, and DELETE-FILE cannot remove those there."
+  (when (and (uiop:os-windows-p) (probe-file dir))
+    (uiop:run-program (list "attrib" "-R" (concatenate 'string (%native dir) "*") "/S" "/D")
+                      :ignore-error-status t))
+  (uiop:delete-directory-tree dir :validate t :if-does-not-exist :ignore))
 
 (defmacro with-scratch (() &body body)
   "Bind *SCRATCH* to a fresh temporary directory, redacted as <tmp>/, and
@@ -81,11 +112,9 @@ delete it afterwards."
                                (uiop:temporary-directory))))
                        (ensure-directories-exist d)
                        (truename d)))
-          (*redactions* (list* (cons (%native *scratch*) "<tmp>/")
-                               (cons (%native (user-homedir-pathname)) "~/")
-                               *redactions*)))
+          (*redactions* (scratch-redactions *scratch* *redactions*)))
      (unwind-protect (progn ,@body)
-       (uiop:delete-directory-tree *scratch* :validate t :if-does-not-exist :ignore))))
+       (delete-tree *scratch*))))
 
 (defun make-project (name files)
   "A git-rooted project NAME/ (a bare .git/ directory is enough for
@@ -96,6 +125,11 @@ cl-stack-code's project root) holding FILES, ((relative text) …)."
     root))
 
 ;;; Running the CLI.
+
+(defun data-dir ()
+  "This run's private data directory (sessions and plans; cl-stack-code 0.3.0+),
+never the user's ~/.local/share."
+  (ensure-directories-exist (merge-pathnames "data/" *scratch*)))
 
 (defun cli (argv &key cwd config (input ""))
   "RUN-CLI with ARGV (prefixed by --cwd CWD and the current model's --model),
@@ -111,7 +145,8 @@ environment. → (values exit stdout stderr)."
                                               :input (make-string-input-stream input)
                                               :providers (model-providers)
                                               :user-config-dir config
-                                              :getenv (model-getenv))))))
+                                              :getenv (model-getenv)
+                                              :data-dir (data-dir))))))
     (values exit out (get-output-stream-string err))))
 
 (defun show-argv (argv)

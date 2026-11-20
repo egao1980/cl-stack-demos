@@ -103,7 +103,9 @@ read here and never printed)."
             ((string= name "LM_API_TOKEN") token)
             (t nil)))))
 
-(defun %mock-response (step)
+(defun %mock-response (step &optional (n 1))
+  "N numbers the response, so call ids are unique in the conversation
+(call-N-K): cl-stack-code reports one tool_result per id."
   (if (stringp step)
       (llm:make-llm-response :parts (list (llm:make-llm-text-part :text step))
                              :finish-reason :stop :model "mock")
@@ -111,16 +113,16 @@ read here and never printed)."
        :parts (loop for (name args) in step
                     for k from 1
                     collect (llm:make-llm-tool-call-part
-                             :id (format nil "call-~d" k) :name name :arguments args))
+                             :id (format nil "call-~d-~d" n k) :name name :arguments args))
        :finish-reason :tool-use :model "mock")))
 
 (defun %mock-backend (script)
-  (let ((steps script))
+  (let ((steps script) (n 0))
     (llm:make-mock-llm-backend
      :handler (lambda (b turns &key &allow-other-keys)
                 (declare (ignore b))
                 (let ((step (if steps (pop steps) "(the mock script is out of steps)")))
-                  (%mock-response (if (functionp step) (funcall step turns) step)))))))
+                  (%mock-response (if (functionp step) (funcall step turns) step) (incf n)))))))
 
 (defun model-providers ()
   "The mock provider when no real model runs (a fresh backend per run on

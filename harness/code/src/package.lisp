@@ -16,4 +16,7 @@
            #:demo-headless-denial
            #:demo-settings
            #:demo-instructions
-           #:demo-interactive))
+           #:demo-interactive
+           #:demo-plan-headless
+           #:demo-plan-interactive
+           #:demo-plan-real-model))
