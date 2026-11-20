@@ -56,7 +56,7 @@ Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43 for `fs/`; ≥ 2.56 for `cod
 
 ## Windows
 
-All five projects run on windows-latest in CI. The POSIX tools come from Git for Windows on PATH (`sh`, `env`, `printf`, `cat`, `sleep`); temp directories are cleared of read-only attributes (git objects) before deletion. Skipped there, each with a printed reason: fs Demo 5 symlink probes (no `fs-create-symlink` on Windows), fs Demo 6 process-group / tree-kill steps (POSIX groups and signals), agent Demo 4b (the pty child; Unix-only by design). Agent Demo 7 runs the shell tools with Git for Windows' `sh` instead of `cmd.exe` (executor `:process`). The image project loads its demo system through `uiop:parse-native-namestring` (a native Windows path is not a Lisp namestring) and retries deleting its scratch directory (lisp-mcp#18).
+All five projects run on windows-latest in CI. The POSIX tools come from Git for Windows on PATH (`sh`, `env`, `printf`, `cat`, `sleep`); temp directories are cleared of read-only attributes (git objects) before deletion, including the code project's scratch directory, which holds the real git repositories of the plan demos. Skipped there, each with a printed reason: fs Demo 5 symlink probes (no `fs-create-symlink` on Windows), fs Demo 6 process-group / tree-kill steps (POSIX groups and signals), agent Demo 4b (the pty child; Unix-only by design). Agent Demo 7 runs the shell tools with Git for Windows' `sh` instead of `cmd.exe` (executor `:process`). The image project loads its demo system through `uiop:parse-native-namestring` (a native Windows path is not a Lisp namestring) and retries deleting its scratch directory (lisp-mcp#18).
 
 ## Issues found by these demos
 

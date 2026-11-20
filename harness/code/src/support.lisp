@@ -71,7 +71,7 @@ is never printed)."
   "A fresh directory NAME/ under this run's scratch directory."
   (let ((dir (merge-pathnames (format nil "~a/" name) *scratch*)))
     (when (probe-file dir)
-      (uiop:delete-directory-tree dir :validate t))
+      (delete-tree dir))
     (ensure-directories-exist dir)
     (truename dir)))
 
@@ -95,6 +95,14 @@ login name (ls -l output)."
             (and user (>= (length user) 4) (list (cons user "<user>")))
             more)))
 
+(defun delete-tree (dir)
+  "Delete DIR. On Windows, first clear the read-only attribute: git writes its
+objects read-only, and DELETE-FILE cannot remove those there."
+  (when (and (uiop:os-windows-p) (probe-file dir))
+    (uiop:run-program (list "attrib" "-R" (concatenate 'string (%native dir) "*") "/S" "/D")
+                      :ignore-error-status t))
+  (uiop:delete-directory-tree dir :validate t :if-does-not-exist :ignore))
+
 (defmacro with-scratch (() &body body)
   "Bind *SCRATCH* to a fresh temporary directory, redacted as <tmp>/, and
 delete it afterwards."
@@ -106,7 +114,7 @@ delete it afterwards."
                        (truename d)))
           (*redactions* (scratch-redactions *scratch* *redactions*)))
      (unwind-protect (progn ,@body)
-       (uiop:delete-directory-tree *scratch* :validate t :if-does-not-exist :ignore))))
+       (delete-tree *scratch*))))
 
 (defun make-project (name files)
   "A git-rooted project NAME/ (a bare .git/ directory is enough for
