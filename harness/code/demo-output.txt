@@ -1,0 +1,408 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO3.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.050
+; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.002
+WARNING:
+   cl-repo: asdf-native 0.3.1 stays loaded from ~/.cl-repository-client/asdf-native-0.3.1/asdf-native.asd; the registry also has 0.3.2 at ~/.local/share/cl-repository/systems/asdf-native/0.3.2/asdf-native.asd, which this image will not load. Code that needs 0.3.2 runs against the older copy: upgrade the client or load the project in a fresh image.
+WARNING:
+   cl-repo: http-backend-async 0.2.17 stays loaded from ~/.cl-repository-client/http-backend-async-0.2.17/http-backend-async.asd; the registry also has 0.2.20 at ~/.local/share/cl-repository/systems/http-backend-async/0.2.20/http-backend-async.asd, which this image will not load. Code that needs 0.2.20 runs against the older copy: upgrade the client or load the project in a fresh image.
+; cl-repo: ensure deps for local harness-demos-code → cl-stack-code
+; cl-repo: found cl-stack-code:0.1.1 in https://ghcr.io (CL-REPO)
+Pulling egao1980/cl-systems/cl-stack-code:0.1.1 from https://ghcr.io...
+  Recorded file manifest (28 files)
+Installed cl-stack-code 0.1.1 to ~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining LLM-PROTOCOL:INVOKE-RETRY in DEFUN
+WARNING: redefining LLM-PROTOCOL:INVOKE-USE-VALUE in DEFUN
+WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/package.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/package-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/conditions.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/conditions-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.004
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/protocol.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/protocol-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.021
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/sexp-engine.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/sexp-engine-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.033
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/ops.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/ops-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.016
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/render.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/render-tmp8V3J6PE9.fasl
+; compilation finished in 0:00:00.007
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/text-engine.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/text-engine-tmp9V47YWQF.fasl
+; compilation finished in 0:00:00.046
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/tree.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/tree-tmp9BN22RMA.fasl
+; compilation finished in 0:00:00.009
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/tree-engine.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/tree-engine-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.037
+; compiling file "~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/unified.lisp" (written 20 NOV 2026 10:59:45 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/diff-protocol/0.4.0/src/unified-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.074
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/package.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/package-tmpQ371UGST.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/conditions.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/conditions-tmp2OWI3Q7U.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/file-tools.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/file-tools-tmp9KKTJMYV.fasl
+; compilation finished in 0:00:00.053
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/source.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/source-tmpJU0JWO19.fasl
+; compilation finished in 0:00:00.012
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-output.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-output-tmpZX2WN8N4.fasl
+; compilation finished in 0:00:00.020
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-scan.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-scan-tmpOU81XRV0.fasl
+; compilation finished in 0:00:00.081
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-tools.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-tools-tmpY2ML9CFA.fasl
+; compilation finished in 0:00:00.016
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-run.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-run-tmpX2JYJDQE.fasl
+; compilation finished in 0:00:00.046
+; compiling file "~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-source.lisp" (written 20 NOV 2026 08:27:11 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/agent-tools/0.2.0/src/shell-source-tmpOPCILR65.fasl
+; compilation finished in 0:00:00.010
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/package.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/package-tmpUX5S4ADN.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/conditions.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/conditions-tmp10401X32.fasl
+; compilation finished in 0:00:00.004
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/settings.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/settings-tmpZ7CBRM0G.fasl
+; compilation finished in 0:00:00.020
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/permissions.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/permissions-tmp9OZEQ0G2.fasl
+; compilation finished in 0:00:00.009
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/instructions.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/instructions-tmpB2JTL1W9.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/providers.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/providers-tmpP3BI68WQ.fasl
+; compilation finished in 0:00:00.004
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/arguments.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/arguments-tmpQDARA81Z.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/tools.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/tools-tmpYEMMM7SE.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/headless.lisp" (written 20 NOV 2026 11:02:56 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-code/0.1.1/src/headless-tmp73HU0RPK.fasl
+; compilation finished in 0:00:00.035
+; compiling file "<checkout>/harness/code/src/package.lisp" (written 20 NOV 2026 10:03:57 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/package-tmpIO5N7K88.fasl
+; compilation finished in 0:00:00.000
+; compiling file "<checkout>/harness/code/src/support.lisp" (written 20 NOV 2026 10:37:50 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/support-tmpCM21U60Z.fasl
+; compilation finished in 0:00:00.009
+; compiling file "<checkout>/harness/code/src/model.lisp" (written 20 NOV 2026 10:37:50 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/model-tmp9DT7SEFG.fasl
+; compilation finished in 0:00:00.007
+; compiling file "<checkout>/harness/code/src/demos.lisp" (written 20 NOV 2026 10:38:01 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/demos-tmp8065ESJT.fasl
+; compilation finished in 0:00:00.012
+; compiling file "<checkout>/harness/code/src/run.lisp" (written 20 NOV 2026 10:05:25 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<checkout>/harness/code/src/run-tmp7S8Z6FGF.fasl
+; compilation finished in 0:00:00.003
+
+========================================================================
+== Loaded systems
+========================================================================
+  cl-stack-code          0.1.1
+  ai-agent-protocol      0.12.0
+  agent-tools            0.2.0
+  cli-protocol           0.2.1
+  cli-backend-clingon    0.2.0
+  llm-protocol           0.5.0
+  llm-protocol-openai    0.4.0
+  steer-protocol         0.3.0
+  http-backend-async     0.2.20
+  event-backend-libuv    0.2.2
+
+========================================================================
+== Model
+========================================================================
+LM_API_TOKEN found: T
+GET /v1/models:
+  | ("qwen3.5-2b" "unlimited-ocr" "text-embedding-qwen3-embedding-0.6b"
+  |  "text-embedding-bge-m3" "text-embedding-nomic-embed-text-v1.5")
+capabilities (/api/v0/models):
+  | (("qwen3.5-2b" "tool_use") ("unlimited-ocr")
+  |  ("text-embedding-qwen3-embedding-0.6b" "tool_use") ("text-embedding-bge-m3")
+  |  ("text-embedding-nomic-embed-text-v1.5"))
+MODEL THAT RAN: LM Studio qwen3.5-2b (real model; its output varies run to run)
+
+========================================================================
+== Demo a: -p --output-format text, read a file and answer
+========================================================================
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format text --max-turns 8 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Read notes.txt and tell me the release codename in one sentence.'
+exit code: 0
+stdout:
+  | The release codename is **Juniper**.
+stderr: (empty)
+
+========================================================================
+== Demo b: --output-format stream-json, an edit allowed by --allowed-tools 'edit(greeting.txt)'
+========================================================================
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --max-turns 8 --allowed-tools edit(greeting.txt) --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'In greeting.txt replace the word Hello with Goodbye using the edit tool, then say done.'
+exit code: 0
+stderr: (empty)
+events: 10
+event types in order: ("system" "assistant" "tool_use" "tool_result" "text_delta" "result")
+
+--- the events (text_delta folded)
+  {"type":"system","session_id":"7ebc1761881b7e66f28efdc442980447","subtype":"init","version":"0.1.1","cwd":"<tmp>/stream/","project_root":"<tmp>/stream/","model":"openai:qwen3.5-2b","permission_mode":"default","tools":["read","write","edit","multi_e… [497 chars]
+  {"type":"assistant","session_id":"7ebc1761881b7e66f28efdc442980447","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":3023,"output_tokens":65,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"7ebc1761881b7e66f28efdc442980447","step":1,"id":"o3VWxTUHsvUQx6MjBfpVyCLCUXtKEXfA","name":"read","input":{"file_path":"greeting.txt"}}
+  {"type":"tool_result","session_id":"7ebc1761881b7e66f28efdc442980447","step":1,"id":"o3VWxTUHsvUQx6MjBfpVyCLCUXtKEXfA","name":"read","status":"done","is_error":false,"content":"     1\tHello, world!\nhash: sha256:d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5"}
+  {"type":"assistant","session_id":"7ebc1761881b7e66f28efdc442980447","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":3174,"output_tokens":154,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"7ebc1761881b7e66f28efdc442980447","step":2,"id":"ZpDHq2b6ai8s8ajMiE42V9WOjPqdZlcG","name":"edit","input":{"file_path":"greeting.txt","old_string":"Hello, world!","new_string":"Goodbye, world!"}}
+  {"type":"tool_result","session_id":"7ebc1761881b7e66f28efdc442980447","step":2,"id":"ZpDHq2b6ai8s8ajMiE42V9WOjPqdZlcG","name":"edit","status":"done","is_error":false,"content":"Edited greeting.txt: 1 replacement\n--- a/greeting.txt\n+++ b/greeting.txt\n@@ -1 +1 @@\n-Hello, world!\n+Goodbye, world!\nhash: sha256:50ebc23c1648f6835dc9c9a0e06751732b1707b073f7ced1065613b0d2ab4e99"}
+  {"type":"assistant","session_id":"7ebc1761881b7e66f28efdc442980447","step":3,"text":"Done","finish_reason":"stop","usage":{"input_tokens":3449,"output_tokens":38,"cache_read_tokens":0,"cache_write_tokens":0}}
+    (1 text_delta events before it for step 3)
+  {"type":"result","subtype":"success","is_error":false,"result":"Done","error":null,"num_turns":3,"duration_ms":5242,"usage":{"input_tokens":9646,"output_tokens":257,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"7ebc1761881b7e66f28efdc442980447"}
+
+--- greeting.txt after the run
+greeting.txt:
+  | Goodbye, world!
+tool results (name status): (("read" "done") ("edit" "done"))
+
+========================================================================
+== Demo c: headless denial, a write without permission (default mode)
+========================================================================
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --max-turns 4 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Create a file todo.txt containing the line 'ship it' using the write tool.'
+exit code: 1
+stderr:
+  | cl-stack-code: reached max turns (4)
+
+--- tool_use / tool_result / result events
+  {"type":"tool_use","session_id":"262b0c388441b7ce9dc2763306655f4f","step":1,"id":"f5EHhNid26SYJq0UB6xuFrtrKbqsFLag","name":"write","input":{"file_path":"/garden/todos/todo.txt","content":"ship it"}}
+  {"type":"tool_result","session_id":"262b0c388441b7ce9dc2763306655f4f","step":1,"id":"f5EHhNid26SYJq0UB6xuFrtrKbqsFLag","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: the user rejected the request\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"tool_use","session_id":"262b0c388441b7ce9dc2763306655f4f","step":2,"id":"yFhkYD9ZWOhlYWdGLzO3stUei98rX50B","name":"ls","input":{}}
+  {"type":"tool_result","session_id":"262b0c388441b7ce9dc2763306655f4f","step":2,"id":"yFhkYD9ZWOhlYWdGLzO3stUei98rX50B","name":"ls","status":"done","is_error":false,"content":"README.md"}
+  {"type":"tool_use","session_id":"262b0c388441b7ce9dc2763306655f4f","step":3,"id":"yRInHxxFYbeaveRJkH3DJzOaXy5399UG","name":"glob","input":{"pattern":"todo.txt"}}
+  {"type":"tool_result","session_id":"262b0c388441b7ce9dc2763306655f4f","step":3,"id":"yRInHxxFYbeaveRJkH3DJzOaXy5399UG","name":"glob","status":"done","is_error":false,"content":"No files matched todo.txt"}
+  {"type":"tool_use","session_id":"262b0c388441b7ce9dc2763306655f4f","step":4,"id":"R1mHSwdljg7ivkVNBEQwKbyrZ1lpwFwG","name":"ls","input":{}}
+  {"type":"tool_result","session_id":"262b0c388441b7ce9dc2763306655f4f","step":4,"id":"R1mHSwdljg7ivkVNBEQwKbyrZ1lpwFwG","name":"ls","status":"done","is_error":false,"content":"README.md"}
+  {"type":"result","subtype":"error_max_turns","is_error":true,"result":"","error":"reached max turns (4)","num_turns":4,"duration_ms":7115,"usage":{"input_tokens":12995,"output_tokens":383,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[{"id":"f5EHhNid26SYJq0UB6xuFrtrKbqsFLag","name":"write","input":{"file_path":"/garden/todos/todo.txt","content":"ship it"},"reason":"headless"}],"session_id":"262b0c388441b7ce9dc2763306655f4f"}
+
+--- verdict
+todo.txt exists: NIL
+result subtype: error_max_turns
+permission_denials: (("write" "headless"))
+a tool_result with status "denied" reached the model and the run finished (error_max_turns).
+
+========================================================================
+== Demo d: layered settings, user + project + local + flags
+========================================================================
+user settings.json:
+  | {"model": "openai:user-model", "maxTurns": 20,
+  |  "permissions": {"allow": ["read", "bash(git status)"], "deny": ["bash(rm *)"]},
+  |  "env": {"DEMO_A": "user", "DEMO_B": "user"},
+  |  "appendSystemPrompt": "user: be terse"}
+project .cl-stack-code/settings.json:
+  | {"permissionMode": "acceptEdits",
+  |  "permissions": {"allow": ["edit(src/*)"], "ask": ["bash(git push *)"], "deny": ["job_kill"]},
+  |  "env": {"DEMO_B": null}, "maxTurns": 12}
+local .cl-stack-code/settings.local.json:
+  | {"maxTurns": 8, "permissions": {"allow": ["read", {"tool": "grep", "resource": "path:src/*"}]},
+  |  "env": {"DEMO_B": "local", "DEMO_C": "local"}}
+flags: -p --model mock:flag-model --allowed-tools grep, bash(git log --oneline) --disallowed-tools write(secrets/*) --append-system-prompt flags: cite files hi
+
+--- each layer
+user:
+  model "openai:user-model"  maxTurns 20  permissionMode NIL
+  allow ("read * allow" "bash bash:git status allow")
+  ask   NIL
+  deny  ("bash bash:rm * deny")
+  env   (("DEMO_A" . "user") ("DEMO_B" . "user"))
+  appendSystemPrompt "user: be terse"
+project:
+  model NIL  maxTurns 12  permissionMode "acceptEdits"
+  allow ("edit path:src/* allow")
+  ask   ("bash bash:git push * ask")
+  deny  ("job_kill * deny")
+  env   (("DEMO_B"))
+  appendSystemPrompt NIL
+local:
+  model NIL  maxTurns 8  permissionMode NIL
+  allow ("read * allow" "grep path:src/* allow")
+  ask   NIL
+  deny  NIL
+  env   (("DEMO_B" . "local") ("DEMO_C" . "local"))
+  appendSystemPrompt NIL
+flags:
+  model "mock:flag-model"  maxTurns NIL  permissionMode NIL
+  allow ("grep * allow" "bash bash:git log --oneline allow")
+  ask   NIL
+  deny  ("write path:secrets/* deny")
+  env   NIL
+  appendSystemPrompt "flags: cite files"
+
+--- merged (load-settings)
+merged:
+  model "mock:flag-model"  maxTurns 8  permissionMode "acceptEdits"
+  allow ("read * allow" "bash bash:git status allow" "edit path:src/* allow"
+         "grep path:src/* allow" "grep * allow"
+         "bash bash:git log --oneline allow")
+  ask   ("bash bash:git push * ask")
+  deny  ("bash bash:rm * deny" "job_kill * deny" "write path:secrets/* deny")
+  env   (("DEMO_A" . "user") ("DEMO_B" . "local") ("DEMO_C" . "local"))
+  appendSystemPrompt "flags: cite files"
+  files read, in order:
+    <tmp>/settings-config/settings.json
+    <tmp>/settings/.cl-stack-code/settings.json
+    <tmp>/settings/.cl-stack-code/settings.local.json
+
+--- the agent's rule list (mode base rules, then allow, ask, deny: deny beats ask beats allow)
+  write * allow
+  edit * allow
+  multi_edit * allow
+  read * allow
+  bash bash:git status allow
+  edit path:src/* allow
+  grep path:src/* allow
+  grep * allow
+  bash bash:git log --oneline allow
+  bash bash:git push * ask
+  bash bash:rm * deny
+  job_kill * deny
+  write path:secrets/* deny
+hidden tools (a bare deny): ("job_kill")
+
+--- a mock run on these files: its system init event
+exit: 0
+  {"type":"system","session_id":"1ff9bdb02e49295e63bcd90366b7474a","subtype":"init","version":"0.1.1","cwd":"<tmp>/settings/","project_root":"<tmp>/settings/","model":"mock:flag-model","permission_mode":"acceptEdits","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_list"],"instructions":[]}
+
+========================================================================
+== Demo e: AGENTS.md discovery and the assembled system prompt
+========================================================================
+project root: <tmp>/instr/
+working directory: <tmp>/instr/pkg/core/
+files in the tree:
+  | ("AGENTS.md" "CLAUDE.md" "pkg/CLAUDE.md" "pkg/core/AGENTS.md"
+  |  "pkg/core/empty/AGENTS.md (blank)" "pkg/core/lib/AGENTS.md")
+
+--- instruction-files (prompt order)
+  <tmp>/instr-config/AGENTS.md
+  <tmp>/instr/AGENTS.md
+  <tmp>/instr/pkg/CLAUDE.md
+  <tmp>/instr/pkg/core/AGENTS.md
+
+--- assemble-system-prompt: the first lines
+prompt chars: 1651
+first 12 lines:
+  | You are a coding agent working in the user's project. Act through the tools you have, keep changes minimal, and verify them before you finish. Be concise.
+  | 
+  | # Tools
+  | - read: Read a file before you edit it; read only the ranges you need.
+  | - write: Write creates or overwrites whole files; prefer edit for changes.
+  | - edit: Edit with exact, unique matches; re-read the file if an edit misses.
+  | - glob: Find files by name pattern instead of listing whole trees.
+  | - grep: Search content with grep before reading many files.
+  | - bash: Run shell commands non-interactively; quote paths; tail long output.
+  | 
+  | # Environment
+  | - Working directory: <tmp>/instr/pkg/core/
+from # Environment to the end:
+  | # Environment
+  | - Working directory: <tmp>/instr/pkg/core/
+  | - Project root: <tmp>/instr/
+  | - Platform: darwin
+  | - Permission mode: acceptEdits
+  | 
+  | <instructions path="<tmp>/instr-config/AGENTS.md">
+  | # User-level
+  | Prefer small commits.
+  | </instructions>
+  | 
+  | <instructions path="<tmp>/instr/AGENTS.md">
+  | # Project rules
+  | Run `cl-repo test` before you report.
+  | </instructions>
+  | 
+  | <instructions path="<tmp>/instr/pkg/CLAUDE.md">
+  | # pkg
+  | Only CLAUDE.md here, so it counts.
+  | </instructions>
+  | 
+  | <instructions path="<tmp>/instr/pkg/core/AGENTS.md">
+  | # core
+  | Keep the exported API stable.
+  | </instructions>
+  | 
+  | Appended by --append-system-prompt.
+
+========================================================================
+== Summary
+========================================================================
+model that ran: LM Studio qwen3.5-2b
+demos run: demo-text, demo-stream-json, demo-headless-denial, demo-settings, demo-instructions
+demos that raised an error: none
