@@ -76,7 +76,17 @@ becomes <tmp>/, the home directory ~/.")
                                (cons (%native (user-homedir-pathname)) "~/")
                                *redactions*)))
      (unwind-protect (progn ,@body)
-       (uiop:delete-directory-tree *scratch* :validate t :if-does-not-exist :ignore))))
+       (%delete-scratch *scratch*))))
+
+(defun %delete-scratch (dir)
+  "Delete DIR. On Windows a spawned image that was just killed may still hold
+its working directory for a moment (egao1980/lisp-mcp#18): retry for 10 s,
+then say so instead of failing the run."
+  (loop repeat 20
+        do (handler-case (progn (uiop:delete-directory-tree dir :validate t :if-does-not-exist :ignore)
+                                (return))
+             (file-error () (sleep 0.5)))
+        finally (format t "~&(could not delete the scratch directory: a spawned image still holds it)~%")))
 
 (defun make-project (name files)
   (let ((root (scratch-dir name)))
