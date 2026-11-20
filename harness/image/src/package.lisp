@@ -12,4 +12,9 @@
            #:demo-image
            #:demo-observe
            #:demo-agent-rules
-           #:demo-agent-real))
+           #:demo-agent-real
+           #:demo-image-events
+           #:demo-image-events-denied
+           #:demo-image-job-events
+           #:demo-image-events-observe
+           #:demo-image-events-real))

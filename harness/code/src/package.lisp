@@ -1,6 +1,7 @@
 (defpackage #:harness-demos-code
   (:use #:cl)
   (:local-nicknames (#:code #:cl-stack-code)
+                    (#:lt #:lisp-mcp/agent)
                     (#:agent #:ai-agent-protocol)
                     (#:llm #:llm-protocol)
                     (#:oa #:llm-protocol-openai)
@@ -23,4 +24,7 @@
            #:demo-checkpoints
            #:demo-checkpoints-plan
            #:demo-checkpoints-retention
-           #:demo-checkpoints-interactive))
+           #:demo-checkpoints-interactive
+           #:demo-image-headless
+           #:demo-image-interactive
+           #:demo-image-observe))
