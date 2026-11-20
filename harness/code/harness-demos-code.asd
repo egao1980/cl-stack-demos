@@ -4,6 +4,9 @@
   :author "egao1980"
   :license "MIT"
   :depends-on ((:version "cl-stack-code" "0.1.1")
+               ;; 0.2.1: its package carries the current cli-protocol.asd
+               ;; (egao1980/cl-repository#117)
+               (:version "cli-backend-clingon" "0.2.1")
                (:version "ai-agent-protocol" "0.12.0")
                (:version "llm-protocol" "0.5.0")
                (:version "llm-protocol-openai" "0.4.0")
