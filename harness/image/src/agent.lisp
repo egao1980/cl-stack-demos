@@ -128,7 +128,7 @@
          (progn
            (stage (format nil "~a: setup (not the agent): spawn, load shop, show the bug" label))
            (tool setup "repl-spawn" "backend" "swank")
-           (tool setup "repl-eval" "code" (format nil "(asdf:load-asd ~s)" (%native (merge-pathnames "shop.asd" root))))
+           (tool setup "repl-eval" "code" (format nil "(asdf:load-asd (uiop:parse-native-namestring ~s))" (%native (merge-pathnames "shop.asd" root))))
            (tool setup "repl-load-system" "system" "shop")
            (tool setup "repl-eval" "code" +shop-check+)
            ;; The agent's source attaches to the same image over a second Swank port.
