@@ -2,19 +2,19 @@ WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/
 ;;; Computing Hangul syllable names
 ; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO3.fasl
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO2.fasl
 ; compilation finished in 0:00:00.001
 ; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG6.fasl
-; compilation finished in 0:00:00.011
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.010
 ; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGF0.fasl
-; compilation finished in 0:00:00.061
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.054
 ; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTD.fasl
+; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
 ; compilation finished in 0:00:00.002
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
@@ -60,9 +60,21 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3>
 WARNING:
    redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-CONNECTION>
 WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
+; compiling file "<repo>/harness/data/lisp-diff-demo.lisp" (written 20 NOV 2026 08:29:24 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/data/lisp-diff-demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.010
+; compiling file "<repo>/harness/data/engine-api-demo.lisp" (written 20 NOV 2026 08:28:42 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/data/engine-api-demo-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.012
+; compiling file "<repo>/harness/data/run.lisp" (written 20 NOV 2026 08:28:42 AM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/data/run-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.001
 
 ========================================================================
-== Demo 1: diff-protocol 0.2.0
+== Demo 1: diff-protocol 0.3.0
 ========================================================================
 
 --- 1a. text diff of two files at :changes, rendered :unified
@@ -274,7 +286,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     merged => (:L ("x" "z") :N 2), conflicts 0
 
 ========================================================================
-== Demo 2: revision-protocol 0.2.0
+== Demo 2: revision-protocol 0.3.0
 ========================================================================
 
 --- 2a. in-memory store: two branches, a tag, walks, merge-base, as-of
@@ -332,7 +344,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     handler: choosing CAPTURE-AND-CONTINUE
     execute-plan => (("m2-bump") NIL)
     target now ("m2-bump"), state (:APP "demo" :VERSION 2 :FLAGS NIL)
-    captured revision (store-generated id): parents ("f2-owner") message NIL state (:APP "demo" :VERSION 9 :FLAGS ("beta") :OWNER "f-team" :HOTFIX T)
+    captured revision (store-generated id): parents ("f2-owner") message "captured drift" state (:APP "demo" :VERSION 9 :FLAGS ("beta") :OWNER "f-team" :HOTFIX T)
     heads now: 2 (m5-ours + the captured drift revision)
 
 --- 2d. project-merge: conflict as data, then commit-projection with TAKE-OURS
@@ -347,7 +359,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     merged state (:APP "demo" :VERSION 3 :FLAGS ("beta") :OWNER "f-team")
 
 --- 2e. composite revision: manifest over two stores, restored
-    commit-composite ... :id "ckpt-1" => UNKNOWN-KEYWORD-ARGUMENT: Unknown &KEY argument: :ID  [revision-protocol#6]
+    commit-composite :id accepted
     composite revision (store-generated id; commit-composite takes no :id) manifest parts (#<REVISION-PROTOCOL:MANIFEST-PART :FILES files-2> #<REVISION-PROTOCOL:MANIFEST-PART :DB db-2>)
     targets before: files ("files-1") (:FILES ("README")) / db ("db-1") (:TABLES ("users"))
     plan-composite :DB: up db-1 -> db-2 sexp:/tables/1
@@ -357,7 +369,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     both parts at the checkpoint's revisions => T
 
 ========================================================================
-== Demo 3: sql-orm 0.2.0 (SQLite in memory)
+== Demo 3: sql-orm 0.3.0 (SQLite in memory)
 ========================================================================
 
 --- 3a. diff-schema :complete t, the op list, apply-ops-to-snapshot round trip
@@ -391,7 +403,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     (schema-snapshot-equal folded v2 :dialect :sqlite3) => T
     fold of the inverted ops from v2 = v1 => T
     diff-schema v2 v2 :complete t => no ops => T
-    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009A52A03}> conflicts with snapshot: no column ITEMS.LEGACY
+    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {800537F683}> conflicts with snapshot: no column ITEMS.LEGACY
 
 --- 3b. alter-column-op on SQLite: table rebuild, data preserved
     op: alter-column-op items: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
@@ -448,7 +460,7 @@ SQL: INSERT INTO "items__sql_orm_rebuild" ("id", "name", "qty", "legacy") SELECT
     notes rows after downgrade: NIL (dropped table data is not restored)
 
 ========================================================================
-== Demo 4: sql-migrate 0.2.0 (SQLite in memory)
+== Demo 4: sql-migrate 0.2.1 (SQLite in memory)
 ========================================================================
 
 --- 4a. three migrations: upgrade, current-revision, history, downgrade :count 1
@@ -464,7 +476,7 @@ SQL: INSERT INTO "items__sql_orm_rebuild" ("id", "name", "qty", "legacy") SELECT
     live tables: ("sql_migrate_version(version_num)" "widgets(id,name,color)")
     downgrade :target :base => ("0002 add widgets.color" "0001 create widgets")
     current-revision: NIL, live tables ("sql_migrate_version(version_num)")
-    upgrade :target "nope" caught as rev:revision-not-found (UNKNOWN-REVISION): sql-migrate: unknown revision "nope": unknown revision "nope"
+    upgrade :target "nope" caught as rev:revision-not-found (UNKNOWN-REVISION): sql-migrate: unknown revision "nope"
 
 --- 4b. the plan for an upgrade, and offline SQL with render-diff :sql
     target-revisions ("0001") -> plan goal ("0003")
@@ -507,9 +519,6 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
 Code CONSTRAINT: stamp rejected.
 Database: :memory:
 SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
-Code CONSTRAINT: stamp rejected.
-Database: :memory:
-SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
     after the failure: current-revision "0001", widgets.color present NIL
     0.1-style (handler-case (upgrade c dir) (sqlite:sqlite-error () :caught)) => :CAUGHT
     handler-bind: step 0002 failed (attempt 1); restarts (REVISION-PROTOCOL:RETRY-STEP REVISION-PROTOCOL:SKIP-STEP REVISION-PROTOCOL:ROLLBACK-TO-START)
@@ -525,5 +534,345 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
     with a USE-VALUE handler: head-revision => "b"
     upgrade on the fork signalled MULTIPLE-HEADS: sql-migrate error: the directory has 2 heads ("b" "c")
     upgrade :target "b" on the fork signalled BRANCH-NOT-SUPPORTED: sql-migrate error: the directory has 2 heads ("b" "c"); branched plans are not supported (S3)
+
+========================================================================
+== Demo 5: diff-backend-lisp-source 0.1.0 (form-level diff of Lisp source)
+========================================================================
+    fixtures: process-protocol src/protocol.lisp 0.3.0 (4256 chars), 0.4.0 (6885 chars)
+    engine: DIFF-BACKEND-LISP-SOURCE:LISP-SOURCE-DIFF-ENGINE, name :LISP, detect-renames T
+
+--- 5a. source-units: the file cut into top-level forms (comments go with the next form)
+    23 units; keys: in-package process-protocol, defclass process-backend, defvar *process-backend*, defclass process-handle, defun %ensure-backend, defgeneric backend-run, defgeneric backend-launch, defgeneric process-wait, defgeneric process-kill, defgeneric process-alive-p, defgeneric process-stdin, defgeneric process-stdout, defgeneric process-stderr, defgeneric process-exit-code, defun run, defun launch, defun wait, defun kill, defun alive-p, defun stdin, defun stdout, defun stderr, defun exit-code
+    unit 2 text (the header comment travels with its form):
+      | 
+      | ;;; Python subprocess / Java ProcessBuilder / UIOP — CLOS protocol only.
+      | ;;; RPC framing lives in rpc-protocol.
+      | 
+      | (defclass process-backend () ())
+    units concatenate to the file exactly => T
+
+--- 5b. compute-diff 0.3.0 -> 0.4.0 at every level
+    render :summary (form level):
+      | A lisp:/defgeneric process-pid
+      | A lisp:/defgeneric backend-supports-p
+      | A lisp:/defun pid
+      | A lisp:/defun supports-p
+      | M lisp:/defgeneric backend-run
+      | M lisp:/defgeneric backend-launch
+      | M lisp:/defgeneric process-kill
+      | M lisp:/defun kill
+    :changes (nested leaves in place of their form) (11 changes, level :CHANGES):
+      add     lisp:/defgeneric process-pid
+      add     lisp:/defgeneric backend-supports-p
+      add     lisp:/defun pid
+      add     lisp:/defun supports-p
+      modify  lisp:/defgeneric backend-run/2
+      modify  lisp:/defgeneric backend-run/3/1
+      modify  lisp:/defgeneric backend-launch/2
+      modify  lisp:/defgeneric backend-launch/3/1
+      modify  lisp:/defgeneric process-kill
+      modify  lisp:/defun kill/2
+      modify  lisp:/defun kill/3
+    :content: 8 form-level changes, 3 with nested children
+    unified-patch v3 diff :path "src/protocol.lisp" :context 1:
+      | --- a/src/protocol.lisp
+      | +++ b/src/protocol.lisp
+      | @@ -20,3 +20,4 @@
+      |                                                directory env env-mode timeout
+      | -                                              discard-stderr shell external-format)
+      | +                                              discard-stderr shell external-format
+      | +                                              process-group)
+      |    (:documentation "Sync run. → (values exit-code stdout stderr).
+      | @@ -39,3 +40,4 @@
+      |  restart that waits another TIMEOUT seconds. Leaving BACKEND-RUN any other way
+      | -kills the child."))
+      | +kills the child (the whole process tree with :PROCESS-GROUP T\).
+      | +PROCESS-GROUP: as BACKEND-LAUNCH."))
+      |  
+      | @@ -43,3 +45,4 @@
+      |                                                   directory env env-mode shell
+      | -                                                 element-type external-format)
+      | +                                                 element-type external-format
+      | +                                                 process-group)
+      |    (:documentation "Async spawn → PROCESS-HANDLE.
+      | @@ -52,3 +55,10 @@
+      |  EXTERNAL-FORMAT applies to character streams (default :UTF-8).
+      | -ENV / ENV-MODE: as BACKEND-RUN."))
+      | +ENV / ENV-MODE: as BACKEND-RUN.
+      | +PROCESS-GROUP: NIL (default, the 0.3 behaviour) or T → start the child so that
+      | +PROCESS-KILL :TREE T reaches it and every descendant (see PROCESS-KILL). On
+      | +Unix the child leads a new process group (setpgid), so a group kill reaches
+      | +grandchildren such as the jobs of sh -c 'a & b'. A backend that cannot do this
+      | +(BACKEND-SUPPORTS-P :PROCESS-GROUP is NIL), or a combination it cannot honour
+      | +\(e.g. stdin inherited from a terminal), signals PROCESS-GROUP-ERROR instead of
+      | +silently launching a lone child."))
+      |  
+      | @@ -59,3 +69,15 @@
+      |  
+      | -(defgeneric process-kill (handle &key force))
+      | +(defgeneric process-kill (handle &key force tree)
+      | +  (:documentation "Stop the process. → T.
+      | +FORCE NIL asks politely (SIGTERM; Windows: taskkill without /F, which console
+      | +programs ignore); FORCE T cannot be refused (SIGKILL / TerminateProcess).
+      | +TREE NIL (default) signals the direct child only: its descendants survive.
+      | +TREE T stops the child and its descendants. The handle must come from LAUNCH
+      | +or RUN with :PROCESS-GROUP T; otherwise PROCESS-GROUP-ERROR, with a CONTINUE
+      | +restart that kills the direct child only. Unix: the signal goes to the
+      | +child's process group (killpg), even after the child itself exited, so
+      | +grandchildren still in the group are reached; a descendant that moved to
+      | +another group or session (setsid, a pty) is not. Windows: taskkill /T /F /PID,
+      | +which walks parent pids at kill time (always forced); descendants whose parent
+      | +already exited are not reached. Killing an exited process is not an error."))
+      |  
+      | @@ -75,2 +97,19 @@
+      |  
+      | +(defgeneric process-pid (handle)
+      | +  (:documentation "The OS process id of the direct child (a positive integer), or NIL
+      | +when the backend cannot tell (BACKEND-SUPPORTS-P :PID is NIL). On Unix with
+      | +:PROCESS-GROUP T it is also the process group id. Stays the same after exit.")
+      | +  (:method ((handle process-handle))
+      | +    nil))
+      | +
+      | +(defgeneric backend-supports-p (backend capability)
+      | +  (:documentation "True when BACKEND implements CAPABILITY (a keyword) on this
+      | +implementation / platform. Unknown capabilities are NIL. Defined:
+      | +  :PROCESS-GROUP  LAUNCH / RUN accept :PROCESS-GROUP T and KILL :TREE T stops
+      | +                  the descendants (see PROCESS-KILL).
+      | +  :PID            PROCESS-PID returns the OS pid.")
+      | +  (:method ((backend process-backend) capability)
+      | +    (declare (ignore capability))
+      | +    nil))
+      | +
+      |  (defun run (command &rest keys &key (backend *process-backend*) &allow-other-keys)
+      | @@ -88,4 +127,4 @@
+      |  
+      | -(defun kill (handle &key force)
+      | -  (process-kill handle :force force))
+      | +(defun kill (handle &key force tree)
+      | +  (process-kill handle :force force :tree tree))
+      |  
+      | @@ -98 +137,6 @@
+      |  (defun exit-code (handle) (process-exit-code handle))
+      | +(defun pid (handle) (process-pid handle))
+      | +
+      | +(defun supports-p (capability &key (backend *process-backend*))
+      | +  "BACKEND-SUPPORTS-P on BACKEND (default *PROCESS-BACKEND*)."
+      | +  (backend-supports-p (%ensure-backend backend) capability))
+    apply-diff v3 (:changes) is v4 byte for byte (comments and layout kept) => T
+    apply-diff v3 (:summary) is v4 => T
+    apply-diff v4 (invert-diff) is v3 => T
+    parse-diff :sexp of render :sexp applies the same => T
+    the patch applies as text: parse-diff :unified (no path) on v3 = v4 => T
+
+--- 5c. a comment-only edit, a rename and a move are form-level changes
+    diff (4 changes, level :CHANGES):
+      move    lisp:/defun alive-p lisp:/defun live-p
+      move    lisp:/defun stdin
+      modify  lisp:/defclass process-backend
+      modify  lisp:/defun stdout
+      move from (:FORM "defun alive-p") to (:FORM "defun live-p")
+      move from (:FORM "defun stdin") to (:FORM "defun stdin")
+    unified-patch:
+      | @@ -4 +4 @@
+      | -;;; RPC framing lives in rpc-protocol.
+      | +;;; RPC framing lives in rpc-protocol (see rpc.md).
+      | @@ -92 +92 @@
+      | -(defun alive-p (handle)
+      | +(defun live-p (handle)
+      | @@ -95 +94,0 @@
+      | -(defun stdin (handle) (process-stdin handle))
+      | @@ -97,0 +97 @@
+      | +(defun stdin (handle) (process-stdin handle))
+    apply-diff gives the edited file => T
+
+--- 5d. three-way merge, edits to different forms: clean
+    conflicts: 0
+    unified-patch base -> merged (:context 0):
+      | --- a/src/protocol.lisp
+      | +++ b/src/protocol.lisp
+      | @@ -21 +21,2 @@
+      | -                                              discard-stderr shell external-format)
+      | +                                              discard-stderr shell external-format
+      | +                                              process-group)
+      | @@ -40 +41,2 @@
+      | -kills the child."))
+      | +kills the child (the whole process tree with :PROCESS-GROUP T\).
+      | +PROCESS-GROUP: as BACKEND-LAUNCH."))
+      | @@ -44 +46,2 @@
+      | -                                                 element-type external-format)
+      | +                                                 element-type external-format
+      | +                                                 process-group)
+      | @@ -53 +56,8 @@
+      | -ENV / ENV-MODE: as BACKEND-RUN."))
+      | +ENV / ENV-MODE: as BACKEND-RUN.
+      | +PROCESS-GROUP: NIL (default, the 0.3 behaviour) or T → start the child so that
+      | +PROCESS-KILL :TREE T reaches it and every descendant (see PROCESS-KILL). On
+      | +Unix the child leads a new process group (setpgid), so a group kill reaches
+      | +grandchildren such as the jobs of sh -c 'a & b'. A backend that cannot do this
+      | +(BACKEND-SUPPORTS-P :PROCESS-GROUP is NIL), or a combination it cannot honour
+      | +\(e.g. stdin inherited from a terminal), signals PROCESS-GROUP-ERROR instead of
+      | +silently launching a lone child."))
+      | @@ -60 +70,13 @@
+      | -(defgeneric process-kill (handle &key force))
+      | +(defgeneric process-kill (handle &key force tree)
+      | +  (:documentation "Stop the process. → T.
+      | +FORCE NIL asks politely (SIGTERM; Windows: taskkill without /F, which console
+      | +programs ignore); FORCE T cannot be refused (SIGKILL / TerminateProcess).
+      | +TREE NIL (default) signals the direct child only: its descendants survive.
+      | +TREE T stops the child and its descendants. The handle must come from LAUNCH
+      | +or RUN with :PROCESS-GROUP T; otherwise PROCESS-GROUP-ERROR, with a CONTINUE
+      | +restart that kills the direct child only. Unix: the signal goes to the
+      | +child's process group (killpg), even after the child itself exited, so
+      | +grandchildren still in the group are reached; a descendant that moved to
+      | +another group or session (setsid, a pty) is not. Windows: taskkill /T /F /PID,
+      | +which walks parent pids at kill time (always forced); descendants whose parent
+      | +already exited are not reached. Killing an exited process is not an error."))
+      | @@ -75,0 +98,17 @@
+      | +(defgeneric process-pid (handle)
+      | +  (:documentation "The OS process id of the direct child (a positive integer), or NIL
+      | +when the backend cannot tell (BACKEND-SUPPORTS-P :PID is NIL). On Unix with
+      | +:PROCESS-GROUP T it is also the process group id. Stays the same after exit.")
+      | +  (:method ((handle process-handle))
+      | +    nil))
+      | +
+      | +(defgeneric backend-supports-p (backend capability)
+      | +  (:documentation "True when BACKEND implements CAPABILITY (a keyword) on this
+      | +implementation / platform. Unknown capabilities are NIL. Defined:
+      | +  :PROCESS-GROUP  LAUNCH / RUN accept :PROCESS-GROUP T and KILL :TREE T stops
+      | +                  the descendants (see PROCESS-KILL).
+      | +  :PID            PROCESS-PID returns the OS pid.")
+      | +  (:method ((backend process-backend) capability)
+      | +    (declare (ignore capability))
+      | +    nil))
+      | +
+      | @@ -89,2 +128,2 @@
+      | -(defun kill (handle &key force)
+      | -  (process-kill handle :force force))
+      | +(defun kill (handle &key force tree)
+      | +  (process-kill handle :force force :tree tree))
+      | @@ -95 +134,3 @@
+      | -(defun stdin (handle) (process-stdin handle))
+      | +(defun stdin (handle)
+      | +  "The child's standard input stream."
+      | +  (process-stdin handle))
+      | @@ -98,0 +140,9 @@
+      | +(defun pid (handle) (process-pid handle))
+      | +
+      | +(defun supports-p (capability &key (backend *process-backend*))
+      | +  "BACKEND-SUPPORTS-P on BACKEND (default *PROCESS-BACKEND*)."
+      | +  (backend-supports-p (%ensure-backend backend) capability))
+      | +
+      | +;; Convenience for scripts.
+      | +(defun run-string (command)
+      | +  (nth-value 1 (run command :output :string)))
+    merged has ours (defun pid) and theirs (docstring, run-string) => T
+    merged = merge in the other order (symmetric) => T
+
+--- 5e. three-way merge, both sides edit DEFUN KILL: a conflict, rendered
+    conflicts: 1
+      conflict footprint ("lisp:/defun kill"): ours :MODIFY / theirs :MODIFY
+    ours vs theirs for the conflicting form (:text engine, :unified):
+      | @@ -1,3 +1,4 @@
+      |  
+      | -(defun kill (handle &key force tree)
+      | -  (process-kill handle :force force :tree tree))
+      | +(defun kill (handle &key (force t))
+      | +  ;; Default to SIGKILL: callers never want a survivor.
+      | +  (process-kill handle :force force))
+    the conflicting form keeps its base text => T
+    the rest of ours is merged (defun pid present) => T
+
+--- 5f. a :lisp file inside a tree diff, rendered :unified
+    first leaf footprints: lisp:/src/protocol.lisp/defgeneric backend-launch/2, lisp:/src/protocol.lisp/defgeneric backend-launch/3/1, lisp:/src/protocol.lisp/defgeneric backend-run/2
+    render :unified:
+      | diff --git a/src/protocol.lisp b/src/protocol.lisp
+      | Binary files a/src/protocol.lisp and b/src/protocol.lisp differ
+    apply-diff a diff state-equal b => T
+
+--- 5g. a side that does not read clean: lisp-source-unreadable, use-text-diff restart
+    signalled DIFF-BACKEND-LISP-SOURCE:LISP-SOURCE-UNREADABLE: Lisp source does not read cleanly (2 problems); the form engine needs a clean read
+    diagnostics: 2
+    restarts: use-text-diff use-value continue abort abort exit
+    fell back to engine :TEXT
+    render :unified:
+      | @@ -90 +90 @@
+      | -  (process-kill handle :force force))
+      | +  (process-kill handle :force force)
+
+========================================================================
+== Demo 6: diff-protocol 0.3.0 engine extension API (register-diff-engine, non-text values)
+========================================================================
+
+--- 6a. register-diff-engine and find-diff-engine
+    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {8009EEA143}>
+    find-diff-engine :env is the registered instance => T
+    registering :env again keeps the first instance => T
+
+--- 6b. a diff of two environments: apply / invert / sexp round trip / :unified
+    env diff (3 changes, level :CHANGES, engine env):
+      (:MODIFY (:VAR "PATH") NIL ("env:/PATH"))
+      (:REMOVE (:VAR "DEBUG") NIL ("env:/DEBUG"))
+      (:ADD (:VAR "TZ") NIL ("env:/TZ"))
+    render :summary:
+      | M env:/PATH
+      | D env:/DEBUG
+      | A env:/TZ
+    render :unified (render-unified-content, no base text needed):
+      | @@ -1,2 +1,2 @@
+      | -PATH=/usr/bin
+      | -DEBUG=0
+      | +PATH=/opt/bin:/usr/bin
+      | +TZ=UTC
+    apply-diff a diff => (("PATH" . "/opt/bin:/usr/bin") ("LANG" . "C") ("TZ" . "UTC"))
+    apply-diff a diff state-equal b => T
+    apply-diff b (invert-diff diff) state-equal a => T
+    parse-diff :sexp finds :env by name and applies => T
+
+--- 6c. apply-diff restarts on a stale state come from diff-protocol, not the engine
+    apply-conflict before-mismatch on env:/PATH (found "/bin"); restarts skip-change use-value abort continue abort abort exit -> skip-change
+    result => (("PATH" . "/bin") ("LANG" . "C") ("TZ" . "UTC"))
+
+--- 6d. three-way merge through the default merge-states: one clean key, one conflict
+    merged diff (2 changes, level :CHANGES, engine env):
+      (:MODIFY (:VAR "DEBUG") NIL ("env:/DEBUG"))
+      (:MODIFY (:VAR "LANG") NIL ("env:/LANG"))
+    conflicts: 1
+      conflict footprint ("env:/PATH"): ours :MODIFY / theirs :MODIFY
+    apply-diff base merged => (("PATH" . "/usr/bin") ("LANG" . "en_US.UTF-8") ("DEBUG" . "1"))
+
+--- 6e. :env files inside a tree: :unified shows hunks (0.2 printed "Binary files differ")
+    footprints: env:/deploy/prod.env/DEBUG env:/deploy/prod.env/PATH env:/deploy/prod.env/TZ text:/README/0-1 tree:/README tree:/deploy/prod.env
+    render :unified (:changes level):
+      | diff --git a/README b/README
+      | --- a/README
+      | +++ b/README
+      | @@ -1 +1 @@
+      | -demo
+      | +demo, edited
+      | diff --git a/deploy/prod.env b/deploy/prod.env
+      | --- a/deploy/prod.env
+      | +++ b/deploy/prod.env
+      | @@ -1,2 +1,2 @@
+      | -PATH=/usr/bin
+      | -DEBUG=0
+      | +PATH=/opt/bin:/usr/bin
+      | +TZ=UTC
+    render :unified (:content level, whole states):
+      | diff --git a/README b/README
+      | --- a/README
+      | +++ b/README
+      | @@ -1 +1 @@
+      | -demo
+      | +demo, edited
+      | diff --git a/deploy/prod.env b/deploy/prod.env
+      | --- a/deploy/prod.env
+      | +++ b/deploy/prod.env
+      | @@ -1 +1 @@
+      | -PATH=/usr/bin
+      | +PATH=/opt/bin:/usr/bin
+      | @@ -3 +3 @@
+      | -DEBUG=0
+      | +TZ=UTC
+    apply-diff ta diff state-equal tb => T
 
 == all demos finished

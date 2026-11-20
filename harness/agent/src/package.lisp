@@ -18,7 +18,9 @@
            #:demo-file-tools
            #:demo-tui-widgets
            #:demo-tty
-           #:demo-llm-cache))
+           #:demo-llm-cache
+           #:demo-markdown
+           #:demo-shell-tools))
 
 (in-package #:harness-demos-agent)
 

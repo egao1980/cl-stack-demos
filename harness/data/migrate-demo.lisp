@@ -1,6 +1,6 @@
 (in-package #:harness-demos-data)
 
-;;; Demo 4 — sql-migrate 0.2.0 on SQLite in memory: a three-revision script
+;;; Demo 4 — sql-migrate 0.2.1 on SQLite in memory: a three-revision script
 ;;; directory, upgrade / downgrade, plans and offline SQL, a failing step seen
 ;;; as both STEP-FAILED and SQLITE-ERROR, retry-step, and a fork.
 
@@ -57,7 +57,7 @@ so the step's DDL runs and its stamp fails inside the step transaction."
        t))
 
 (defun demo-migrate ()
-  (banner "Demo 4: sql-migrate 0.2.0 (SQLite in memory)")
+  (banner "Demo 4: sql-migrate 0.2.1 (SQLite in memory)")
   (let ((dir (demo-directory)))
 
     (demo-step ("4a. three migrations: upgrade, current-revision, history, downgrade :count 1")

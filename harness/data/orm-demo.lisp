@@ -1,6 +1,6 @@
 (in-package #:harness-demos-data)
 
-;;; Demo 3 — sql-orm 0.2.0 schema algebra on SQLite in memory: complete
+;;; Demo 3 — sql-orm 0.3.0 schema algebra on SQLite in memory: complete
 ;;; schema diff, the op fold, alter-column (table rebuild), reflection.
 
 ;;; Two versions of the same tables, as models.
@@ -67,7 +67,7 @@
   (sql:fetch-all (sql:execute c sql-text)))
 
 (defun demo-orm ()
-  (banner "Demo 3: sql-orm 0.2.0 (SQLite in memory)")
+  (banner "Demo 3: sql-orm 0.3.0 (SQLite in memory)")
   (let ((v1 (snap-v1)) (v2 (snap-v2)))
 
     (demo-step ("3a. diff-schema :complete t, the op list, apply-ops-to-snapshot round trip")

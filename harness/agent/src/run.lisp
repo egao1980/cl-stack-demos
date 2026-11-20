@@ -1,7 +1,7 @@
 (in-package #:harness-demos-agent)
 
 (defparameter *demos*
-  '(demo-permissions demo-file-tools demo-tui-widgets demo-tty demo-llm-cache))
+  '(demo-permissions demo-file-tools demo-tui-widgets demo-tty demo-llm-cache demo-markdown demo-shell-tools))
 
 (defun run-demos (&key (demos *demos*))
   "Run each demo; an error is printed and the next demo runs."
@@ -10,7 +10,8 @@
     (dolist (name '("ai-agent-protocol" "agent-tools" "tui-protocol" "tui-backend-terminal"
                     "tui-backend-tty" "terminal-backend-lisp" "pty-backend-native"
                     "llm-protocol" "llm-protocol-openai" "http-backend-async"
-                    "event-backend-libuv" "cl-stack-pathlib" "diff-protocol"))
+                    "event-backend-libuv" "cl-stack-pathlib" "diff-protocol"
+                    "tui-markdown" "process-protocol" "process-backend-uiop" "pty-protocol"))
       (let ((system (asdf:find-system name nil)))
         (note "  ~22a ~a  ~a" name (and system (asdf:component-version system))
               (and system (uiop:native-namestring (asdf:system-source-directory system))))))

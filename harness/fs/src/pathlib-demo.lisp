@@ -97,7 +97,7 @@
                    #'string<)))
       (show "walk :ignore nil  files" (files-of (pl:walk tree)))
       (show "walk :ignore :auto files" (files-of (pl:walk tree :ignore :auto))))
-    (note "rglob :ignore :auto (expected = fnmatch semantics; mismatches are cl-stack-pathlib#28):")
+    (note "rglob :ignore :auto (expected = fnmatch semantics; cl-stack-pathlib#28, fixed in 0.6.0):")
     (loop for (pattern . expected) in (quote (("*.lisp" "src/main.lisp" "src/util.lisp")
                                               ("*.l*" "keep.log" "src/main.lisp" "src/util.lisp")
                                               ("m*.lisp" "src/main.lisp")
@@ -199,7 +199,7 @@
           (pl:close-area area :action :discard))))))
 
 (defun demo-pathlib ()
-  (banner "Demo 1: cl-stack-pathlib 0.5.0 (H2a reads/writes/ignore/grep, R4a snapshots/areas)")
+  (banner "Demo 1: cl-stack-pathlib 0.6.1 (H2a reads/writes/ignore/grep, R4a snapshots/areas)")
   (with-temp-dir (root "hd-pathlib")
     (demo-pathlib-reads root)
     (demo-pathlib-writes root)

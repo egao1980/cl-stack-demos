@@ -1,6 +1,6 @@
 (in-package #:harness-demos-fs)
 
-;;; Demo 4: revision-backend-jj 0.1.0 on a throwaway jj repository built with jj.
+;;; Demo 4: revision-backend-jj 0.2.0 on a throwaway jj repository built with jj.
 
 (defun rfc3339 (unix)
   (multiple-value-bind (s mi h d mo y)
@@ -148,7 +148,7 @@ merge(left, right) committed with the conflict unresolved. → plist of change i
       (show "main unchanged" (equal current (rev:ref-target (rev:find-ref s "main")))))))
 
 (defun demo-jj ()
-  (banner "Demo 4: revision-backend-jj 0.1.0")
+  (banner "Demo 4: revision-backend-jj 0.2.0")
   (with-temp-dir (root "hd-jj")
     (let* ((dir (merge-pathnames "repo/" root))
            (env (jj-env (merge-pathnames "home/" root))))

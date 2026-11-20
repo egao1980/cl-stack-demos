@@ -105,7 +105,7 @@
     (show "alive-p" (proc:alive-p h))))
 
 (defun demo-process ()
-  (banner "Demo 2: process-protocol 0.3.0 / process-backend-uiop 0.2.0")
+  (banner "Demo 2: process-protocol 0.4.0 / process-backend-uiop 0.3.1")
   (show "*process-backend*" proc:*process-backend*)
   (demo-process-binary)
   (demo-process-env)
