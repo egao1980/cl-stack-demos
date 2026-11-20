@@ -1,0 +1,80 @@
+# Runs the harness demos (harness/{data,fs,agent}) against the published GHCR
+# packages, so a dependency republish that breaks a demo shows up here.
+# Each demo exits non-zero when any of its steps raised an error.
+name: harness-demos
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+env:
+  JJ_VERSION: "0.47.1"
+
+jobs:
+  demo:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        demo: [data, fs, agent]
+        # POSIX-only demo steps and the pty demo: https://github.com/egao1980/cl-stack-demos/issues/15
+        exclude:
+          - os: windows-latest
+            demo: fs
+          - os: windows-latest
+            demo: agent
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: git
+        shell: bash
+        run: git --version
+
+      - name: jj ${{ env.JJ_VERSION }}
+        if: matrix.demo == 'fs'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${RUNNER_OS}-${RUNNER_ARCH}" in
+            Linux-X64) target=x86_64-unknown-linux-musl; ext=tar.gz ;;
+            Linux-ARM64) target=aarch64-unknown-linux-musl; ext=tar.gz ;;
+            macOS-ARM64) target=aarch64-apple-darwin; ext=tar.gz ;;
+            macOS-X64) target=x86_64-apple-darwin; ext=tar.gz ;;
+            Windows-X64) target=x86_64-pc-windows-msvc; ext=zip ;;
+            *) echo "no jj build for ${RUNNER_OS}-${RUNNER_ARCH}"; exit 1 ;;
+          esac
+          dir="${RUNNER_TEMP}/jj"
+          mkdir -p "${dir}"
+          asset="jj-v${JJ_VERSION}-${target}.${ext}"
+          curl -fsSL -o "${RUNNER_TEMP}/${asset}" \
+            "https://github.com/jj-vcs/jj/releases/download/v${JJ_VERSION}/${asset}"
+          if [[ "${ext}" == zip ]]; then
+            unzip -q -o "${RUNNER_TEMP}/${asset}" -d "${dir}"
+          else
+            tar -xzf "${RUNNER_TEMP}/${asset}" -C "${dir}"
+          fi
+          jj_bin="$(find "${dir}" -type f \( -name jj -o -name jj.exe \) | head -1)"
+          echo "$(dirname "${jj_bin}")" >> "${GITHUB_PATH}"
+          "${jj_bin}" --version
+
+      - uses: egao1980/cl-repository/.github/actions/setup-lisp@main
+
+      - name: run harness/${{ matrix.demo }}
+        uses: egao1980/cl-repository/.github/actions/ci@main
+        with:
+          phase: run
+          working-directory: harness/${{ matrix.demo }}
+          command: >-
+            sbcl --non-interactive --no-userinit --eval '(require "asdf")'
+            --eval '(asdf:load-system "harness-demos-${{ matrix.demo }}")'
+            --eval '(uiop:quit (if (uiop:symbol-call :harness-demos-${{ matrix.demo }} :run-demos) 0 1))'

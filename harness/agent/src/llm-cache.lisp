@@ -74,6 +74,11 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
   (let ((hp:*http-backend* (http-backend-async:make-async-backend))
         (token (%lm-token)))
     (show "LM_API_TOKEN found" (and token (plusp (length token)) t))
+    ;; No LM Studio (CI runners): report the skip instead of failing the run.
+    (handler-case (http:request :get (format nil "~a/models" *lm-studio-url*) :timeout 5)
+      ((or hp:http-connection-error hp:http-timeout-error) (c)
+        (note "skipped: no LM Studio reachable at ~a (~a)" *lm-studio-url* (type-of c))
+        (return-from demo-llm-cache nil)))
     (let* ((log (list nil))
            (backend (oa:make-openai-compat-backend :base-url *lm-studio-url* :api-key token
                                                    :request-fn (%tapping-request-fn log))))
