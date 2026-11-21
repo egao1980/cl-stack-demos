@@ -1,13 +1,13 @@
 (defsystem "harness-demos-supervisor"
   :version "0.2.0"
-  :description "Live demo of supervisor-protocol 0.3.0: H8a (scopes, queries, restarts with backoff, the replayable event stream, caps + LRU eviction, stop escalation, the orphan sweep after a crash), H8b (rotated, capped unit logs: drop markers, range reads, tail, follow, binary output, torn tails, the total cap) and H8c (the log search index, agent-tools 0.3.0's unit tools, an agent finding and fixing a failure from process logs on a scripted mock and on a live model)"
+  :description "Live demo of supervisor-protocol 0.3.1: H8a (scopes, queries, restarts with backoff, the replayable event stream, caps + LRU eviction, stop escalation, the orphan sweep after a crash), H8b (rotated, capped unit logs: drop markers, range reads, tail, follow, binary output, torn tails, the total cap) and H8c (the log search index, agent-tools 0.3.1's unit tools, an agent finding and fixing a failure from process logs on a scripted mock and on a live model)"
   :author "egao1980"
   :license "MIT"
-  :depends-on ((:version "supervisor-protocol" "0.3.0")
-               (:version "supervisor-protocol/search" "0.3.0")
+  :depends-on ((:version "supervisor-protocol" "0.3.1")
+               (:version "supervisor-protocol/search" "0.3.1")
                (:version "process-protocol" "0.4.1")
                (:version "process-backend-uiop" "0.3.1")
-               (:version "agent-tools" "0.3.0")
+               (:version "agent-tools" "0.3.1")
                (:version "ai-agent-protocol" "0.14.0")
                (:version "llm-protocol" "0.6.0")
                (:version "llm-protocol-openai" "0.6.0")
