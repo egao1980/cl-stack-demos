@@ -162,6 +162,7 @@
                              :settings (agent:make-agent-settings :max-steps 20))
                             +shop-prompt+)))))
              (%print-run run :width 400)
+             (print-lm-usage label)
              (show "answer" (or (ignore-errors (agent:agent-run-text run)) ""))
              (when asked (show "asks the demo denied" (reverse asked))))
            (stage (format nil "~a: checked by the demo after the run" label))

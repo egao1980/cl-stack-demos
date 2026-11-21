@@ -1,6 +1,6 @@
 (in-package #:harness-demos-agent)
 
-;;; Demo 5: llm-protocol-openai 0.4.0 prompt cache, live against LM Studio (or
+;;; Demo 5: llm-protocol-openai 0.5.1 prompt cache, live against LM Studio (or
 ;;; the OpenAI-compatible server in HARNESS_DEMOS_BASE_URL). The key comes from
 ;;; HARNESS_DEMOS_API_KEY, else LM_API_TOKEN, else the workspace .env; it is
 ;;; never printed.
@@ -95,8 +95,10 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
           (find-if (lambda (id) (and (chat-p id) (search "4b" id))) ids)
           (find-if #'chat-p ids)))))
 
+(defvar *llm-max-input* 0 "The largest input token count of a Demo 5 request.")
+
 (defun demo-llm-cache ()
-  (banner "Demo 5: llm-protocol-openai 0.4.0 prompt cache, live LM Studio")
+  (banner "Demo 5: llm-protocol-openai 0.5.1 prompt cache, live LM Studio")
   (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend
         *lm-studio-url* (%base-url))
   (let ((hp:*http-backend* (http-backend-async:make-async-backend))
@@ -124,9 +126,11 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
         (let ((system (%long-system-prompt)))
           (show "system prompt chars" (length system))
           (setf (car log) nil)
+          (setf *llm-max-input* 0)
           (loop for (label question) in '(("request 1" "Which test framework do the rules ask for?")
                                           ("request 2" "Which ASDF operation must run before a report?"))
-                do (let* ((response (llm:generate backend
+                do (let* ((t0 (get-internal-real-time))
+                          (response (llm:generate backend
                                                   (list (llm:system-turn system)
                                                         (llm:user-turn question))
                                                   :model model
@@ -134,6 +138,7 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                                                               :extra (:prompt-cache-key
                                                                       "harness-demo-run"
                                                                       :reasoning-effort "none"))))
+                          (secs (/ (- (get-internal-real-time) t0) internal-time-units-per-second))
                           (sent (car (first (car log))))
                           (raw (cdr (first (car log)))))
                      (note "~a: ~a" label question)
@@ -143,9 +148,14 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                      (show "  thinking chars" (length (or (llm:llm-response-thinking response) "")))
                      (show "  finish reason" (llm:llm-response-finish-reason response))
                      (%print-usage label (llm:llm-response-usage response))
+                     (show "  seconds" (float secs))
+                     (let ((in (and (llm:llm-response-usage response)
+                                    (llm:llm-usage-input-tokens (llm:llm-response-usage response)))))
+                       (when (integerp in) (setf *llm-max-input* (max *llm-max-input* in))))
                      (show "  raw usage JSON from LM Studio"
                            (let ((u (%json-field raw "usage")))
                              (if u (json:encode u) "absent"))))))
+        (note "max input tokens of a request: ~d" *llm-max-input*)
         (let* ((usages (mapcar (lambda (e) (%json-field (cdr e) "usage")) (reverse (car log))))
                (cached (mapcar (lambda (u) (and (hash-table-p u)
                                                 (let ((d (gethash "prompt_tokens_details" u)))
