@@ -57,24 +57,34 @@ the whole timeout (egao1980/http-backend-async#59).")
     (%request method url timeout headers content want-stream)))
 
 (defvar *lm-usage* '()
-  "(input-tokens output-tokens seconds) per real-model chat request since the
-last PRINT-LM-USAGE, newest first.")
+  "(input-tokens output-tokens seconds) per real-model generate since the last
+PRINT-LM-USAGE, newest first. Input is the whole prompt (cached tokens
+included).")
 
 (defvar *lm-peak-input* nil
   "The largest prompt_tokens of any real-model request in this run.")
 
-(defun %usage-numbers (text)
-  "(input output) from the usage object of a chat/completions response TEXT,
-or NIL when it has none."
-  (let ((u (ignore-errors
-            (let ((v (json:decode text)))
-              (and (hash-table-p v) (gethash "usage" v))))))
-    (and (hash-table-p u)
-         (list (gethash "prompt_tokens" u) (gethash "completion_tokens" u)))))
+(defclass usage-tapping-backend (oa:openai-compat-backend) ()
+  (:documentation "The OpenAI-compatible backend; each generate or
+stream-generate (the agent loop streams) records its usage in *LM-USAGE*."))
+
+(defun %record-usage (start response)
+  (let ((u (and (llm:llm-response-p response) (llm:llm-response-usage response))))
+    (push (list (and u (llm:llm-usage-prompt-tokens u)) (and u (llm:llm-usage-output-tokens u))
+                (/ (- (get-internal-real-time) start) internal-time-units-per-second))
+          *lm-usage*)
+    response))
+
+(defmethod llm:generate :around ((b usage-tapping-backend) turns &key &allow-other-keys)
+  (declare (ignore turns))
+  (%record-usage (get-internal-real-time) (call-next-method)))
+
+(defmethod llm:stream-generate :around ((b usage-tapping-backend) turns &key &allow-other-keys)
+  (declare (ignore turns))
+  (%record-usage (get-internal-real-time) (call-next-method)))
 
 (defun %request (method url timeout headers content want-stream)
-  (let* ((start (get-internal-real-time))
-         (res (apply #'http:request method url :headers headers :timeout timeout
+  (let* ((res (apply #'http:request method url :headers headers :timeout timeout
                      :want-stream (and want-stream t)
                      (and content (list :content content))))
          (body (hp:response-body res))
@@ -82,12 +92,6 @@ or NIL when it has none."
                      ((stringp body) body)
                      ((vectorp body) (babel:octets-to-string body :encoding :utf-8))
                      (t ""))))
-    (unless want-stream
-      (let ((usage (and (search "/chat/completions" url) (%usage-numbers text))))
-        (when usage
-          (push (append usage (list (/ (- (get-internal-real-time) start)
-                                       internal-time-units-per-second)))
-                *lm-usage*))))
     (values (hp:response-status res) text)))
 
 (defun print-lm-usage (label)
@@ -96,7 +100,7 @@ or NIL when it has none."
   (let ((calls (reverse *lm-usage*)))
     (setf *lm-usage* '())
     (when calls
-      (note "  token usage of ~a, per model call (from the server's usage object):" label)
+      (note "  token usage of ~a, per model call (prompt tokens, cached included):" label)
       (loop for (in out secs) in calls
             for k from 1
             do (note "    call ~2d: input ~6@a  output ~6@a  ~6,1f s" k in out secs))
@@ -108,8 +112,9 @@ or NIL when it has none."
         (setf *lm-peak-input* (max max-in (or *lm-peak-input* 0)))))))
 
 (defun lm-backend (&key (timeout *lm-request-timeout*))
-  (oa:make-openai-compat-backend :base-url *lm-studio-url* :api-key (%lm-token)
-                                 :request-fn (%request-fn timeout)))
+  (change-class (oa:make-openai-compat-backend :base-url *lm-studio-url* :api-key (%lm-token)
+                                               :request-fn (%request-fn timeout))
+                'usage-tapping-backend))
 
 (defun %model-override ()
   "The exact model id in HARNESS_DEMOS_MODEL, or NIL when unset or empty."

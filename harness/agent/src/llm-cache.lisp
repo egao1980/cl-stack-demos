@@ -150,12 +150,12 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                      (%print-usage label (llm:llm-response-usage response))
                      (show "  seconds" (float secs))
                      (let ((in (and (llm:llm-response-usage response)
-                                    (llm:llm-usage-input-tokens (llm:llm-response-usage response)))))
+                                    (llm:llm-usage-prompt-tokens (llm:llm-response-usage response)))))
                        (when (integerp in) (setf *llm-max-input* (max *llm-max-input* in))))
-                     (show "  raw usage JSON from LM Studio"
+                     (show "  raw usage JSON from the server"
                            (let ((u (%json-field raw "usage")))
                              (if u (json:encode u) "absent"))))))
-        (note "max input tokens of a request: ~d" *llm-max-input*)
+        (note "max input (prompt) tokens of a request: ~d" *llm-max-input*)
         (let* ((usages (mapcar (lambda (e) (%json-field (cdr e) "usage")) (reverse (car log))))
                (cached (mapcar (lambda (u) (and (hash-table-p u)
                                                 (let ((d (gethash "prompt_tokens_details" u)))
@@ -164,6 +164,6 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                                usages)))
           (stage "5c. verdict")
           (if (some (lambda (n) (and (integerp n) (plusp n))) cached)
-              (note "LM Studio reported cached prompt tokens: ~s" cached)
-              (note "LM Studio did NOT report cached prompt tokens (prompt_tokens_details.cached_tokens per request: ~s); llm-usage-cache-read-tokens is therefore NIL/0."
+              (note "the server reported cached prompt tokens: ~s" cached)
+              (note "the server did NOT report cached prompt tokens (prompt_tokens_details.cached_tokens per request: ~s); llm-usage-cache-read-tokens is therefore NIL/0."
                     cached)))))))
