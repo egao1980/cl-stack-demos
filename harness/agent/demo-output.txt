@@ -13,6 +13,46 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
 ;;; Computing Hangul syllable namesWARNING:
    redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
 
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/package.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/package-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.009
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/sampling.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/sampling-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.003
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/permissions.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/permissions-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.007
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/file-tools.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/file-tools-tmp8V3J6PE9.fasl
+; compilation finished in 0:00:00.004
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/tui-widgets.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/tui-widgets-tmp9V47YWQF.fasl
+; compilation finished in 0:00:00.017
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/tty.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/tty-tmp9BN22RMA.fasl
+; compilation finished in 0:00:00.008
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/llm-cache.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/llm-cache-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.012
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/markdown.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/markdown-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.007
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/shell-tools.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/shell-tools-tmpQ371UGST.fasl
+; compilation finished in 0:00:00.007
+; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/run.lisp" (written 21 NOV 2026 09:38:04 PM):
+
+; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/demos-fnt/harness/agent/src/run-tmp2OWI3Q7U.fasl
+; compilation finished in 0:00:00.002
 
 ========================================================================
 == Loaded systems
@@ -28,7 +68,7 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
   llm-protocol-openai    0.6.0  /Users/nikolaimatiushev/.local/share/cl-repository/systems/llm-protocol-openai/0.6.0/
   http-backend-async     0.2.22  /Users/nikolaimatiushev/.local/share/cl-repository/systems/http-backend-async/0.2.22/
   event-backend-libuv    0.2.2  /Users/nikolaimatiushev/.local/share/cl-repository/systems/event-backend-libuv/0.2.2/
-  cl-stack-pathlib       0.9.0  /Users/nikolaimatiushev/.local/share/cl-repository/systems/cl-stack-pathlib/0.9.0/
+  cl-stack-pathlib       0.10.0  /Users/nikolaimatiushev/.local/share/cl-repository/systems/cl-stack-pathlib/0.10.0/
   diff-protocol          0.4.0  /Users/nikolaimatiushev/.local/share/cl-repository/systems/diff-protocol/0.4.0/
   tui-markdown           0.2.0  /Users/nikolaimatiushev/.local/share/cl-repository/systems/tui-markdown/0.2.0/
   process-protocol       0.4.1  /Users/nikolaimatiushev/.local/share/cl-repository/systems/process-protocol/0.4.1/
@@ -113,7 +153,7 @@ final text: "OK, I will explain the plan first."
 ========================================================================
 == Demo 2: agent-tools 0.2.0 file tools
 ========================================================================
-root: "/private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-W0OFYJ"
+root: "/private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-MVJ8UK"
 tools: ("read" "write" "edit" "multi_edit" "glob" "grep" "ls")
 
 --- 2a. read with offset/limit
@@ -194,16 +234,16 @@ result:
 --- 2g. root escapes are refused
 > read {"file_path":"../x"}
 FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
-  ../x is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-W0OFYJ; use a path relative to the root
+  ../x is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-MVJ8UK; use a path relative to the root
 > read {"file_path":"..\\x"}
 FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
-  ..\x is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-W0OFYJ; use a path relative to the root
+  ..\x is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-MVJ8UK; use a path relative to the root
 > write {"file_path":"src/../../escape.txt","content":"nope"}
 FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
-  src/../../escape.txt is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-W0OFYJ; use a path relative to the root
+  src/../../escape.txt is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-MVJ8UK; use a path relative to the root
 > read {"file_path":"/etc/passwd"}
 FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
-  /etc/passwd is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-W0OFYJ; use a path relative to the root
+  /etc/passwd is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-MVJ8UK; use a path relative to the root
 escape.txt written outside root?: NIL
 
 --- 2h. tool-permission-resources
@@ -412,7 +452,7 @@ dialog mode: :FEEDBACK
    3 ||
    4 ||
    5 ||
-   6 |⠋ thinking…|
+   6 |⠙ thinking…|
   screen after 5 more chunks (tail followed):
    0 | coder · qwen3.5-2b         ctx 12%|
    1 |1. rename greet|
@@ -420,7 +460,7 @@ dialog mode: :FEEDBACK
    3 |3. run the tests|
    4 |4. commit|
    5 |Starting with step 1|
-   6 |⠸ thinking…|
+   6 |⠼ thinking…|
 row count / max offset / offset / at bottom / follow: (8 3 3 T T)
   screen after Home (scrolled to top, follow off):
    0 | coder · qwen3.5-2b         ctx 12%|
@@ -472,7 +512,7 @@ run-tui signalled: TUI-BACKEND-TTY:TTY-NOT-A-TERMINAL
   a tui-backend-error?: T
 
 --- 4b. child SBCL on an 80x24 pty under sh: stty -g before / during / after
-child pid: 19831
+child pid: 53067
 READY drawn by the child: T
 sh finished: T
 pty exit code / signal: (0 NIL)
@@ -480,7 +520,7 @@ sh lines from the pty:
   SH-BEFORE gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600
   READY 80x24 press a keySH-EXIT 0
   SH-AFTER gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600
-child report (/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-tty-IUZRXN.sexp):
+child report (/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-tty-JZ007O.sexp):
   (:BEFORE :STTY-G
    "gfmt1:cflag=4b00:iflag=2b02:lflag=5cb:oflag=3:discard=f:dsusp=19:eof=4:eol=ff:eol2=ff:erase=7f:intr=3:kill=15:lnext=16:min=1:quit=1c:reprint=12:start=11:status=14:stop=13:susp=1a:time=0:werase=17:ispeed=9600:ospeed=9600"
    :FLAGS ("icanon" "echo" "isig") :AVAILABLE T)
@@ -505,9 +545,9 @@ restored exactly (before = after): T
 API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN): T
 
 --- 5a. list models
-models: ("unsloth/Inkling-2-Mini-GGUF" "unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL"
+models: ("unsloth/Qwen3.8-Flash-Next-GGUF" "unsloth/Inkling-2-Mini-GGUF"
+         "unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL"
          "unsloth/Inkling-2-Mini-GGUF:UD-Q8_K_XL"
-         "unsloth/Qwen3.8-Flash-Next-GGUF"
          "lmstudio-community/Qwen3.8-27B-GGUF"
          "lmstudio-community/Qwen3.8-27B-GGUF:Q4_K_M"
          "lmstudio-community/Qwen3.8-27B-GGUF:Q8_0"
@@ -515,34 +555,45 @@ models: ("unsloth/Inkling-2-Mini-GGUF" "unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL"
          "lmstudio-community/gemma-4-12B-it-QAT-GGUF" "gpustack/bge-m3-GGUF"
          "Qwen/Qwen3-Embedding-0.6B-GGUF" "ggml-org/embeddinggemma-300M-GGUF"
          "lmstudio-community/NVIDIA-Nemotron-3-Nano-4B-GGUF" "qwen3-asr-0.6b")
-picked chat model: "unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL"
-MODEL THAT RAN: unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL)
+picked chat model: "unsloth/Qwen3.8-Flash-Next-GGUF:UD-IQ4_XS"
+MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF:UD-IQ4_XS at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL)
+SAMPLING PRESET SENT: thinking (HARNESS_DEMOS_MODE) {"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repeat_penalty":1.0,"chat_template_kwargs":{"enable_thinking":true,"preserve_thinking":true}}
 
---- 5b. two requests, same long system prompt, prompt_cache_key "harness-demo-run" (reasoning_effort none)
+--- 5b. two requests, same long system prompt, prompt_cache_key "harness-demo-run", the thinking preset
 system prompt chars: 12020
 request 1: Which test framework do the rules ask for?
   prompt_cache_key sent: "harness-demo-run"
-  reasoning_effort sent: "none"
-  reply: "<think>The user asks: Which test framework do the rules ask for? Need answer in one short sentence. Need inspect rules: They repeatedly say \"write a Rove test\". So answer: Rove. Need be careful: rules ask for Rove test for each behaviour change. Final one short sentence. No need mention modules. Ensure concise.</think>The rules ask for Rove tests."
-  thinking chars: 0
+  reasoning_effort sent: NIL
+  sampling fields sent: (("chat_template_kwargs"
+                          "{\"enable_thinking\":true,\"preserve_thinking\":true}")
+                         ("min_p" 0.0d0) ("presence_penalty" 0.0d0)
+                         ("repeat_penalty" 1.0d0) ("temperature" 1.0d0)
+                         ("top_k" 20) ("top_p" 0.95d0))
+  reply: "Rove."
+  thinking chars: 189
   finish reason: :STOP
-  request 1 llm-usage: input 3028  cache-read 0  cache-write NIL  output 85  total 3113  (prompt = 3028)
-  seconds: 44.982407
-  raw usage JSON from the server: "{\"prompt_tokens\":3028,\"completion_tokens\":85,\"total_tokens\":3113,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}"
+  request 1 llm-usage: input 2947  cache-read 0  cache-write NIL  output 50  total 2997  (prompt = 2947)
+  seconds: 28.415941
+  raw usage JSON from the server: "{\"prompt_tokens\":2947,\"completion_tokens\":50,\"total_tokens\":2997,\"prompt_tokens_details\":{\"cached_tokens\":0,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}"
 request 2: Which ASDF operation must run before a report?
   prompt_cache_key sent: "harness-demo-run"
-  reasoning_effort sent: "none"
-  reply: "<think>The user asks: \"Which ASDF operation must run before a report?\" Need answer in one short sentence. Need inspect rules: each rule says when touch module X, keep API stable, write Rove test for each behaviour change, run the ASDF test-op before you report, and say which files changed and why. So ASDF operation is test-op. Need answer concise. Ensure no extra. Could say \"The ASDF test-op must run before the report.\" That's one sentence.</think>The ASDF test-op must run before the report."
-  thinking chars: 0
+  reasoning_effort sent: NIL
+  sampling fields sent: (("chat_template_kwargs"
+                          "{\"enable_thinking\":true,\"preserve_thinking\":true}")
+                         ("min_p" 0.0d0) ("presence_penalty" 0.0d0)
+                         ("repeat_penalty" 1.0d0) ("temperature" 1.0d0)
+                         ("top_k" 20) ("top_p" 0.95d0))
+  reply: "The ASDF test-op must run before a report."
+  thinking chars: 318
   finish reason: :STOP
-  request 2 llm-usage: input 13  cache-read 3016  cache-write NIL  output 126  total 3155  (prompt = 3029)
-  seconds: 26.956553
-  raw usage JSON from the server: "{\"prompt_tokens\":3029,\"completion_tokens\":126,\"total_tokens\":3155,\"prompt_tokens_details\":{\"cached_tokens\":3016,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}"
-max input (prompt) tokens of a request: 3029
+  request 2 llm-usage: input 20  cache-read 2928  cache-write NIL  output 86  total 3034  (prompt = 2948)
+  seconds: 18.474562
+  raw usage JSON from the server: "{\"prompt_tokens\":2948,\"completion_tokens\":86,\"total_tokens\":3034,\"prompt_tokens_details\":{\"cached_tokens\":2928,\"audio_tokens\":0},\"completion_tokens_details\":{\"reasoning_tokens\":0,\"audio_tokens\":0,\"accepted_prediction_tokens\":0,\"rejected_prediction_tokens\":0}}"
+max input (prompt) tokens of a request: 2948
 
 --- 5c. verdict
-the server reported cached prompt tokens: (0 3016)
-  (demo-llm-cache: 72.4 s wall time)
+the server reported cached prompt tokens: (0 2928)
+  (demo-llm-cache: 47.3 s wall time)
 
 ========================================================================
 == Demo 6: tui-markdown 0.1.0 (markdown and diff rendering on the headless terminal)
@@ -706,7 +757,7 @@ result:
   | [exit code 3]
 > bash {"command":"pwd; ls","workdir":"src"}
 result:
-  | /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-42RP00/src
+  | /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-UIHY7H/src
   | main.lisp	util.lisp
   | [exit code 0]
 > bash {"command":"echo TERM=$TERM PAGER=$PAGER NO_COLOR=$NO_COLOR; cat","description":"stdin is at EOF, so cat returns at once"}
@@ -715,7 +766,7 @@ result:
   | [exit code 0]
 > bash {"command":"echo x","workdir":"../.."}
 FAILED with AGENT-TOOLS:PATH-OUTSIDE-ROOT:
-  ../.. is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-42RP00; use a path relative to the root
+  ../.. is outside the project root /private/var/folders/z7/7gcqc88j6hxd63ltgkgxvb300000gn/T/harness-demo-UIHY7H; use a path relative to the root
 > bash {"command":"   "}
 FAILED with AI-AGENT-PROTOCOL:TOOL-INPUT-ERROR:
   command is empty; give the command line to run
@@ -778,15 +829,15 @@ FAILED with AGENT-TOOLS:SHELL-TIMEOUT:
   Command timed out after 700 ms and was killed; output so far:
 started
 Run long commands with run_in_background: true and read them with job_output.
-elapsed seconds: 0.7
+elapsed seconds: 0.8
 
 --- 7d'. the shell-timeout restarts: CONTINUE once, then RUN-IN-BACKGROUND
 > bash {"command":"for i in 1 2 3 4 5 6; do echo step $i; sleep 0.4; done","timeout_ms":700}
-  [handler] AGENT-TOOLS:SHELL-TIMEOUT after 0.7s: timeout 700 ms, output so far "step 1
+  [handler] AGENT-TOOLS:SHELL-TIMEOUT after 0.8s: timeout 700 ms, output so far "step 1
 step 2"
   [handler] restarts: continue run-in-background continue abort abort exit
   [handler] → continue
-  [handler] AGENT-TOOLS:SHELL-TIMEOUT after 1.4s: timeout 700 ms, output so far "step 1
+  [handler] AGENT-TOOLS:SHELL-TIMEOUT after 1.5s: timeout 700 ms, output so far "step 1
 step 2
 step 3
 step 4"
@@ -906,11 +957,11 @@ tool result g5-c1 (error-p T):
 approval prompts: 1
 final text: "Listed src; deleting was refused; the job finished."
 src/util.lisp still on disk: T
-  (demo-shell-tools: 5.6 s wall time)
+  (demo-shell-tools: 5.8 s wall time)
 
 ========================================================================
 == Summary
 ========================================================================
 demos run: demo-permissions, demo-file-tools, demo-tui-widgets, demo-tty, demo-llm-cache, demo-markdown, demo-shell-tools
 demos that raised an error: none
-wall time: 101.3 s
+wall time: 76.5 s
