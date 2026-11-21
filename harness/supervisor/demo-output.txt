@@ -13,46 +13,6 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
 ;;; Computing Hangul syllable namesWARNING:
    redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
 
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/package.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/package-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.000
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/support.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/support-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.024
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/units-demo.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/units-demo-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.011
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/sweep-demo.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/sweep-demo-tmp8V3J6PE9.fasl
-; compilation finished in 0:00:00.017
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/logs-demo.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/logs-demo-tmp9V47YWQF.fasl
-; compilation finished in 0:00:00.018
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/tool-support.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/tool-support-tmp9BN22RMA.fasl
-; compilation finished in 0:00:00.032
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/search-demo.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/search-demo-tmp1CXFJSK9.fasl
-; compilation finished in 0:00:00.039
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/unit-tools-demo.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/unit-tools-demo-tmpX4BRKI0R.fasl
-; compilation finished in 0:00:00.009
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/agent-demo.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/agent-demo-tmpQ371UGST.fasl
-; compilation finished in 0:00:00.011
-; compiling file "/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/run.lisp" (written 21 NOV 2026 05:33:18 PM):
-
-; wrote /Users/nikolaimatiushev/.cache/common-lisp/sbcl-2.6.9-macosx-arm64/private/tmp/claude-501/-Users-nikolaimatiushev-Projects-cl-workspace/e245ecca-68c0-4b90-88e7-10d736b3e88a/scratchpad/worktrees/cl-stack-demos-live11/harness/supervisor/src/run-tmp2OWI3Q7U.fasl
-; compilation finished in 0:00:00.002
 supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 2.6.9 (Darwin)
 
 ========================================================================
@@ -74,10 +34,10 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 
 -- the unit table (supervisor-units, start order)
    id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  87017
-   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  87019
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  27742
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  27744
    subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :RUNNING  -
-   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  87021
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  27746
    [ok] every process unit has a pid, the thread none
 
 -- echo round trip: send-unit-input, then unit-output
@@ -112,10 +72,10 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    close-scope again (idempotent): NIL
    scope-closed-p: T
    id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  87017
-   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  87019
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  27742
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  27744
    subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :KILLED   -
-   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   87021
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   27746
    [ok] the subagent's thread and its job are :killed, the rest :running
    the thread's result (cooperative stop): :DONE
    start-unit in the closed scope → signalled: SUPERVISOR-PROTOCOL:SCOPE-CLOSED
@@ -126,11 +86,11 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 == Demo 3: kill the server's process → one restart with backoff; the event stream
 ========================================================================
 
--- kill -9 / taskkill /F the server (pid 87019) from outside
+-- kill -9 / taskkill /F the server (pid 27744) from outside
    last seq before the kill: 10
    [ok] restarted: :running again with restart-count 1
    same unit, same id: "rpc-1"
-   [ok] a new pid (87019 → 87024)
+   [ok] a new pid (27744 → 27749)
    [ok] the new process is wired to the same unit
 
 -- the server's events (subscribe :since 0, from Demo 1 on)
@@ -139,7 +99,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)  (+0.20 s)
    # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)  (+0.20 s)
    # 13 rpc-1      :STATE             :FAILED   → :STARTING  (+0.70 s)
-   # 14 rpc-1      :STATE             :STARTING → :RUNNING   (+0.79 s)
+   # 14 rpc-1      :STATE             :STARTING → :RUNNING   (+0.80 s)
    [ok] transitions: nil→starting→running→failed, restart-scheduled, failed→starting→running
    failed detail (external kill = non-zero exit, no signal recorded): (:EXIT-CODE 137 :SIGNAL NIL)
    restart-scheduled detail: (:ATTEMPT 1 :DELAY 0.5)
@@ -169,8 +129,8 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 
 -- at the cap: shell-job-1 finished, shell-job-2 running
    id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   87026
-   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  87028
+   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   27751
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  27753
 
 -- start a third → the least recently used FINISHED unit is evicted silently
    started: "shell-job-3"
@@ -178,8 +138,8 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    #  6 shell-job-1 :EVICTED           :EXITED   → NIL      
    [ok] the finished unit was evicted
    id               kind        owner                                  state     pid
-   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  87028
-   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  87030
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  27753
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  27755
 
 -- start a fourth with both live → unit-limit-reached; take EVICT-LRU
    signalled: SUPERVISOR-PROTOCOL:UNIT-LIMIT-REACHED
@@ -191,8 +151,8 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    victim's state: :KILLED
    [ok] the victim was stopped and evicted
    id               kind        owner                                  state     pid
-   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  87030
-   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  87033
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  27755
+   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  27757
 
 -- start a fifth → unit-limit-reached; take ABORT
      restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
@@ -214,7 +174,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 
 -- a process that ignores SIGTERM (stop-unit :grace 1)
    signalled (not an error): SUPERVISOR-PROTOCOL:STOP-TIMEOUT
-     phase / waited: (:GRACEFUL 1.0020570000000002d0)
+     phase / waited: (:GRACEFUL 1.0020279999999997d0)
      restarts: (SUPERVISOR-PROTOCOL:FORCE SUPERVISOR-PROTOCOL:KEEP-WAITING)
    → FORCE
    final state: :KILLED
@@ -223,9 +183,9 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    [ok] forced after the grace: :killed by :kill
 
 -- a thread that never polls unit-stop-requested-p (stop-unit :grace 0.5): KEEP-WAITING once, then FORCE
-   stop-timeout #1 waited: 0.5020569999999998d0
+   stop-timeout #1 waited: 0.5020430000000005d0
    → KEEP-WAITING
-   stop-timeout #2 waited: 1.0042780000000002d0
+   stop-timeout #2 waited: 1.0035379999999998d0
    → FORCE (bt2:interrupt-thread unwinds the body)
    final state: :KILLED
    seconds: 1.0
@@ -244,11 +204,11 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    child image ready after (s): 0.4
 
 -- before the crash
-   child image pid: 87046
+   child image pid: 27777
    units in the child (shell-job tree, rpc, subagent thread): 3
-   shell-job root pid: 87047
-   grandchild pids: (87049 87050)
-   rpc server pid: 87052
+   shell-job root pid: 27778
+   grandchild pids: (27780 27781)
+   rpc server pid: 27783
    unit files (process units only): ("<sup>--rpc-1.unit" "<sup>--shell-job-1.unit")
    one unit file's keys: (:FORMAT :SUPERVISOR-ID :SUPERVISOR-PID :SUPERVISOR-OS-START :UNIT-ID :KIND :PID
                           :PGID :OS-START :COMMAND :CWD :INSPECTOR)
@@ -256,22 +216,22 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 
 -- SIGKILL the child image (taskkill /F on Windows): no exit hook runs
    child alive: NIL
-   orphans alive (pid alive-p): ((87052 T) (87049 T) (87050 T) (87047 T))
+   orphans alive (pid alive-p): ((27783 T) (27780 T) (27781 T) (27778 T))
    [ok] the crash left every unit process behind
 
 -- make-supervisor :state-directory (same directory) → sweep-orphans first
    make-supervisor seconds (incl. the sweep): 0.3
-   rpc-1        pid  87052 pgid  87052  :KILLED killed (87052)
-   shell-job-1  pid  87047 pgid  87047  :KILLED killed (87047 87049 87050)
+   rpc-1        pid  27783 pgid  27783  :KILLED killed (27783)
+   shell-job-1  pid  27778 pgid  27778  :KILLED killed (27778 27780 27781)
    [ok] two records (rpc-1, shell-job-1), both :killed
    [ok] the killed pids are exactly the four orphans
 
 -- after the sweep
    [ok] every orphan is dead, grandchildren included
-   orphans alive: ((87052 NIL) (87049 NIL) (87050 NIL) (87047 NIL))
+   orphans alive: ((27783 NIL) (27780 NIL) (27781 NIL) (27778 NIL))
    unit files left: 0
 
-   [demo-sweep: 1.8 s]
+   [demo-sweep: 1.9 s]
 
 ========================================================================
 == Demo 7: supervisor-protocol 0.2.0 (H8b) — rotated, capped unit logs
@@ -302,7 +262,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    line   2978  seg 13  :DROP   NIL      (SEGMENT 9 FIRST-LINE 1985 LAST-LINE 2232 RECORDS 248 BYTES 251904
                                           REASON ROTATED)
    newest segment's header (cumulative drops):
-   line   2977  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 87013-7e338b38 UNIT-ID shell-job-1 KIND
+   line   2977  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 27741-b2f6d9f4 UNIT-ID shell-job-1 KIND
                                           SHELL-JOB SEGMENT 13 FIRST-LINE 2977 DROPPED-THROUGH 8
                                           DROPPED-RECORDS 1984 DROPPED-BYTES 2019328)
    end record:
@@ -321,7 +281,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    [ok] the output lines continue across the segments (the header line is not output)
    :types t on the same range shows the next segment's header:
    line   2728  seg 11  :OUTPUT :STDOUT  line-02710 xxxxxxxxxxxxx…(1023 chars)
-   line   2729  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 87013-7e338b38 UNIT-ID shell-job-1 KIND
+   line   2729  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 27741-b2f6d9f4 UNIT-ID shell-job-1 KIND
                                           SHELL-JOB SEGMENT 12 FIRST-LINE 2729 DROPPED-THROUGH 7
                                           DROPPED-RECORDS 1736 DROPPED-BYTES 1767424)
    paging: :limit 2 → lines / gaps / next-line: ((2235 2236) 1 2237)
@@ -347,8 +307,8 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    bytes written / rebuilt from records: (2549 2549)
    [ok] every byte unchanged (equalp)
    records: 14
-   a raw base64 record in the segment file: "4 1795282433406 8663 ob. AAECAwQFBgcICQ== 73f8b8b8"
-   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795282433406 8663 ot. tab	there, ESC \x1b[1m bold 179982a9
+   a raw base64 record in the segment file: "4 1795291742500 8561 ob. AAECAwQFBgcICQ== 78b5cd50"
+   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795291742500 8561 ot. tab	there, ESC \x1b[1m bold e8b87691
 
 -- disk usage vs the total cap
    supervisor-log-usage / log-total-cap: (836131 4194304)
@@ -359,14 +319,14 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    [ok] the child image is gone
    find-unit-logs: 1
    unit id / closed-p (no end record after a SIGKILL): ("subagent-1" NIL)
-   records read by this image / gaps: (2362 NIL)
+   records read by this image / gaps: (2453 NIL)
    segments: 7
    [ok] contiguous n-1 … n-K, no gap
    last segment torn-p as the kill left it: NIL
    append half a record (no LF, no CRC), as a kill mid-write leaves it
    torn-p now: T
    [ok] the torn tail is skipped: the same records
-   log-tail 2: ("n-2361" "n-2362")
+   log-tail 2: ("n-2452" "n-2453")
 
 -- 7g. total-cap eviction: :log-total-cap 6000, segments of 2048 bytes
    a (26 lines × 101 bytes) finished: usage 4451 / cap 6000, a on disk 4451, 26 lines
@@ -379,7 +339,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    b: 0 lines, 459 bytes, gaps (:TOTAL-CAP)
    c: 22 lines kept, 3838 bytes, gaps (:TOTAL-CAP), state :RUNNING
    a's stub:
-   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 87013-f95d46b8 UNIT-ID subagent-1 KIND
+   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 27741-5cb7f486 UNIT-ID subagent-1 KIND
                                          SUBAGENT SEGMENT 3 FIRST-LINE 29 DROPPED-THROUGH 1 DROPPED-RECORDS
                                          14 DROPPED-BYTES 1313)
    line     30  seg 3  :DROP   NIL      (SEGMENT 2 FIRST-LINE 15 LAST-LINE 28 RECORDS 14 BYTES 1313 REASON
@@ -390,7 +350,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    [ok] finished units emptied first, then c's old segments; c's newest kept
    [ok] usage = the bytes of every segment and index file
 
-   [demo-logs: 3.7 s]
+   [demo-logs: 3.6 s]
 
 ========================================================================
 == Demo 8: the log search index (supervisor-protocol/search 0.3.0, H8c)
@@ -536,18 +496,18 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 
 -- 8d. .six persistence: 20 000 lines in 64 KiB segments, a fresh index loads them, a rebuild is byte-identical
    20027 lines in 26 segments
-   index 1, first refresh: 0.232 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 20000
+   index 1, first refresh: 0.248 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 20000
                                            :LOADED 0 :WRITTEN 26 :REBUILT 0)
-   index 1, refresh with nothing new: 0.0013 s
-   index 1, search "timed out worker-3": 0.0083 s
+   index 1, refresh with nothing new: 0.0016 s
+   index 1, search "timed out worker-3": 0.0091 s
    .six files: 26 (one per sealed segment; the newest segment of a closed log too), 2446937 bytes in all
    first .six header bytes ("SPSI", format, tokenizer): (83 80 83 73 1 0 0 0 1 0 0 0)
-   index 2 (fresh, loads .six): 0.121 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 0
+   index 2 (fresh, loads .six): 0.123 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 0
                                                 :LOADED 26 :WRITTEN 0 :REBUILT 0)
    [ok] a fresh index tokenizes nothing
    [ok] same top hit as index 1
    deleted 00000001.six, corrupted a byte of 00000002.six
-   index 3: 0.129 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 1631 :LOADED 24
+   index 3: 0.135 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 1631 :LOADED 24
                             :WRITTEN 2 :REBUILT 1)
    [ok] the rebuilt .six files are byte-identical
 
@@ -1059,9 +1019,9 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
 == Demo 11: the same task on a live model
 ========================================================================
    API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN): T
-   MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL)
+   MODEL THAT RAN: unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL)
 
--- live unsloth/Qwen3.8-Flash-Next-GGUF (varies run to run): the run
+-- live unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (varies run to run): the run
    tools: ("unit_list" "unit_search" "unit_read" "unit_tail" "unit_control" "bash" "job_output" "job_input"
            "job_kill" "job_list" "read" "edit" "grep" "ls")
    rule ("bash" "*" :ALLOW)
@@ -1072,7 +1032,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    rule ("*" "path:test.sh" :DENY) feedback "fix the code under test (calc.sh), not the test"
    prompt | The calc project's test suite fails. Run it in the background with bash (command "sh test.sh", run_in_background true) and wait for it with job_output (wait_ms 30000). Its output is long and noisy, so do not read it all: find the failure with unit_search (kinds ["test-failure"], units [the job id]), look at the lines around the hit with unit_read (its ref), read calc.sh and fix the faulty function with edit (do not change test.sh). Then run "sh test.sh" again with bash and confirm with unit_search (query "", kinds ["test-failure"], units [that run's unit id from the truncation note or unit_list]) that nothing failed. End with one sentence naming the fix.
 
-    1. bash {"command":"sh test.sh","run_in_background":true,"description":"Run calc test suite in background"}
+    1. bash {"command":"sh test.sh","run_in_background":true}
        status done
        | Started job shell-job-1: sh test.sh
        | Read its output with job_output (job_id "shell-job-1"); stop it with job_kill.
@@ -1121,7 +1081,12 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
        | [teardown] released handle 55
        | … (7 more lines)
 
-    3. unit_search {"query":"","kinds":["test-failure"],"units":["shell-job-1"]}
+    3. unit_search {"kinds":["test-failure"],"units":["shell-job-1"]}
+       status error (error)
+       | Tool unit_search rejected its arguments: query is required
+       | Fix the arguments to match the tool's input schema and call it again.
+
+    4. unit_search {"kinds":["test-failure"],"query":"","units":["shell-job-1"]}
        status done
        | [1] shell-job-1:1:124 stdout <time> test-failure
        |     122	[bench] iteration 39 took 0.4ms
@@ -1131,11 +1096,6 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
        |     126	[teardown] released handle 1
        | 
        | [1 result]
-
-    4. ls {"path":"."}
-       status done
-       | calc.sh
-       | test.sh
 
     5. unit_read {"ref":"shell-job-1:1:124"}
        status done
@@ -1189,7 +1149,15 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
        |      4	sub() { echo $(($1 - $2)); }
        | hash: sha256:3f859db027def29b0dc936fe3300d4384783c1496c6de2e25cc260d45dbfcb10
 
-    7. edit {"file_path":"calc.sh","old_string":"add() { echo $(($1 - $2)); }","new_string":"add() { echo $(($1 + $2)); }"}
+    7. bash {"command":"sed -n '1,10p' calc.sh"}
+       status done
+       | # calc.sh: small arithmetic helpers for the shell
+       | add() { echo $(($1 - $2)); }
+       | mul() { echo $(($1 * $2)); }
+       | sub() { echo $(($1 - $2)); }
+       | [exit code 0]
+
+    8. edit {"file_path":"calc.sh","new_string":"add() { echo $(($1 + $2)); }","old_string":"add() { echo $(($1 - $2)); }"}
        status done
        | Edited calc.sh: 1 replacement
        | --- a/calc.sh
@@ -1202,7 +1170,12 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
        |  sub() { echo $(($1 - $2)); }
        | hash: sha256:faac65781a9bb7951b0594b168d6b03f54114117e6f2d74ed2f0a1eaf9bd17bd
 
-    8. bash {"command":"sh test.sh","timeout_ms":120000,"description":"Re-run calc test suite"}
+    9. bash {"command":"sh test.sh","run_in_background":true}
+       status done
+       | Started job shell-job-3: sh test.sh
+       | Read its output with job_output (job_id "shell-job-3"); stop it with job_kill.
+
+   10. job_output {"job_id":"shell-job-3","wait_ms":60000}
        status done
        | [setup] fixture 1 of 80 loaded
        | [setup] fixture 2 of 80 loaded
@@ -1226,7 +1199,7 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
        | [setup] fixture 20 of 80 loaded
        | [setup] fixture 21 of 80 loaded
        | [setup] fixture 22 of 80 loaded
-       | [truncated: 4334 characters omitted; the full output is in unit shell-job-2: use unit_read or unit_search]
+       | [truncated: 4334 characters omitted; the full output is in unit shell-job-3: use unit_read or unit_search]
        | [teardown] released handle 39
        | [teardown] released handle 40
        | [teardown] released handle 41
@@ -1246,13 +1219,13 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
        | [teardown] released handle 55
        | … (7 more lines)
 
-    9. unit_search {"query":"","kinds":["test-failure"],"units":["shell-job-2"]}
+   11. unit_search {"kinds":["test-failure"],"query":"","units":["shell-job-3"]}
        status done
        | No results for "" with kinds test-failure in 1 unit
    finish reason: :STOP
-   answer | Fixed: `add()` in `calc.sh` computed `$1 - $2` instead of `$1 + $2`, so I changed it to `echo $(($1 + $2))`; the re-run (unit `shell-job-2`) reports "all checks passed" with no test-failure hits.
+   answer | The `add` function in calc.sh was subtracting instead of adding (`$1 - $2` → `$1 + $2`), and after fixing it the suite passes with no test failures.
 
--- live unsloth/Qwen3.8-Flash-Next-GGUF (varies run to run): checked by the demo after the run
+-- live unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (varies run to run): checked by the demo after the run
    calc.sh | # calc.sh: small arithmetic helpers for the shell
    calc.sh | add() { echo $(($1 + $2)); }
    calc.sh | mul() { echo $(($1 * $2)); }
@@ -1260,20 +1233,24 @@ supervisor-protocol 0.3.1, agent-tools 0.3.1, llm-protocol-openai 0.6.0 on SBCL 
    calc.sh | 
    sh test.sh exit code (run by the demo): 0
    test.sh unchanged: T
-   steps (tool calls) 9; tools used: bash ×2, job_output ×1, unit_search ×2, ls ×1, unit_read ×1, read ×1, edit ×1; wall time 142.1 s
+   steps (tool calls) 11; tools used: bash ×3, job_output ×2, unit_search ×3, unit_read ×1, read ×1, edit ×1; wall time 161.1 s
    token usage per model call (prompt tokens, cached included):
-     call  1: input   3864  output    164    32.7 s
-     call  2: input   4075  output    100    13.7 s
-     call  3: input   4736  output    142    20.1 s
-     call  4: input   5044  output     93    11.4 s
-     call  5: input   6003  output    105    13.7 s
-     call  6: input   6282  output    113    16.0 s
-     call  7: input   6948  output    121    17.8 s
-     call  8: input   7097  output    109    16.5 s
-     8 calls; max input 7097 tokens; total input 44049; total output 947 tokens; 141.8 s in model calls
-   LIVE RESULT: fixed (sh test.sh exits 0, test.sh untouched); 8 model calls, max input 7097 tokens, 947 output tokens, 142.1 s wall
+     call  1: input   4583  output     55    47.8 s
+     call  2: input   4683  output     47     8.3 s
+     call  3: input   5229  output     50    11.1 s
+     call  4: input   5313  output     56     9.7 s
+     call  5: input   5496  output     40     8.1 s
+     call  6: input   6154  output     32    11.2 s
+     call  7: input   6309  output     60    12.5 s
+     call  8: input   6443  output     82    13.1 s
+     call  9: input   6691  output     41     9.5 s
+     call 10: input   6777  output     47     8.7 s
+     call 11: input   7320  output     56    11.0 s
+     call 12: input   7395  output     67     9.8 s
+     12 calls; max input 7395 tokens; total input 72393; total output 633 tokens; 160.7 s in model calls
+   LIVE RESULT: fixed (sh test.sh exits 0, test.sh untouched); 12 model calls, max input 7395 tokens, 633 output tokens, 161.1 s wall
 
-   [demo-agent-fix-live: 142.5 s]
+   [demo-agent-fix-live: 161.6 s]
 
 ========================================================================
-Demos run: 11, failed: none; 155.2 s
+Demos run: 11, failed: none; 174.2 s

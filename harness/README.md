@@ -35,6 +35,8 @@ The `data/` and `fs/` outputs have no model step and were not rerun. `supervisor
 
 ### Live steps across models
 
+**Inkling-2-Mini run (2026-11-21, `unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL` on Unsloth Studio; the committed outputs are this run).** agent 5 prompt cache: both answers right, the server reported 3016 cached prompt tokens on the second request, but the reply text starts with a raw `<think>…` block even with `reasoning_effort: "none"` (no `reasoning_content`, thinking chars 0). code a/b/i/q8: success (b 4 turns, 91 s; i fixed on attempt 1 in 6 turns). code c: the write was denied, then the run ended `error_during_execution` "sync await timed out" after 318 s while the model answered. image 5: fixed in 6 model calls, 108 s in model calls, max input 2429 tokens. supervisor Demo 11: fixed in 11 tool calls / 12 model calls, 161 s, max input 7395 tokens. Set wall times: agent 104 s, code 868 s, image 321 s, supervisor 177 s. The Q8_K_XL build ran only the agent set (105 s) before the switch to Q4.
+
 Earlier runs: `qwen3.5-2b` (LM Studio, local) and `qwen/qwen3.8-27b` (LM Studio over LM Link). "Input" is the prompt of one model call (cached tokens included). Where a cell has no input figure, that run did not print one. Wall times are per step. Real-model output varies from run to run.
 
 | Step | qwen3.5-2b | qwen3.8-27b | Qwen3.8-Flash-Next (this run) |

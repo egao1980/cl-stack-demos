@@ -1,13 +1,13 @@
-WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: System definition file #P"/Users/nikolaimatiushev/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names; cl-repo: ensure extra-with → swank, slynk
 ; cl-repo: found swank:2.32 in https://ghcr.io (CL-REPO)
 Pulling egao1980/cl-systems/swank:2.32 from https://ghcr.io...
   Recorded file manifest (138 files)
-Installed swank 2.32 to ~/.local/share/cl-repository/systems/swank/2.32/
+Installed swank 2.32 to /Users/nikolaimatiushev/.local/share/cl-repository/systems/swank/2.32/
 ; cl-repo: found slynk:1.0.43 in https://ghcr.io (CL-REPO)
 Pulling egao1980/cl-systems/slynk:1.0.43 from https://ghcr.io...
   Recorded file manifest (98 files)
-Installed slynk 1.0.43 to ~/.local/share/cl-repository/systems/slynk/1.0.43/
+Installed slynk 1.0.43 to /Users/nikolaimatiushev/.local/share/cl-repository/systems/slynk/1.0.43/
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -15,37 +15,13 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: System definition file #P"/Users/nikolaimatiushev/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 WARNING: redefining LLM-PROTOCOL:INVOKE-RETRY in DEFUN
 WARNING: redefining LLM-PROTOCOL:INVOKE-USE-VALUE in DEFUN
 WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
 ;;; Computing Hangul syllable namesWARNING:
    redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
 
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/image/src/model.lisp" (written 21 NOV 2026 02:13:26 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/image/src/model-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.015
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/image/src/scanner.lisp" (written 21 NOV 2026 01:32:51 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/image/src/scanner-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/image/src/image.lisp" (written 21 NOV 2026 01:32:51 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/image/src/image-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.005
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/image/src/agent.lisp" (written 21 NOV 2026 01:36:48 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/image/src/agent-tmp8V3J6PE9.fasl
-; compilation finished in 0:00:00.013
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/image/src/events.lisp" (written 21 NOV 2026 01:36:48 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/image/src/events-tmp9V47YWQF.fasl
-; compilation finished in 0:00:00.016
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/image/src/run.lisp" (written 21 NOV 2026 01:36:58 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/image/src/run-tmp9BN22RMA.fasl
-; compilation finished in 0:00:00.004
 
 ========================================================================
 == Loaded systems
@@ -56,21 +32,23 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
   repl-protocol          0.2.8
   repl-backend-swank     0.2.2
   ai-agent-protocol      0.14.0
-  llm-protocol           0.5.0
-  llm-protocol-openai    0.5.1
+  llm-protocol           0.6.0
+  llm-protocol-openai    0.6.0
 
 ========================================================================
 == Model
 ========================================================================
 API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN): T
 GET /v1/models:
-  | ("unsloth/Qwen3.8-Flash-Next-GGUF" "lmstudio-community/Qwen3.8-27B-GGUF"
+  | ("unsloth/Inkling-2-Mini-GGUF" "unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL"
+  |  "unsloth/Inkling-2-Mini-GGUF:UD-Q8_K_XL" "unsloth/Qwen3.8-Flash-Next-GGUF"
+  |  "lmstudio-community/Qwen3.8-27B-GGUF"
   |  "lmstudio-community/Qwen3.8-27B-GGUF:Q4_K_M"
   |  "lmstudio-community/Qwen3.8-27B-GGUF:Q8_0" "sahilchachra/Unlimited-OCR-GGUF"
   |  "lmstudio-community/gemma-4-12B-it-QAT-GGUF" "gpustack/bge-m3-GGUF"
   |  "Qwen/Qwen3-Embedding-0.6B-GGUF" "ggml-org/embeddinggemma-300M-GGUF"
   |  "lmstudio-community/NVIDIA-Nemotron-3-Nano-4B-GGUF" "qwen3-asr-0.6b")
-MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF at 192.168.86.21:8888 for the real-model run (from HARNESS_DEMOS_MODEL)
+MODEL THAT RAN: unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL at 192.168.86.21:8888 for the real-model run (from HARNESS_DEMOS_MODEL)
 
 ========================================================================
 == Demo 1: form-resources, a table of forms (package "shop" for unqualified names)
@@ -132,7 +110,7 @@ instructions (first 3 lines):
 
 --- spawn, eval, compile a located form
 > repl-spawn {"backend":"swank"}
-  =: swank-1: SBCL 2.4.11.roswell, pid 30043, package COMMON-LISP-USER (spawned)
+  =: swank-1: SBCL 2.4.11.roswell, pid 26622, package COMMON-LISP-USER (spawned)
 > repl-eval {"code":"(+ 1 2)"}
   =:
   | => 3
@@ -155,7 +133,7 @@ instructions (first 3 lines):
   | Restarts:
   |   0: [RETURN-DEFAULT] Return 42
   |   1: [*ABORT] Return to SLIME's top level.
-  |   2: [ABORT] abort thread (#<THREAD tid=8511 "worker" RUNNING {7006D4BF33}>)
+  |   2: [ABORT] abort thread (#<THREAD tid=8471 "worker" RUNNING {7006DBBF43}>)
   | Backtrace (top 4; debug-backtrace for more):
   |   0: (SEEDED 1)
   |   1: (SB-INT:SIMPLE-EVAL-IN-LEXENV (SEEDED 1) #<NULL-LEXENV>)
@@ -229,10 +207,10 @@ closed-p: T
 == Demo 3: observe mode on an attached image refuses a mutating form
 ========================================================================
 > repl-spawn {"backend":"swank"}
-  =: swank-1: SBCL 2.4.11.roswell, pid 30073, package COMMON-LISP-USER (spawned)
+  =: swank-1: SBCL 2.4.11.roswell, pid 26626, package COMMON-LISP-USER (spawned)
 > repl-eval {"code":"(swank:create-server :port 0 :dont-close t)"}
   =:
-  | => 56804
+  | => 62188
   | (result id 1)
 observe catalog:
   | ("source-outline" "source-read" "source-check" "source-find-definitions"
@@ -284,7 +262,7 @@ instructions, OBSERVE line: OBSERVE MODE: only read tools and repl-eval / debug-
   | => 3
   | (result id 3)
   closing the observer left the image running
-  (demo-observe: 1.4 s wall time)
+  (demo-observe: 1.5 s wall time)
 
 ========================================================================
 == Demo 4: an agent run (scripted mock): rules allow pure evals, deny io, an undecided mutation asks
@@ -296,7 +274,7 @@ rules:
   |  "#<PERMISSION-RULE \"repl-eval\" \"lisp:io\" :DENY>")
    1. repl-spawn {"backend":"swank"}
       status done
-      result: swank-1: SBCL 2.4.11.roswell, pid 30076, package COMMON-LISP-USER (spawned)
+      result: swank-1: SBCL 2.4.11.roswell, pid 26639, package COMMON-LISP-USER (spawned)
    2. repl-eval {"code":"(+ 1 2)"}
       status done
       result:
@@ -330,19 +308,19 @@ waiting for approval: repl-eval {"code":"(setf *answer* 42)"}: ("lisp:mutates cl
   | Tool repl-eval was not run: permission denied for lisp:mutates cl-user:*x*
   | Feedback: This source is in observe mode: it runs only read tools and code that scans to lisp:pure or lisp:reads (plus the source's observe-allow globs). Inspect the image without changing it; ask the user to run anything els… [371 chars]
 finish reason: :STOP
-  (demo-agent-rules: 1.5 s wall time)
+  (demo-agent-rules: 1.8 s wall time)
 
 ========================================================================
 == Demo 5: an agent finds and fixes a seeded bug in a system loaded into the image
 ========================================================================
 
---- LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run): setup (not the agent): spawn, load shop, show the bug
+--- LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run): setup (not the agent): spawn, load shop, show the bug
 > repl-spawn {"backend":"swank"}
-  =: swank-1: SBCL 2.4.11.roswell, pid 30079, package COMMON-LISP-USER (spawned)
+  =: swank-1: SBCL 2.4.11.roswell, pid 26644, package COMMON-LISP-USER (spawned)
 > repl-eval {"code":"(asdf:load-asd (uiop:parse-native-namestring \"<tmp>/shop-real/shop.asd\"))"}
   =:
   | => #<ASDF/FIND-SYSTEM:DEFINE-OP >
-  | => #<ASDF/PLAN:SEQUENTIAL-PLAN {7006C07173}>
+  | => #<ASDF/PLAN:SEQUENTIAL-PLAN {7006C771D3}>
   | (result id 1)
 > repl-load-system {"system":"shop"}
   =:
@@ -367,8 +345,13 @@ rules:
   |  "#<PERMISSION-RULE \"repl-eval\" \"lisp:io\" :DENY>")
 prompt: The system "shop" (file cart.lisp) is loaded in the live Lisp image. (shop:cart-total '((:price 3 :qty 2) (:price 5 :qty 1))) should return 11 but it does not. Find the bug: evaluate the call with repl-eval, read the functions of cart.lisp with source-read (locators look like "defun NAME"), then fix the faulty function in the file with edit-replace (path "cart.lisp", the defun as locator, the whole corrected defun as code, compile true). Finally evaluate the call again to check it returns 11, and say what you changed in one sentence.
 
---- LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run): the run
-   1. source-outline {"path":"cart.lisp"}
+--- LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run): the run
+   1. repl-eval {"code":"(shop:cart-total '((:price 3 :qty 2) (:price 5 :qty 1)))"}
+      status done
+      result:
+  | => 8
+  | (result id 1)
+   2. source-outline {"path":"cart.lisp"}
       status done
       result:
   | cart.lisp (hash 90c7b1d96ed1326e, 4 forms)
@@ -376,26 +359,21 @@ prompt: The system "shop" (file cart.lisp) is loaded in the live Lisp image. (sh
   |      L7  in-package shop  [path:1]
   |      L9  defun line-total (item)  [path:2] "The price of ITEM times its quantity."
   |     L13  defun cart-total (items)  [path:3] "The sum of the line totals of ITEMS."
-   2. repl-eval {"code":"(shop:cart-total '((:price 3 :qty 2) (:price 5 :qty 1)))"}
-      status done
-      result:
-  | => 8
-  | (result id 1)
-   3. source-read {"path":"cart.lisp","locator":"defun line-total"}
+   3. source-read {"locator":"defun line-total","path":"cart.lisp"}
       status done
       result:
   | cart.lisp path:2 lines 9-11 (file hash 90c7b1d96ed1326e)
   | (defun line-total (item)
   |   "The price of ITEM times its quantity."
   |   (getf item :price))
-   4. source-read {"path":"cart.lisp","locator":"defun cart-total"}
+   4. source-read {"locator":"defun cart-total","path":"cart.lisp"}
       status done
       result:
   | cart.lisp path:3 lines 13-15 (file hash 90c7b1d96ed1326e)
   | (defun cart-total (items)
   |   "The sum of the line totals of ITEMS."
   |   (reduce #'+ (mapcar #'line-total items)))
-   5. edit-replace {"path":"cart.lisp","locator":"defun line-total","code":"(defun line-total (item)\n  \"The price of ITEM times its quantity.\"\n  (* (getf item :price) (getf item :qty)))","expected_hash":"90c7b1d96ed… [222 chars]
+   5. edit-replace {"code":"(defun line-total (item)\n  \"The price of ITEM times its quantity.\"\n  (* (getf item :price) (getf item :qty)))","compile":true,"locator":"defun line-total","path":"cart.lisp"}
       status done
       result:
   | Wrote cart.lisp: replace; new file hash 80b6368dc2d79f65 (+1 -1 lines)
@@ -406,16 +384,17 @@ prompt: The system "shop" (file cart.lisp) is loaded in the live Lisp image. (sh
   | => 11
   | (result id 2)
 finish reason: :STOP
-  token usage of LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run), per model call (prompt tokens, cached included):
-    call  1: input   1582  output     95    14.8 s
-    call  2: input   1816  output    175    21.9 s
-    call  3: input   2136  output    139    13.6 s
-    call  4: input   2333  output     71    11.1 s
-    call  5: input   2429  output     78    14.2 s
-    5 calls; max input 2429 tokens; total output 558 tokens; 75.5 s in model calls
-answer: Fixed: `line-total` was returning only `(getf item :price)` and ignoring the quantity, so a 3×2 line counted as 3; it now returns `(* (getf item :price) (getf item :qty))`, and the call returns 11.
+  token usage of LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run), per model call (prompt tokens, cached included):
+    call  1: input   1702  output     71    25.8 s
+    call  2: input   1790  output     34     7.6 s
+    call  3: input   1945  output     93    21.9 s
+    call  4: input   2184  output    122    28.7 s
+    call  5: input   2351  output     61    11.2 s
+    call  6: input   2429  output     64    12.7 s
+    6 calls; max input 2429 tokens; total output 445 tokens; 108.0 s in model calls
+answer: Fixed `line-total` in cart.lisp to multiply price by quantity (`(* (getf item :price) (getf item :qty))`) instead of returning just the price; the call now returns 11.
 
---- LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run): checked by the demo after the run
+--- LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run): checked by the demo after the run
 > repl-eval {"code":"(shop:cart-total '((:price 3 :qty 2) (:price 5 :qty 1)))"}
   =:
   | => 11
@@ -437,7 +416,7 @@ cart.lisp now:
   |   "The sum of the line totals of ITEMS."
   |   (reduce #'+ (mapcar #'line-total items)))
 fixed (=> 11 in the image): T
-  (demo-agent-real: 77.0 s wall time)
+  (demo-agent-real: 110.0 s wall time)
 
 ========================================================================
 == Demo 6: a background debugger reaches the agent's inbox; the agent restarts it under a restart: rule
@@ -456,7 +435,7 @@ rules:
 --- the run (scripted mock); the callback posts each event into it
    1. repl-spawn {"backend":"swank"}
       status done
-      result: swank-1: SBCL 2.4.11.roswell, pid 30249, package COMMON-LISP-USER (spawned)
+      result: swank-1: SBCL 2.4.11.roswell, pid 27098, package COMMON-LISP-USER (spawned)
    2. repl-eval {"code":"(progn (sb-thread:make-thread (lambda () (restart-case (error \"bg boom: the worker lost its queue\") (retry-later () :report \"Retry later\" 7))) :name \"bg-worker\") (sleep 1) :started)"}
       status done
       result:
@@ -468,7 +447,7 @@ rules:
   | DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=8707 "bg-worker" RUNNING {7006C16D03}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=9987 "bg-worker" RUNNING {7006CA6D03}>)
   | Backtrace (top 4; debug-backtrace for more):
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -484,7 +463,7 @@ rules:
    5. inspect-condition {}
       status done
       result:
-  | #<SIMPLE-ERROR {7006C30003}>
+  | #<SIMPLE-ERROR {7006CC0003}>
   | The object is a CONDITION of type SIMPLE-ERROR.
   | FORMAT-CONTROL: ["bg boom: the worker lost its queue"]{1}
   | FORMAT-ARGUMENTS: [NIL]{2}
@@ -496,7 +475,7 @@ rules:
   | Do not repeat the same call. Follow the feedback above and continue.
    7. debug-invoke-restart {"restart":0}
       status done
-      result: Invoked restart 0 [RETRY-LATER] in thread 8707; no tool call was waiting on that thread, so its values are not shown.
+      result: Invoked restart 0 [RETRY-LATER] in thread 9987; no tool call was waiting on that thread, so its values are not shown.
    8. debug-state {}
       status done
       result: Not in the debugger
@@ -513,12 +492,12 @@ finish reason: :STOP
   generate 8: 16 turns, image event turn at 5
   generate 9: 18 turns, image event turn at 5
 the posted turn (user role, generate 3):
-  | <lisp-image-event kind="debugger" connection="swank-1" thread="8707" level="1">
-  | swank-1 entered the debugger outside a tool call (thread 8707, level 1).
+  | <lisp-image-event kind="debugger" connection="swank-1" thread="9987" level="1">
+  | swank-1 entered the debugger outside a tool call (thread 9987, level 1).
   | DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=8707 "bg-worker" RUNNING {7006C16D03}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=9987 "bg-worker" RUNNING {7006CA6D03}>)
   | Backtrace:
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -533,24 +512,24 @@ approval asks the demo denied: NIL
 
 --- the events the callback saw
 kinds: (:DEBUGGER :DEBUGGER-RETURN)
-the :debugger event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger swank-1 thread 8707 level 1>
+the :debugger event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger swank-1 thread 9987 level 1>
   kind: :DEBUGGER
   connection: swank-1
-  thread: 8707
+  thread: 9987
   level: 1
   condition: bg boom: the worker lost its queue
   restarts:
   | ((0 "retry-later" "Retry later")
   |  (1 "abort"
-  |   "abort thread (#<THREAD tid=8707 \"bg-worker\" RUNNING {7006C16D03}>)"))
+  |   "abort thread (#<THREAD tid=9987 \"bg-worker\" RUNNING {7006CA6D03}>)"))
   frames: 6
   text:
-  | <lisp-image-event kind="debugger" connection="swank-1" thread="8707" level="1">
-  | swank-1 entered the debugger outside a tool call (thread 8707, level 1).
+  | <lisp-image-event kind="debugger" connection="swank-1" thread="9987" level="1">
+  | swank-1 entered the debugger outside a tool call (thread 9987, level 1).
   | DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=8707 "bg-worker" RUNNING {7006C16D03}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=9987 "bg-worker" RUNNING {7006CA6D03}>)
   | Backtrace:
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -560,9 +539,9 @@ the :debugger event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger swank-1 thread 8707 l
   |   5: (SB-THREAD::RUN)
   | The thread waits in the debugger until a restart is chosen: call debug-invoke-restart with connection "swank-1" (debug-backtrace, debug-frame-locals and inspect-condition look first).
   | </lisp-image-event>
-the :debugger-return event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger-return swank-1 thread 8707 level 1>
+the :debugger-return event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger-return swank-1 thread 9987 level 1>
 pending after the run: NIL
-  (demo-image-events: 2.6 s wall time)
+  (demo-image-events: 2.5 s wall time)
 
 ========================================================================
 == Demo 7: no rule allows the restart: an unattended run denies it, the thread stays in the debugger
@@ -573,7 +552,7 @@ rules:
 approval asked for restart 0 (an +approval-tools+ entry): T
    1. repl-spawn {}
       status done
-      result: swank-1: SBCL 2.4.11.roswell, pid 30252, package COMMON-LISP-USER (spawned)
+      result: swank-1: SBCL 2.4.11.roswell, pid 27111, package COMMON-LISP-USER (spawned)
    2. repl-eval {"code":"(progn (sb-thread:make-thread (lambda () (restart-case (error \"bg boom: the worker lost its queue\") (retry-later () :report \"Retry later\" 7))) :name \"bg-worker\") (sleep 1) :started)"}
       status done
       result:
@@ -598,7 +577,7 @@ approval asks the demo denied (as -p does): (("debug-invoke-restart" ("restart:r
   | DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=8963 "bg-worker" RUNNING {7006C16D03}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=8963 "bg-worker" RUNNING {7006CA6D03}>)
   | Backtrace (top 4; debug-backtrace for more):
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -613,7 +592,7 @@ approval asks the demo denied (as -p does): (("debug-invoke-restart" ("restart:r
 == Demo 8: detached jobs: one :job event when each finishes, none for a call that finishes in time
 ========================================================================
 > repl-spawn {}
-  =: swank-1: SBCL 2.4.11.roswell, pid 30257, package COMMON-LISP-USER (spawned)
+  =: swank-1: SBCL 2.4.11.roswell, pid 27115, package COMMON-LISP-USER (spawned)
 > repl-eval {"code":"(defun seeded (x) (restart-case (error \"seeded bug ~a\" x) (return-default () :report \"Return 42\" 42)))"}
   =:
   | => SEEDED
@@ -651,7 +630,7 @@ the :job event: #<LISP-MCP/AGENT:IMAGE-EVENT job swank-1 j3>
   | Restarts:
   |   0: [RETURN-DEFAULT] Return 42
   |   1: [*ABORT] Return to SLIME's top level.
-  |   2: [ABORT] abort thread (#<THREAD tid=8719 "worker" RUNNING {7006E0BF73}>)
+  |   2: [ABORT] abort thread (#<THREAD tid=8463 "worker" RUNNING {7006E9BF73}>)
   | Backtrace (top 4; debug-backtrace for more):
   |   0: (SEEDED 1)
   |   1: (SB-INT:SIMPLE-EVAL-IN-LEXENV (SEEDED 1) #<NULL-LEXENV>)
@@ -670,13 +649,13 @@ the :job event: #<LISP-MCP/AGENT:IMAGE-EVENT job swank-1 j3>
   | (result id 4)
 events queued: 0
 kinds the callback saw: (:JOB :JOB :DEBUGGER-RETURN)
-  (demo-image-job-events: 7.3 s wall time)
+  (demo-image-job-events: 7.4 s wall time)
 
 ========================================================================
 == Demo 9: observe mode: the event arrives, with the observe footer; a restart is refused
 ========================================================================
 > repl-spawn {}
-  =: swank-1: SBCL 2.4.11.roswell, pid 30263, package COMMON-LISP-USER (spawned)
+  =: swank-1: SBCL 2.4.11.roswell, pid 27128, package COMMON-LISP-USER (spawned)
   an observe source attaches to the image's second Swank server (port not printed)
 debug-invoke-restart offered to the observer: NIL
 
@@ -686,24 +665,24 @@ debug-invoke-restart offered to the observer: NIL
   =:
   | => :STARTED
   | (result id 2)
-the observer's :debugger event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger prod thread 11523 level 1>
+the observer's :debugger event: #<LISP-MCP/AGENT:IMAGE-EVENT debugger prod thread 16131 level 1>
   kind: :DEBUGGER
   connection: prod
-  thread: 11523
+  thread: 16131
   level: 1
   condition: prod boom: payment gateway timed out
   restarts:
   | ((0 "retry-later" "Retry later")
   |  (1 "abort"
-  |   "abort thread (#<THREAD tid=11523 \"prod-worker\" RUNNING {7006E4F8D3}>)"))
+  |   "abort thread (#<THREAD tid=16131 \"prod-worker\" RUNNING {7006EEF8D3}>)"))
   frames: 6
   text:
-  | <lisp-image-event kind="debugger" connection="prod" thread="11523" level="1">
-  | prod entered the debugger outside a tool call (thread 11523, level 1).
+  | <lisp-image-event kind="debugger" connection="prod" thread="16131" level="1">
+  | prod entered the debugger outside a tool call (thread 16131, level 1).
   | DEBUGGER level 1: prod boom: payment gateway timed out [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=11523 "prod-worker" RUNNING {7006E4F8D3}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=16131 "prod-worker" RUNNING {7006EEF8D3}>)
   | Backtrace:
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -721,7 +700,7 @@ debug-state (a read: allowed):
   | DEBUGGER level 1: prod boom: payment gateway timed out [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=11523 "prod-worker" RUNNING {7006E4F8D3}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=16131 "prod-worker" RUNNING {7006EEF8D3}>)
   | Backtrace (top 4; debug-backtrace for more):
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -740,19 +719,19 @@ kinds the observer's callback saw: (:DEBUGGER)
   =:
   | => (:PROD-WORKER-ALIVE T)
   | (result id 3)
-  (demo-image-events-observe: 3.5 s wall time)
+  (demo-image-events-observe: 3.7 s wall time)
 
 ========================================================================
 == Demo 10: an agent answers a background debugger: a seeded bug in a loaded system
 ========================================================================
 
---- LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run; debug tools only: it answers with a restart): setup (not the agent): spawn, load shop-ledger, start the worker
+--- LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run; debug tools only: it answers with a restart): setup (not the agent): spawn, load shop-ledger, start the worker
 > repl-spawn {"backend":"swank"}
-  =: swank-1: SBCL 2.4.11.roswell, pid 30268, package COMMON-LISP-USER (spawned)
+  =: swank-1: SBCL 2.4.11.roswell, pid 27138, package COMMON-LISP-USER (spawned)
 > repl-eval {"code":"(asdf:load-asd (uiop:parse-native-namestring \"<tmp>/ledger-real/shop-ledger.asd\"))"}
   =:
   | => #<ASDF/FIND-SYSTEM:DEFINE-OP >
-  | => #<ASDF/PLAN:SEQUENTIAL-PLAN {7006C07213}>
+  | => #<ASDF/PLAN:SEQUENTIAL-PLAN {7006C97083}>
   | (result id 1)
 > repl-load-system {"system":"shop-ledger"}
   =:
@@ -762,10 +741,10 @@ kinds the observer's callback saw: (:DEBUGGER)
   =:
   | => :STARTED
   | (result id 3)
-the event (taken by the demo; it becomes the run's first message): #<LISP-MCP/AGENT:IMAGE-EVENT debugger swank-1 thread 9987 level 1>
+the event (taken by the demo; it becomes the run's first message): #<LISP-MCP/AGENT:IMAGE-EVENT debugger swank-1 thread 8707 level 1>
   kind: :DEBUGGER
   connection: swank-1
-  thread: 9987
+  thread: 8707
   level: 1
   condition: junk in string "3.50"
   restarts:
@@ -773,17 +752,17 @@ the event (taken by the demo; it becomes the run's first message): #<LISP-MCP/AG
   |  (1 "retry-order" "Parse this order again (after fixing parse-amount)")
   |  (2 "skip-order" "Skip this order (its amount is lost)")
   |  (3 "abort"
-  |   "abort thread (#<THREAD tid=9987 \"ledger-worker\" RUNNING {7007184763}>)"))
+  |   "abort thread (#<THREAD tid=8707 \"ledger-worker\" RUNNING {7007214793}>)"))
   frames: 8
   text:
-  | <lisp-image-event kind="debugger" connection="swank-1" thread="9987" level="1">
-  | swank-1 entered the debugger outside a tool call (thread 9987, level 1).
+  | <lisp-image-event kind="debugger" connection="swank-1" thread="8707" level="1">
+  | swank-1 entered the debugger outside a tool call (thread 8707, level 1).
   | DEBUGGER level 1: junk in string "3.50" [   [Condition of type SB-INT:SIMPLE-PARSE-ERROR]]
   | Restarts:
   |   0: [USE-DECIMAL] Add this amount read with decimal-cents instead
   |   1: [RETRY-ORDER] Parse this order again (after fixing parse-amount)
   |   2: [SKIP-ORDER] Skip this order (its amount is lost)
-  |   3: [ABORT] abort thread (#<THREAD tid=9987 "ledger-worker" RUNNING {7007184763}>)
+  |   3: [ABORT] abort thread (#<THREAD tid=8707 "ledger-worker" RUNNING {7007214793}>)
   | Backtrace (top 8; debug-backtrace for more):
   |   0: ((FLET PARSE-ERROR :IN SB-IMPL::PARSE-INTEGER10) "junk in string ~S")
   |   1: (SB-IMPL::PARSE-INTEGER10 "3.50" 0 NIL NIL)
@@ -814,59 +793,46 @@ rules:
   |  "#<PERMISSION-RULE \"debug-invoke-restart\" \"restart:skip-order\" :ALLOW>"
   |  "#<PERMISSION-RULE \"debug-invoke-restart\" \"restart:abort\" :DENY>")
 
---- LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run; debug tools only: it answers with a restart): the run, its message the event's turn
-   1. debug-state {"connection":"swank-1"}
+--- LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run; debug tools only: it answers with a restart): the run, its message the event's turn
+   1. inspect-condition {"connection":"swank-1"}
       status done
       result:
-  | DEBUGGER level 1: junk in string "3.50" [   [Condition of type SB-INT:SIMPLE-PARSE-ERROR]]
-  | Restarts:
-  |   0: [USE-DECIMAL] Add this amount read with decimal-cents instead
-  |   1: [RETRY-ORDER] Parse this order again (after fixing parse-amount)
-  |   2: [SKIP-ORDER] Skip this order (its amount is lost)
-  |   3: [ABORT] abort thread (#<THREAD tid=9987 "ledger-worker" RUNNING {7007184763}>)
-  | Backtrace (top 4; debug-backtrace for more):
-  |   0: ((FLET PARSE-ERROR :IN SB-IMPL::PARSE-INTEGER10) "junk in string ~S")
-  |   1… [625 chars]
-   2. inspect-condition {"connection":"swank-1"}
-      status done
-      result:
-  | #<SB-INT:SIMPLE-PARSE-ERROR {7006D5FFA3}>
+  | #<SB-INT:SIMPLE-PARSE-ERROR {7006D9FFC3}>
   | The object is a CONDITION of type SB-INT:SIMPLE-PARSE-ERROR.
   | FORMAT-CONTROL: ["junk in string ~S"]{1}
   | FORMAT-ARGUMENTS: [("3.50")]{2}
-   3. debug-invoke-restart {"restart":0,"connection":"swank-1"}
+   2. debug-backtrace {"connection":"swank-1"}
       status done
-      result: Invoked restart 0 [USE-DECIMAL] in thread 9987; no tool call was waiting on that thread, so its values are not shown.
-   4. repl-eval {"code":"(list :symbols (let (s) (do-symbols (x 'shop-ledger s) (push x s)))\n      :threads (loop for t in (sb-threads:all-threads) collect (sb-thread:thread-name t)))","connection":"swank-1","packag… [217 chars]
-      status denied error
       result:
-  | Tool repl-eval was not run: the user rejected the request
-  | Feedback: headless: no rule allows this and nobody can approve it
-  | Do not repeat the same call. Follow the feedback above and continue.
-   5. debug-invoke-restart {"restart":0,"connection":"swank-1"}
+  | 0: ((FLET PARSE-ERROR :IN SB-IMPL::PARSE-INTEGER10) "junk in string ~S")
+  | 1: (SB-IMPL::PARSE-INTEGER10 "3.50" 0 NIL NIL)
+  | 2: (SHOP-LEDGER:PARSE-AMOUNT "3.50") (restartable)
+  | 3: (SHOP-LEDGER::PROCESS-ORDER "3.50") (restartable)
+  | 4: ((LAMBDA NIL :IN SHOP-LEDGER:START-WORKER)) (restartable)
+  | 5: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
+  | 6: ((FLET "WITHOUT-INTERRUPTS-BODY-" :IN SB-THREAD::RUN))
+  | 7: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
+  | 8: ((FLET "WITHOUT-INTERRUPTS-BODY-" :IN SB-THREAD::RUN))
+  | 9: (SB-TH… [510 chars]
+   3. debug-invoke-restart {"connection":"swank-1","restart":0}
       status done
-      result: Invoked restart 0 [USE-DECIMAL] in thread 9987; no tool call was waiting on that thread, so its values are not shown.
+      result: Invoked restart 0 [USE-DECIMAL] in thread 8707; no tool call was waiting on that thread, so its values are not shown.
+   4. debug-invoke-restart {"connection":"swank-1","restart":0}
+      status done
+      result: Invoked restart 0 [USE-DECIMAL] in thread 8707; no tool call was waiting on that thread, so its values are not shown.
 finish reason: :STOP
-  token usage of LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run; debug tools only: it answers with a restart), per model call (prompt tokens, cached included):
-    call  1: input   1944  output    197    40.7 s
-    call  2: input   2405  output    359    64.5 s
-    call  3: input   2852  output     95    12.3 s
-    call  4: input   2997  output    199    33.7 s
-    call  5: input   3702  output    294    49.2 s
-    call  6: input   4046  output    324    56.0 s
-    6 calls; max input 4046 tokens; total output 1468 tokens; 256.4 s in model calls
-answer:
-  | Chose **[USE-DECIMAL]** again for `"20.25"` — it keeps the order's amount in the running total instead of discarding it (SKIP-ORDER) or killing the worker (ABORT), and RETRY-ORDER would just re-signal the same parse error since `parse-amount` hasn't been fixed.
-  | 
-  | Note: this is the second dotted amount to stop thread 9987, so `shop-ledger:parse-amount` only handles integer strings; until it reads decimals itself (e.g. via the decimal-cents path), every "3.50"-style order will drop into the debugger and need USE-DECIMAL.
+  token usage of LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run; debug tools only: it answers with a restart), per model call (prompt tokens, cached included):
+    call  1: input   2050  output     83    29.0 s
+    call  2: input   2455  output    331    47.7 s
+    call  3: input   2827  output     76    12.0 s
+    call  4: input   3364  output     55    10.7 s
+    call  5: input   3460  output    303    43.9 s
+    5 calls; max input 3460 tokens; total output 848 tokens; 143.2 s in model calls
+answer: Chose restart 0 (USE-DECIMAL) again: it adds the "20.25" amount via decimal-cents, keeping the order's value; SKIP/ABORT would lose or kill it, and RETRY-ORDER without fixing parse-amount would loop. Note the underlying parse-amount bug (letting decimal strings through) still stands — it will hit every decimal-priced order until fixed.
 event kinds the callback saw: (:DEBUGGER :DEBUGGER-RETURN :DEBUGGER :DEBUGGER-RETURN)
 event turns in the run (the first message included): 2
-asks the demo denied:
-  | (("repl-eval"
-  |   ("lisp:calls cl:do-symbols" "lisp:calls shop-ledger:x"
-  |    "lisp:calls sb-threads:all-threads" "lisp:calls sb-thread:thread-name")))
 
---- LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real model, varies run to run; debug tools only: it answers with a restart): checked by the demo after the run
+--- LM Studio unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL (real model, varies run to run; debug tools only: it answers with a restart): checked by the demo after the run
 > repl-eval {"code":"(list shop-ledger:*done* shop-ledger:*total*)"}
   =:
   | => (T 4275)
@@ -878,12 +844,12 @@ ledger.lisp parse-amount now:
   |   "TEXT, an order amount such as \"3.50\", in cents."
   |   (* 100 (parse-integer text)))
 worker done, total 4275 cents (12 + 7 + 3.50 + 20.25): T
-  (demo-image-events-real: 257.9 s wall time)
+  (demo-image-events-real: 176.3 s wall time)
 
 ========================================================================
 == Summary
 ========================================================================
 demos run: demo-scanner, demo-image, demo-observe, demo-agent-rules, demo-agent-real, demo-image-events, demo-image-events-denied, demo-image-job-events, demo-image-events-observe, demo-image-events-real
 demos that failed: none
-peak input tokens of a real-model request: 4046
-wall time: 358.8 s
+peak input tokens of a real-model request: 3460
+wall time: 310.7 s
