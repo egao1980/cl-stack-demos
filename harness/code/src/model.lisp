@@ -1,10 +1,28 @@
 (in-package #:harness-demos-code)
 
-;;; Which model runs: a loaded LM Studio model when the server answers, else a
-;;; scripted mock provider. The LM Studio token comes from LM_API_TOKEN, else
-;;; from the workspace .env; it is never printed.
+;;; Which model runs: a model on an OpenAI-compatible server (LM Studio by
+;;; default; HARNESS_DEMOS_BASE_URL for another) when it answers, else a
+;;; scripted mock provider. The key comes from HARNESS_DEMOS_API_KEY, else
+;;; LM_API_TOKEN, else the workspace .env; it is never printed.
 
-(defparameter *lm-studio-url* "http://127.0.0.1:1234/v1")
+(defparameter *default-base-url* "http://127.0.0.1:1234/v1")
+
+(defun %base-url ()
+  "HARNESS_DEMOS_BASE_URL (any OpenAI-compatible /v1 endpoint), else LM
+Studio's default."
+  (let ((u (uiop:getenv "HARNESS_DEMOS_BASE_URL")))
+    (string-right-trim "/" (if (and u (plusp (length (string-trim " " u))))
+                               (string-trim " " u)
+                               *default-base-url*))))
+
+(defun %url-host (url)
+  "host[:port] of URL, for the output (the key is never printed)."
+  (let* ((start (let ((p (search "://" url))) (if p (+ p 3) 0)))
+         (end (or (position #\/ url :start start) (length url))))
+    (subseq url start end)))
+
+(defparameter *lm-studio-url* (%base-url)
+  "The endpoint; DETECT-MODEL reads HARNESS_DEMOS_BASE_URL again.")
 
 (defvar *model* nil
   "(:lm-studio id) or (:mock) once DETECT-MODEL ran.")
@@ -24,10 +42,14 @@ request turns returning either.")
                    (return (string-trim " \"'" (subseq line (1+ p))))))))))
 
 (defun %lm-token ()
-  (or (uiop:getenv "LM_API_TOKEN")
-      (%env-file-value (or (uiop:getenv "HARNESS_DEMOS_ENV_FILE")
-                           (merge-pathnames "Projects/cl-workspace/.env" (user-homedir-pathname)))
-                       "LM_API_TOKEN")))
+  "HARNESS_DEMOS_API_KEY when set, else LM_API_TOKEN from the environment or
+the workspace .env. \"\" (empty or absent) sends no Authorization header."
+  (string-trim " " (or (uiop:getenv "HARNESS_DEMOS_API_KEY")
+                       (uiop:getenv "LM_API_TOKEN")
+                       (%env-file-value (or (uiop:getenv "HARNESS_DEMOS_ENV_FILE")
+                                            (merge-pathnames "Projects/cl-workspace/.env" (user-homedir-pathname)))
+                                        "LM_API_TOKEN")
+                       "")))
 
 (defun %body-text (body)
   (etypecase body
@@ -35,14 +57,25 @@ request turns returning either.")
     ((vector (unsigned-byte 8)) (babel:octets-to-string body :encoding :utf-8))
     (null "")))
 
+(defun %capabilities-url ()
+  "LM Studio's /api/v0/models next to a base URL ending in /v1, else NIL."
+  (let ((u *lm-studio-url*))
+    (when (and (>= (length u) 3) (string= "/v1" u :start2 (- (length u) 3)))
+      (concatenate 'string (subseq u 0 (- (length u) 3)) "/api/v0/models"))))
+
 (defun %capabilities (token)
   "id → list of LM Studio capabilities (\"tool_use\" …) from /api/v0/models,
-as an alist; NIL when that endpoint does not answer."
+as an alist; NIL when that LM Studio-only endpoint is missing or fails (another
+server): tool use is then unknown."
   (ignore-errors
-   (let* ((res (http:request :get "http://127.0.0.1:1234/api/v0/models"
-                           :headers (and token `(("authorization" . ,(format nil "Bearer ~a" token))))
-                           :timeout 10))
-          (data (jget (json:decode (%body-text (hp:response-body res))) "data")))
+   (let* ((url (or (%capabilities-url) (return-from %capabilities nil)))
+          (res (http:request :get url
+                             :headers (and (plusp (length token))
+                                           `(("authorization" . ,(format nil "Bearer ~a" token))))
+                             :timeout 10))
+          (data (and (= 200 (hp:response-status res))
+                     (jget (json:decode (%body-text (hp:response-body res))) "data"))))
+     (unless (vectorp data) (return-from %capabilities nil))
      (loop for m across data
            collect (cons (jget m "id")
                          (coerce (or (let ((c (jget m "capabilities"))) (and (vectorp c) c))
@@ -70,7 +103,8 @@ model (no embedding or OCR models)."
   "Set *MODEL*: HARNESS_DEMOS_MODEL when set and LM Studio answers, else
 %PICK-MODEL's heuristic. → *MODEL*."
   (banner "Model")
-  (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend)
+  (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend
+        *lm-studio-url* (%base-url))
   (let* ((token (%lm-token))
          (hp:*http-backend* (http-backend-async:make-async-backend))
          (ids (handler-case
@@ -83,16 +117,18 @@ model (no embedding or OCR models)."
          (capabilities (and ids (%capabilities token)))
          (override (%model-override))
          (id (and ids (or override (%pick-model ids capabilities)))))
-    (show "LM_API_TOKEN found" (and token (plusp (length token)) t))
+    (show "API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN)" (and (plusp (length token)) t))
     (when ids
       (show "GET /v1/models" ids)
-      (show "capabilities (/api/v0/models)" capabilities))
+      (if capabilities
+          (show "capabilities (/api/v0/models)" capabilities)
+          (note "capabilities: /api/v0/models not available (not LM Studio?): tool use unknown")))
     (setf *model* (if id (list :lm-studio id) (list :mock)))
     (when (and override ids (not (member override ids :test #'string=)))
       (note "HARNESS_DEMOS_MODEL ~a is not in GET /v1/models; using it anyway (LM Studio may load it on demand)" override))
     (if id
-        (note "MODEL THAT RAN: LM Studio ~a (~a; real model, its output varies run to run)"
-              id (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then tool_use"))
+        (note "MODEL THAT RAN: ~a at ~a (~a; real model, its output varies run to run)"
+              id (%url-host *lm-studio-url*) (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then tool_use"))
         (note "MODEL THAT RAN: scripted mock provider \"mock\" (no LM Studio model available)"))
     *model*))
 

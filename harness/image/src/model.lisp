@@ -1,9 +1,27 @@
 (in-package #:harness-demos-image)
 
-;;; LM Studio (http://127.0.0.1:1234/v1, token LM_API_TOKEN from the
-;;; environment or the workspace .env; never printed).
+;;; An OpenAI-compatible server: LM Studio at http://127.0.0.1:1234/v1 unless
+;;; HARNESS_DEMOS_BASE_URL names another; key HARNESS_DEMOS_API_KEY, else
+;;; LM_API_TOKEN from the environment or the workspace .env (never printed).
 
-(defparameter *lm-studio-url* "http://127.0.0.1:1234/v1")
+(defparameter *default-base-url* "http://127.0.0.1:1234/v1")
+
+(defun %base-url ()
+  "HARNESS_DEMOS_BASE_URL (any OpenAI-compatible /v1 endpoint), else LM
+Studio's default."
+  (let ((u (uiop:getenv "HARNESS_DEMOS_BASE_URL")))
+    (string-right-trim "/" (if (and u (plusp (length (string-trim " " u))))
+                               (string-trim " " u)
+                               *default-base-url*))))
+
+(defun %url-host (url)
+  "host[:port] of URL, for the output (the key is never printed)."
+  (let* ((start (let ((p (search "://" url))) (if p (+ p 3) 0)))
+         (end (or (position #\/ url :start start) (length url))))
+    (subseq url start end)))
+
+(defparameter *lm-studio-url* (%base-url)
+  "The endpoint; DETECT-MODEL reads HARNESS_DEMOS_BASE_URL again.")
 
 (defvar *lm-model* nil "The LM Studio model id when one is reachable.")
 
@@ -17,10 +35,14 @@
                    (return (string-trim " \"'" (subseq line (1+ p))))))))))
 
 (defun %lm-token ()
-  (or (uiop:getenv "LM_API_TOKEN")
-      (%env-file-value (or (uiop:getenv "HARNESS_DEMOS_ENV_FILE")
-                           (merge-pathnames "Projects/cl-workspace/.env" (user-homedir-pathname)))
-                       "LM_API_TOKEN")))
+  "HARNESS_DEMOS_API_KEY when set, else LM_API_TOKEN from the environment or
+the workspace .env. \"\" (empty or absent) sends no Authorization header."
+  (string-trim " " (or (uiop:getenv "HARNESS_DEMOS_API_KEY")
+                       (uiop:getenv "LM_API_TOKEN")
+                       (%env-file-value (or (uiop:getenv "HARNESS_DEMOS_ENV_FILE")
+                                            (merge-pathnames "Projects/cl-workspace/.env" (user-homedir-pathname)))
+                                        "LM_API_TOKEN")
+                       "")))
 
 (defparameter *lm-request-timeout* 900
   "Seconds per LM Studio request. llm-protocol-openai's own transport waits
@@ -58,7 +80,8 @@ the whole timeout (egao1980/http-backend-async#59).")
   "Set *LM-MODEL*: HARNESS_DEMOS_MODEL when set and LM Studio answers, else
 a coder model, else the first chat model."
   (banner "Model")
-  (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend)
+  (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend
+        *lm-studio-url* (%base-url))
   (let* ((hp:*http-backend* (http-backend-async:make-async-backend))
          (ids (handler-case (mapcar #'llm:llm-model-info-id (llm:list-models (lm-backend :timeout 15)))
                 (error (c)
@@ -68,7 +91,7 @@ a coder model, else the first chat model."
          (chat (remove-if (lambda (id) (some (lambda (bad) (search bad id :test #'char-equal))
                                              '("embed" "ocr")))
                           ids)))
-    (show "LM_API_TOKEN found" (and (%lm-token) (plusp (length (%lm-token))) t))
+    (show "API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN)" (and (plusp (length (%lm-token))) t))
     (when ids (show "GET /v1/models" ids))
     (setf *lm-model* (and ids
                           (or override
@@ -77,8 +100,8 @@ a coder model, else the first chat model."
     (when (and override ids (not (member override ids :test #'string=)))
       (note "HARNESS_DEMOS_MODEL ~a is not in GET /v1/models; using it anyway (LM Studio may load it on demand)" override))
     (note (if *lm-model*
-              (format nil "MODEL THAT RAN: LM Studio ~a for the real-model run (~a)" *lm-model*
-                      (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then first chat model"))
+              (format nil "MODEL THAT RAN: ~a at ~a for the real-model run (~a)" *lm-model*
+                      (%url-host *lm-studio-url*) (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then first chat model"))
               "no LM Studio model: the real-model run is skipped"))
     *lm-model*))
 
