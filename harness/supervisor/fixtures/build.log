@@ -1,0 +1,51 @@
+cc -Wall -Wextra -O2 -c -o src/alloc.o src/alloc.c
+cc -Wall -Wextra -O2 -c -o src/buffer.o src/buffer.c
+cc -Wall -Wextra -O2 -c -o src/config.o src/config.c
+cc -Wall -Wextra -O2 -c -o src/crc32.o src/crc32.c
+cc -Wall -Wextra -O2 -c -o src/dict.o src/dict.c
+cc -Wall -Wextra -O2 -c -o src/env.o src/env.c
+cc -Wall -Wextra -O2 -c -o src/errors.o src/errors.c
+cc -Wall -Wextra -O2 -c -o src/format.o src/format.c
+cc -Wall -Wextra -O2 -c -o src/hash.o src/hash.c
+cc -Wall -Wextra -O2 -c -o src/io.o src/io.c
+cc -Wall -Wextra -O2 -c -o src/json.o src/json.c
+cc -Wall -Wextra -O2 -c -o src/lexer.o src/lexer.c
+cc -Wall -Wextra -O2 -c -o src/list.o src/list.c
+cc -Wall -Wextra -O2 -c -o src/log.o src/log.c
+cc -Wall -Wextra -O2 -c -o src/main.o src/main.c
+cc -Wall -Wextra -O2 -c -o src/map.o src/map.c
+cc -Wall -Wextra -O2 -c -o src/net.o src/net.c
+cc -Wall -Wextra -O2 -c -o src/parser.o src/parser.c
+src/parser.c:7:12: error: use of undeclared identifier 'tokn'; did you mean 'tok'?
+    7 |     return tokn->kind + depth;
+      |            ^~~~
+      |            tok
+src/parser.c:3:36: note: 'tok' declared here
+    3 | int parse_expression(struct token *tok) {
+      |                                    ^
+1 error generated.
+make: *** [src/parser.o] Error 1
+cc -Wall -Wextra -O2 -c -o src/path.o src/path.c
+cc -Wall -Wextra -O2 -c -o src/pool.o src/pool.c
+cc -Wall -Wextra -O2 -c -o src/queue.o src/queue.c
+cc -Wall -Wextra -O2 -c -o src/rand.o src/rand.c
+cc -Wall -Wextra -O2 -c -o src/regex.o src/regex.c
+cc -Wall -Wextra -O2 -c -o src/ring.o src/ring.c
+cc -Wall -Wextra -O2 -c -o src/sched.o src/sched.c
+cc -Wall -Wextra -O2 -c -o src/sha256.o src/sha256.c
+cc -Wall -Wextra -O2 -c -o src/sock.o src/sock.c
+cc -Wall -Wextra -O2 -c -o src/str.o src/str.c
+cc -Wall -Wextra -O2 -c -o src/table.o src/table.c
+cc -Wall -Wextra -O2 -c -o src/term.o src/term.c
+cc -Wall -Wextra -O2 -c -o src/thread.o src/thread.c
+cc -Wall -Wextra -O2 -c -o src/time.o src/time.c
+cc -Wall -Wextra -O2 -c -o src/token.o src/token.c
+cc -Wall -Wextra -O2 -c -o src/tree.o src/tree.c
+cc -Wall -Wextra -O2 -c -o src/utf8.o src/utf8.c
+cc -Wall -Wextra -O2 -c -o src/util.o src/util.c
+src/util.c:2:32: warning: unused variable 'y' [-Wunused-variable]
+    2 | int unused_helper(int x) { int y; return x; }
+      |                                ^
+1 warning generated.
+cc -Wall -Wextra -O2 -c -o src/vec.o src/vec.c
+make: Target `all' not remade because of errors.
