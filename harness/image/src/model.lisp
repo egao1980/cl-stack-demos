@@ -26,10 +26,16 @@
   "Seconds per LM Studio request. llm-protocol-openai's own transport waits
 180 s, too short for a 27B model on a long turn (image Demo 10), and has no
 option for it (egao1980/llm-protocol-openai#13), so LM-BACKEND passes a
-request-fn doing the same request with this timeout.")
+request-fn doing the same request with this timeout. DETECT-MODEL lists the
+models with a 15 s timeout instead: on Linux a refused connection waits for
+the whole timeout (egao1980/http-backend-async#59).")
 
-(defun %request-fn (method url &key headers content want-stream)
-  (let* ((res (apply #'http:request method url :headers headers :timeout *lm-request-timeout*
+(defun %request-fn (timeout)
+  (lambda (method url &key headers content want-stream)
+    (%request method url timeout headers content want-stream)))
+
+(defun %request (method url timeout headers content want-stream)
+  (let* ((res (apply #'http:request method url :headers headers :timeout timeout
                      :want-stream (and want-stream t)
                      (and content (list :content content))))
          (body (hp:response-body res)))
@@ -39,9 +45,9 @@ request-fn doing the same request with this timeout.")
                   ((vectorp body) (babel:octets-to-string body :encoding :utf-8))
                   (t "")))))
 
-(defun lm-backend ()
+(defun lm-backend (&key (timeout *lm-request-timeout*))
   (oa:make-openai-compat-backend :base-url *lm-studio-url* :api-key (%lm-token)
-                                 :request-fn #'%request-fn))
+                                 :request-fn (%request-fn timeout)))
 
 (defun %model-override ()
   "The exact model id in HARNESS_DEMOS_MODEL, or NIL when unset or empty."
@@ -54,7 +60,7 @@ a coder model, else the first chat model."
   (banner "Model")
   (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend)
   (let* ((hp:*http-backend* (http-backend-async:make-async-backend))
-         (ids (handler-case (mapcar #'llm:llm-model-info-id (llm:list-models (lm-backend)))
+         (ids (handler-case (mapcar #'llm:llm-model-info-id (llm:list-models (lm-backend :timeout 15)))
                 (error (c)
                   (note "LM Studio at ~a not reachable: ~a" *lm-studio-url* (clip c 160))
                   nil)))
