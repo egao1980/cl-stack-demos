@@ -1,0 +1,667 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
+
+========================================================================
+== Demo 1: supervisor-protocol 0.2.0 (H8a) — scopes and units
+========================================================================
+
+-- the scope tree
+   :SUPERVISOR    (root)
+   :SESSION       session-1
+   :AGENT         session-1 › coder
+   :TOOL-SOURCE   session-1 › coder › echo-tools
+   :AGENT         session-1 › coder › subagent-1
+   supervisor-id (<pid>-<8 hex>): 14
+
+-- start: a shell job (agent), an echo server (tool source, :restart :on-failure), a subagent thread
+   [ok] the subagent started its own shell job
+   restart policy of the server: :ON-FAILURE
+   kind-default-restart :rpc / :shell-job: (:ON-FAILURE :NEVER)
+
+-- the unit table (supervisor-units, start order)
+   id               kind        owner                                  state     pid
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  11956
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  11958
+   subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :RUNNING  -
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  11960
+   [ok] every process unit has a pid, the thread none
+
+-- echo round trip: send-unit-input, then unit-output
+   [ok] the server echoed the line
+   unit-output: "hello supervisor
+"
+
+========================================================================
+== Demo 2: queries by kind / owner / label / state; close the subagent scope
+========================================================================
+
+-- find-units
+   :kind :shell-job: ("shell-job-1" "shell-job-2")
+   :kind (:rpc :subagent): ("rpc-1" "subagent-1")
+   :owner coder (recursive): ("shell-job-1" "rpc-1" "subagent-1" "shell-job-2")
+   :owner coder :recursive nil: ("shell-job-1")
+   [ok] :owner coder :recursive nil → only the agent's own job
+   :owner subagent-1: ("subagent-1" "shell-job-2")
+   :owner echo-tools: ("rpc-1")
+   :labels (:server "echo"): ("rpc-1")
+   [ok] :labels (:server "echo") → the server
+   :labels (:purpose "test"): ("shell-job-2")
+   :state :running: ("shell-job-1" "rpc-1" "subagent-1" "shell-job-2")
+   find-unit "rpc-1": "rpc-1"
+   scope-units subagent-1: ("subagent-1" "shell-job-2")
+
+-- close-scope subagent-1 → only its units stop (one stop wave)
+   close-scope: T
+   seconds: 0.0
+   close-scope again (idempotent): NIL
+   scope-closed-p: T
+   id               kind        owner                                  state     pid
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  11956
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  11958
+   subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :KILLED   -
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   11960
+   [ok] the subagent's thread and its job are :killed, the rest :running
+   the thread's result (cooperative stop): :DONE
+   start-unit in the closed scope → signalled: SUPERVISOR-PROTOCOL:SCOPE-CLOSED
+
+========================================================================
+== Demo 3: kill the server's process → one restart with backoff; the event stream
+========================================================================
+
+-- kill -9 / taskkill /F the server (pid 11958) from outside
+   last seq before the kill: 10
+   [ok] restarted: :running again with restart-count 1
+   same unit, same id: "rpc-1"
+   [ok] a new pid (11958 → 11971)
+   [ok] the new process is wired to the same unit
+
+-- the server's events (subscribe :since 0, from Demo 1 on)
+   #  3 rpc-1      :STATE             NIL       → :STARTING  (+0.00 s)
+   #  4 rpc-1      :STATE             :STARTING → :RUNNING   (+0.00 s)
+   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)  (+0.21 s)
+   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)  (+0.21 s)
+   # 13 rpc-1      :STATE             :FAILED   → :STARTING  (+0.71 s)
+   # 14 rpc-1      :STATE             :STARTING → :RUNNING   (+0.81 s)
+   [ok] transitions: nil→starting→running→failed, restart-scheduled, failed→starting→running
+   failed detail (external kill = non-zero exit, no signal recorded): (:EXIT-CODE 137 :SIGNAL NIL)
+   restart-scheduled detail: (:ATTEMPT 1 :DELAY 0.5)
+   restart-delay (0.5 2 30) for attempts 1..5: (0.5 1.0 2.0 4.0 8.0)
+   [ok] waited the backoff: 0.502 s between :failed and the relaunch (≥ 0.5)
+   [ok] seq numbers have no gaps
+
+-- replay: subscribe :since 10 (the kill's predecessor), then live events
+   replayed (4 events):
+   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)
+   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)
+   # 13 rpc-1      :STATE             :FAILED   → :STARTING
+   # 14 rpc-1      :STATE             :STARTING → :RUNNING 
+   [ok] the replay starts right after SINCE
+   events-since → (count complete-p): (4 T)
+   now stop the server: its events reach the replaying subscriber live
+   # 15 rpc-1      :STATE             :RUNNING  → :KILLED   (:EXIT-CODE 0 :SIGNAL :TERM)
+   [ok] replay + live: contiguous, no gap, no duplicate
+   unsubscribe: NIL
+   subscription-active-p after unsubscribe: NIL
+
+========================================================================
+== Demo 4: caps + LRU eviction (:kind-caps (:shell-job 2))
+========================================================================
+
+-- at the cap: shell-job-1 finished, shell-job-2 running
+   id               kind        owner                                  state     pid
+   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   11973
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  11975
+
+-- start a third → the least recently used FINISHED unit is evicted silently
+   started: "shell-job-3"
+   find-unit of the evicted one: NIL
+   #  6 shell-job-1 :EVICTED           :EXITED   → NIL      
+   [ok] the finished unit was evicted
+   id               kind        owner                                  state     pid
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  11975
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  11977
+
+-- start a fourth with both live → unit-limit-reached; take EVICT-LRU
+   signalled: SUPERVISOR-PROTOCOL:UNIT-LIMIT-REACHED
+     kind / limit: (:SHELL-JOB 2)
+     victim (LRU live unit; c was touched): "shell-job-2"
+     restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
+   → EVICT-LRU
+   started: "shell-job-4"
+   victim's state: :KILLED
+   [ok] the victim was stopped and evicted
+   id               kind        owner                                  state     pid
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  11977
+   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  11979
+
+-- start a fifth → unit-limit-reached; take ABORT
+     restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
+   → ABORT
+   start-unit returned: NIL
+   [ok] ABORT: nothing started, units unchanged
+
+-- interacting units are never evicted: no EVICT-LRU without a victim
+   victim: NIL
+   restarts: (ABORT)
+   [ok] restarts: only ABORT
+   [ok] refused starts took no id: the next one is shell-job-5
+
+========================================================================
+== Demo 5: stop escalation — graceful → stop-timeout → FORCE
+========================================================================
+
+-- a process that ignores SIGTERM (stop-unit :grace 1)
+   signalled (not an error): SUPERVISOR-PROTOCOL:STOP-TIMEOUT
+     phase / waited: (:GRACEFUL 1.0020580000000003d0)
+     restarts: (SUPERVISOR-PROTOCOL:FORCE SUPERVISOR-PROTOCOL:KEEP-WAITING)
+   → FORCE
+   final state: :KILLED
+   unit-signal (the last stop sent): :KILL
+   seconds: 1.0
+   [ok] forced after the grace: :killed by :kill
+
+-- a thread that never polls unit-stop-requested-p (stop-unit :grace 0.5): KEEP-WAITING once, then FORCE
+   stop-timeout #1 waited: 0.5020449999999994d0
+   → KEEP-WAITING
+   stop-timeout #2 waited: 1.0042579999999997d0
+   → FORCE (bt2:interrupt-thread unwinds the body)
+   final state: :KILLED
+   seconds: 1.0
+   unit-condition (a forced stop is not a failure): NIL
+   [ok] two stop-timeouts, :killed, the UNWIND-PROTECT cleanup ran
+
+-- unhandled stop-timeout → forced anyway
+   [ok] stop-unit returned :KILLED
+
+========================================================================
+== Demo 6: crash recovery — SIGKILL a child supervisor, the next one sweeps its orphans
+========================================================================
+   [ok] the child supervisor started its units
+   child image ready after (s): 0.4
+
+-- before the crash
+   child image pid: 11992
+   units in the child (shell-job tree, rpc, subagent thread): 3
+   shell-job root pid: 11993
+   grandchild pids: (11995 11996)
+   rpc server pid: 11998
+   unit files (process units only): ("<sup>--rpc-1.unit" "<sup>--shell-job-1.unit")
+   one unit file's keys: (:FORMAT :SUPERVISOR-ID :SUPERVISOR-PID :SUPERVISOR-OS-START :UNIT-ID :KIND :PID
+                          :PGID :OS-START :COMMAND :CWD :INSPECTOR)
+   [ok] 4 processes: tree root, 2 grandchildren, rpc server
+
+-- SIGKILL the child image (taskkill /F on Windows): no exit hook runs
+   child alive: NIL
+   orphans alive (pid alive-p): ((11998 T) (11995 T) (11996 T) (11993 T))
+   [ok] the crash left every unit process behind
+
+-- make-supervisor :state-directory (same directory) → sweep-orphans first
+   make-supervisor seconds (incl. the sweep): 0.3
+   rpc-1        pid  11998 pgid  11998  :KILLED killed (11998)
+   shell-job-1  pid  11993 pgid  11993  :KILLED killed (11993 11995 11996)
+   [ok] two records (rpc-1, shell-job-1), both :killed
+   [ok] the killed pids are exactly the four orphans
+
+-- after the sweep
+   [ok] every orphan is dead, grandchildren included
+   orphans alive: ((11998 NIL) (11995 NIL) (11996 NIL) (11993 NIL))
+   unit files left: 0
+
+========================================================================
+== Demo 7: supervisor-protocol 0.2.0 (H8b) — rotated, capped unit logs
+========================================================================
+   defaults: segment size × segments, total cap, max record: (1048576 5 268435456 8192)
+   this supervisor: total cap: 4194304
+
+-- 7a. a chatty unit: 3000 lines × 1024 bytes (3 MB) with :log-segment-size 256 KiB × :log-segments 4
+   unit-log-settings: (:ENABLED T :SEGMENT-SIZE 262144 :SEGMENTS 4)
+   [ok] the unit exited
+   seconds: 0.2
+   segment files on disk: ("00000010.seg" "00000011.seg" "00000012.seg" "00000013.seg")
+   their sizes: (261396 261396 261396 47142)
+   [ok] ≤ 4 segment files, each ≤ 262144 bytes
+   segment 00000010: lines   2233-  2480,  248 records,  261396 bytes on disk,  251904 output bytes
+   segment 00000011: lines   2481-  2728,  248 records,  261396 bytes on disk,  251904 output bytes
+   segment 00000012: lines   2729-  2976,  248 records,  261396 bytes on disk,  251904 output bytes
+   segment 00000013: lines   2977-  3023,   47 records,   47142 bytes on disk,   45056 output bytes
+   gap lines 1-2232: 2232 records, 2271232 bytes, reasons (:ROTATED)
+   output bytes written / kept / dropped: (3072000 800768 2271232)
+   [ok] dropped + kept = every byte written (exact)
+   [ok] the gap is the oldest prefix, reason :rotated
+   first kept / last line: ("line-02219…(1023 chars)" "line-03000…(1023 chars)")
+   drop markers in the retained segments: 4
+   first and last drop marker:
+   line   2234  seg 10  :DROP   NIL      (SEGMENT 6 FIRST-LINE 1241 LAST-LINE 1488 RECORDS 248 BYTES 251904
+                                          REASON ROTATED)
+   line   2978  seg 13  :DROP   NIL      (SEGMENT 9 FIRST-LINE 1985 LAST-LINE 2232 RECORDS 248 BYTES 251904
+                                          REASON ROTATED)
+   newest segment's header (cumulative drops):
+   line   2977  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 11955-7e5c7766 UNIT-ID shell-job-1 KIND
+                                          SHELL-JOB SEGMENT 13 FIRST-LINE 2977 DROPPED-THROUGH 8
+                                          DROPPED-RECORDS 1984 DROPPED-BYTES 2019328)
+   end record:
+   line   3023  seg 13  :END    NIL      (LAST-LINE 3023 BYTES 3072000)
+   [ok] gap bytes = the newest header's :dropped-bytes + the markers written after it
+   memory: sink-stats total, unit-output length: (3072000 81950)
+   [ok] memory keeps only the head + tail
+   disk: this unit's segment + index bytes vs 4 × 256 KiB: (831498 1048576)
+
+-- 7b. log-read by line range across a rotation boundary
+   segment 11 ends at line 2728; read lines 2727-2731
+   line   2727  seg 11  :OUTPUT :STDOUT  line-02709 xxxxxxxxxxxxx…(1023 chars)
+   line   2728  seg 11  :OUTPUT :STDOUT  line-02710 xxxxxxxxxxxxx…(1023 chars)
+   line   2731  seg 12  :OUTPUT :STDOUT  line-02711 xxxxxxxxxxxxx…(1023 chars)
+   gaps / next-line: (NIL 2732)
+   [ok] the output lines continue across the segments (the header line is not output)
+   :types t on the same range shows the next segment's header:
+   line   2728  seg 11  :OUTPUT :STDOUT  line-02710 xxxxxxxxxxxxx…(1023 chars)
+   line   2729  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 11955-7e5c7766 UNIT-ID shell-job-1 KIND
+                                          SHELL-JOB SEGMENT 12 FIRST-LINE 2729 DROPPED-THROUGH 7
+                                          DROPPED-RECORDS 1736 DROPPED-BYTES 1767424)
+   paging: :limit 2 → lines / gaps / next-line: ((2235 2236) 1 2237)
+     then :start next-line :limit 2: (2237 2238)
+
+-- 7c. log-tail 3
+   line   3020  seg 13  :OUTPUT :STDOUT  line-02998 xxxxxxxxxxxxx…(1023 chars)
+   line   3021  seg 13  :OUTPUT :STDOUT  line-02999 xxxxxxxxxxxxx…(1023 chars)
+   line   3022  seg 13  :OUTPUT :STDOUT  line-03000 xxxxxxxxxxxxx…(1023 chars)
+
+-- 7d. log-follow a live echo server
+   follow with nothing new, :wait 0.3 → (records ended-p): (NIL NIL)
+   woken after (s, input sent at 0.5): 0.5
+   line      2  seg 1  :OUTPUT :STDOUT  ping-1
+   line      3  seg 1  :OUTPUT :STDOUT  ping-2
+   ended-p while running: NIL
+   [ok] follow returned the echoed lines
+   after stop-unit: records / ended-p: (NIL T)
+   [ok] ENDED-P once the end record is there
+
+-- 7e. binary output round trip (two text lines, then bytes 0..255, 255..0, 2000 pseudo-random)
+   [ok] exited
+   bytes written / rebuilt from records: (2549 2549)
+   [ok] every byte unchanged (equalp)
+   records: 14
+   a raw base64 record in the segment file: "4 1795266227130 8001 ob. AAECAwQFBgcICQ== c33ee940"
+   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795266227130 8001 ot. tab	there, ESC \x1b[1m bold 6f644593
+
+-- disk usage vs the total cap
+   supervisor-log-usage / log-total-cap: (836131 4194304)
+   [ok] under the cap
+
+-- 7f. a child supervisor with a chatty thread unit, SIGKILLed mid-output
+   [ok] the child is writing
+   [ok] the child image is gone
+   find-unit-logs: 1
+   unit id / closed-p (no end record after a SIGKILL): ("subagent-1" NIL)
+   records read by this image / gaps: (2371 NIL)
+   segments: 7
+   [ok] contiguous n-1 … n-K, no gap
+   last segment torn-p as the kill left it: NIL
+   append half a record (no LF, no CRC), as a kill mid-write leaves it
+   torn-p now: T
+   [ok] the torn tail is skipped: the same records
+   log-tail 2: ("n-2370" "n-2371")
+
+-- 7g. total-cap eviction: :log-total-cap 6000, segments of 2048 bytes
+   a (26 lines × 101 bytes) finished: usage 4451 / cap 6000, a on disk 4451, 26 lines
+   b (26 lines) finished: usage 4910 / cap 6000
+   a: 0 lines, 1 segment file(s), 459 bytes, gaps (:TOTAL-CAP), closed-p T
+   b: 26 lines, 4451 bytes, gaps NIL
+   [ok] a (finished first) lost segments to :total-cap, b kept all 26 lines
+   c (running) wrote 120 lines: usage 4756 / cap 6000
+   a: 0 lines, stub file ("00000003.seg"), 459 bytes
+   b: 0 lines, 459 bytes, gaps (:TOTAL-CAP)
+   c: 22 lines kept, 3838 bytes, gaps (:TOTAL-CAP), state :RUNNING
+   a's stub:
+   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 11955-8070416c UNIT-ID subagent-1 KIND
+                                         SUBAGENT SEGMENT 3 FIRST-LINE 29 DROPPED-THROUGH 1 DROPPED-RECORDS
+                                         14 DROPPED-BYTES 1313)
+   line     30  seg 3  :DROP   NIL      (SEGMENT 2 FIRST-LINE 15 LAST-LINE 28 RECORDS 14 BYTES 1313 REASON
+                                         TOTAL-CAP)
+   line     31  seg 3  :END    NIL      (LAST-LINE 31 BYTES 2626)
+   gap lines 1-28: 28 records, 2626 bytes, reasons (:TOTAL-CAP)
+   [ok] a's stub accounts for every byte a wrote (26 × 101)
+   [ok] finished units emptied first, then c's old segments; c's newest kept
+   [ok] usage = the bytes of every segment and index file
+
+========================================================================
+Demos run: 7, failed: none; 9.8 s
+
+########################################################################
+## Linux run (ci-base container, linux/amd64 under emulation, cl-repo run)
+########################################################################
+supervisor-protocol 0.2.0 on SBCL 2.6.7.roswell (Linux)
+
+========================================================================
+== Demo 1: supervisor-protocol 0.2.0 (H8a) — scopes and units
+========================================================================
+
+-- the scope tree
+   :SUPERVISOR    (root)
+   :SESSION       session-1
+   :AGENT         session-1 › coder
+   :TOOL-SOURCE   session-1 › coder › echo-tools
+   :AGENT         session-1 › coder › subagent-1
+   supervisor-id (<pid>-<8 hex>): 11
+
+-- start: a shell job (agent), an echo server (tool source, :restart :on-failure), a subagent thread
+   [ok] the subagent started its own shell job
+   restart policy of the server: :ON-FAILURE
+   kind-default-restart :rpc / :shell-job: (:ON-FAILURE :NEVER)
+
+-- the unit table (supervisor-units, start order)
+   id               kind        owner                                  state     pid
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  26
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  32
+   subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :RUNNING  -
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  39
+   [ok] every process unit has a pid, the thread none
+
+-- echo round trip: send-unit-input, then unit-output
+   [ok] the server echoed the line
+   unit-output: "hello supervisor
+"
+
+========================================================================
+== Demo 2: queries by kind / owner / label / state; close the subagent scope
+========================================================================
+
+-- find-units
+   :kind :shell-job: ("shell-job-1" "shell-job-2")
+   :kind (:rpc :subagent): ("rpc-1" "subagent-1")
+   :owner coder (recursive): ("shell-job-1" "rpc-1" "subagent-1" "shell-job-2")
+   :owner coder :recursive nil: ("shell-job-1")
+   [ok] :owner coder :recursive nil → only the agent's own job
+   :owner subagent-1: ("subagent-1" "shell-job-2")
+   :owner echo-tools: ("rpc-1")
+   :labels (:server "echo"): ("rpc-1")
+   [ok] :labels (:server "echo") → the server
+   :labels (:purpose "test"): ("shell-job-2")
+   :state :running: ("shell-job-1" "rpc-1" "subagent-1" "shell-job-2")
+   find-unit "rpc-1": "rpc-1"
+   scope-units subagent-1: ("subagent-1" "shell-job-2")
+
+-- close-scope subagent-1 → only its units stop (one stop wave)
+   close-scope: T
+   seconds: 0.1
+   close-scope again (idempotent): NIL
+   scope-closed-p: T
+   id               kind        owner                                  state     pid
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  26
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  32
+   subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :KILLED   -
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   39
+   [ok] the subagent's thread and its job are :killed, the rest :running
+   the thread's result (cooperative stop): :DONE
+   start-unit in the closed scope → signalled: SUPERVISOR-PROTOCOL:SCOPE-CLOSED
+
+========================================================================
+== Demo 3: kill the server's process → one restart with backoff; the event stream
+========================================================================
+
+-- kill -9 / taskkill /F the server (pid 32) from outside
+   last seq before the kill: 10
+   [ok] restarted: :running again with restart-count 1
+   same unit, same id: "rpc-1"
+   [ok] a new pid (32 → 47)
+   [ok] the new process is wired to the same unit
+
+-- the server's events (subscribe :since 0, from Demo 1 on)
+   #  3 rpc-1      :STATE             NIL       → :STARTING  (+0.00 s)
+   #  4 rpc-1      :STATE             :STARTING → :RUNNING   (+0.00 s)
+   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)  (+0.20 s)
+   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)  (+0.20 s)
+   # 13 rpc-1      :STATE             :FAILED   → :STARTING  (+0.71 s)
+   # 14 rpc-1      :STATE             :STARTING → :RUNNING   (+0.78 s)
+   [ok] transitions: nil→starting→running→failed, restart-scheduled, failed→starting→running
+   failed detail (external kill = non-zero exit, no signal recorded): (:EXIT-CODE 137 :SIGNAL NIL)
+   restart-scheduled detail: (:ATTEMPT 1 :DELAY 0.5)
+   restart-delay (0.5 2 30) for attempts 1..5: (0.5 1.0 2.0 4.0 8.0)
+   [ok] waited the backoff: 0.510 s between :failed and the relaunch (≥ 0.5)
+   [ok] seq numbers have no gaps
+
+-- replay: subscribe :since 10 (the kill's predecessor), then live events
+   replayed (4 events):
+   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)
+   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)
+   # 13 rpc-1      :STATE             :FAILED   → :STARTING
+   # 14 rpc-1      :STATE             :STARTING → :RUNNING 
+   [ok] the replay starts right after SINCE
+   events-since → (count complete-p): (4 T)
+   now stop the server: its events reach the replaying subscriber live
+   # 15 rpc-1      :STATE             :RUNNING  → :KILLED   (:EXIT-CODE 0 :SIGNAL :TERM)
+   [ok] replay + live: contiguous, no gap, no duplicate
+   unsubscribe: NIL
+   subscription-active-p after unsubscribe: NIL
+
+========================================================================
+== Demo 4: caps + LRU eviction (:kind-caps (:shell-job 2))
+========================================================================
+
+-- at the cap: shell-job-1 finished, shell-job-2 running
+   id               kind        owner                                  state     pid
+   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   53
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  58
+
+-- start a third → the least recently used FINISHED unit is evicted silently
+   started: "shell-job-3"
+   find-unit of the evicted one: NIL
+   #  6 shell-job-1 :EVICTED           :EXITED   → NIL      
+   [ok] the finished unit was evicted
+   id               kind        owner                                  state     pid
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  58
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  64
+
+-- start a fourth with both live → unit-limit-reached; take EVICT-LRU
+   signalled: SUPERVISOR-PROTOCOL:UNIT-LIMIT-REACHED
+     kind / limit: (:SHELL-JOB 2)
+     victim (LRU live unit; c was touched): "shell-job-2"
+     restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
+   → EVICT-LRU
+   started: "shell-job-4"
+   victim's state: :KILLED
+   [ok] the victim was stopped and evicted
+   id               kind        owner                                  state     pid
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  64
+   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  70
+
+-- start a fifth → unit-limit-reached; take ABORT
+     restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
+   → ABORT
+   start-unit returned: NIL
+   [ok] ABORT: nothing started, units unchanged
+
+-- interacting units are never evicted: no EVICT-LRU without a victim
+   victim: NIL
+   restarts: (ABORT)
+   [ok] restarts: only ABORT
+   [ok] refused starts took no id: the next one is shell-job-5
+
+========================================================================
+== Demo 5: stop escalation — graceful → stop-timeout → FORCE
+========================================================================
+
+-- a process that ignores SIGTERM (stop-unit :grace 1)
+   signalled (not an error): SUPERVISOR-PROTOCOL:STOP-TIMEOUT
+     phase / waited: (:GRACEFUL 1.0020110000000004d0)
+     restarts: (SUPERVISOR-PROTOCOL:FORCE SUPERVISOR-PROTOCOL:KEEP-WAITING)
+   → FORCE
+   final state: :KILLED
+   unit-signal (the last stop sent): :KILL
+   seconds: 1.1
+   [ok] forced after the grace: :killed by :kill
+
+-- a thread that never polls unit-stop-requested-p (stop-unit :grace 0.5): KEEP-WAITING once, then FORCE
+   stop-timeout #1 waited: 0.5040050000000003d0
+   → KEEP-WAITING
+   stop-timeout #2 waited: 1.0070119999999996d0
+   → FORCE (bt2:interrupt-thread unwinds the body)
+   final state: :KILLED
+   seconds: 1.0
+   unit-condition (a forced stop is not a failure): NIL
+   [ok] two stop-timeouts, :killed, the UNWIND-PROTECT cleanup ran
+
+-- unhandled stop-timeout → forced anyway
+   [ok] stop-unit returned :KILLED
+
+========================================================================
+== Demo 6: crash recovery — SIGKILL a child supervisor, the next one sweeps its orphans
+========================================================================
+   [ok] the child supervisor started its units
+   child image ready after (s): 0.9
+
+-- before the crash
+   child image pid: 93
+   units in the child (shell-job tree, rpc, subagent thread): 3
+   shell-job root pid: 97
+   grandchild pids: (109 112)
+   rpc server pid: 104
+   unit files (process units only): ("<sup>--rpc-1.unit" "<sup>--shell-job-1.unit")
+   one unit file's keys: (:FORMAT :SUPERVISOR-ID :SUPERVISOR-PID :SUPERVISOR-OS-START :UNIT-ID :KIND :PID
+                          :PGID :OS-START :COMMAND :CWD :INSPECTOR)
+   [ok] 4 processes: tree root, 2 grandchildren, rpc server
+
+-- SIGKILL the child image (taskkill /F on Windows): no exit hook runs
+   child alive: NIL
+   orphans alive (pid alive-p): ((104 T) (109 T) (112 T) (97 T))
+   [ok] the crash left every unit process behind
+
+-- make-supervisor :state-directory (same directory) → sweep-orphans first
+   make-supervisor seconds (incl. the sweep): 1.2
+   rpc-1        pid    104 pgid    104  :KILLED killed (104)
+   shell-job-1  pid     97 pgid     97  :KILLED killed (97 109 112)
+   [ok] two records (rpc-1, shell-job-1), both :killed
+   [ok] the killed pids are exactly the four orphans
+
+-- after the sweep
+   [ok] every orphan is dead, grandchildren included
+   orphans alive: ((104 NIL) (109 NIL) (112 NIL) (97 NIL))
+   unit files left: 0
+
+========================================================================
+== Demo 7: supervisor-protocol 0.2.0 (H8b) — rotated, capped unit logs
+========================================================================
+   defaults: segment size × segments, total cap, max record: (1048576 5 268435456 8192)
+   this supervisor: total cap: 4194304
+
+-- 7a. a chatty unit: 3000 lines × 1024 bytes (3 MB) with :log-segment-size 256 KiB × :log-segments 4
+   unit-log-settings: (:ENABLED T :SEGMENT-SIZE 262144 :SEGMENTS 4)
+   [ok] the unit exited
+   seconds: 0.3
+   segment files on disk: ("00000010.seg" "00000011.seg" "00000012.seg" "00000013.seg")
+   their sizes: (261641 261641 261641 51434)
+   [ok] ≤ 4 segment files, each ≤ 262144 bytes
+   segment 00000010: lines   2229-  2476,  248 records,  261641 bytes on disk,  251904 output bytes
+   segment 00000011: lines   2477-  2724,  248 records,  261641 bytes on disk,  251904 output bytes
+   segment 00000012: lines   2725-  2972,  248 records,  261641 bytes on disk,  251904 output bytes
+   segment 00000013: lines   2973-  3023,   51 records,   51434 bytes on disk,   49152 output bytes
+   gap lines 1-2228: 2228 records, 2267136 bytes, reasons (:ROTATED)
+   output bytes written / kept / dropped: (3072000 804864 2267136)
+   [ok] dropped + kept = every byte written (exact)
+   [ok] the gap is the oldest prefix, reason :rotated
+   first kept / last line: ("line-02215…(1023 chars)" "line-03000…(1023 chars)")
+   drop markers in the retained segments: 4
+   first and last drop marker:
+   line   2230  seg 10  :DROP   NIL      (SEGMENT 6 FIRST-LINE 1237 LAST-LINE 1484 RECORDS 248 BYTES 251904
+                                          REASON ROTATED)
+   line   2974  seg 13  :DROP   NIL      (SEGMENT 9 FIRST-LINE 1981 LAST-LINE 2228 RECORDS 248 BYTES 251904
+                                          REASON ROTATED)
+   newest segment's header (cumulative drops):
+   line   2973  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 23-1bfa9c00 UNIT-ID shell-job-1 KIND
+                                          SHELL-JOB SEGMENT 13 FIRST-LINE 2973 DROPPED-THROUGH 8
+                                          DROPPED-RECORDS 1980 DROPPED-BYTES 2015232)
+   end record:
+   line   3023  seg 13  :END    NIL      (LAST-LINE 3023 BYTES 3072000)
+   [ok] gap bytes = the newest header's :dropped-bytes + the markers written after it
+   memory: sink-stats total, unit-output length: (3072000 81950)
+   [ok] memory keeps only the head + tail
+   disk: this unit's segment + index bytes vs 4 × 256 KiB: (836525 1048576)
+
+-- 7b. log-read by line range across a rotation boundary
+   segment 11 ends at line 2724; read lines 2723-2727
+   line   2723  seg 11  :OUTPUT :STDOUT  line-02705 xxxxxxxxxxxxx…(1023 chars)
+   line   2724  seg 11  :OUTPUT :STDOUT  line-02706 xxxxxxxxxxxxx…(1023 chars)
+   line   2727  seg 12  :OUTPUT :STDOUT  line-02707 xxxxxxxxxxxxx…(1023 chars)
+   gaps / next-line: (NIL 2728)
+   [ok] the output lines continue across the segments (the header line is not output)
+   :types t on the same range shows the next segment's header:
+   line   2724  seg 11  :OUTPUT :STDOUT  line-02706 xxxxxxxxxxxxx…(1023 chars)
+   line   2725  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 23-1bfa9c00 UNIT-ID shell-job-1 KIND
+                                          SHELL-JOB SEGMENT 12 FIRST-LINE 2725 DROPPED-THROUGH 7
+                                          DROPPED-RECORDS 1732 DROPPED-BYTES 1763328)
+   paging: :limit 2 → lines / gaps / next-line: ((2231 2232) 1 2233)
+     then :start next-line :limit 2: (2233 2234)
+
+-- 7c. log-tail 3
+   line   3020  seg 13  :OUTPUT :STDOUT  line-02998 xxxxxxxxxxxxx…(1023 chars)
+   line   3021  seg 13  :OUTPUT :STDOUT  line-02999 xxxxxxxxxxxxx…(1023 chars)
+   line   3022  seg 13  :OUTPUT :STDOUT  line-03000 xxxxxxxxxxxxx…(1023 chars)
+
+-- 7d. log-follow a live echo server
+   follow with nothing new, :wait 0.3 → (records ended-p): (NIL NIL)
+   woken after (s, input sent at 0.5): 0.5
+   line      2  seg 1  :OUTPUT :STDOUT  ping-1
+   line      3  seg 1  :OUTPUT :STDOUT  ping-2
+   ended-p while running: NIL
+   [ok] follow returned the echoed lines
+   after stop-unit: records / ended-p: (NIL T)
+   [ok] ENDED-P once the end record is there
+
+-- 7e. binary output round trip (two text lines, then bytes 0..255, 255..0, 2000 pseudo-random)
+   [ok] exited
+   bytes written / rebuilt from records: (2549 2549)
+   [ok] every byte unchanged (equalp)
+   records: 14
+   a raw base64 record in the segment file: "4 1795266196347 12407 ob. AAECAwQFBgcICQ== 52e1c3c2"
+   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795266196347 12407 ot. tab	there, ESC \x1b[1m bold 556f85b7
+
+-- disk usage vs the total cap
+   supervisor-log-usage / log-total-cap: (841172 4194304)
+   [ok] under the cap
+
+-- 7f. a child supervisor with a chatty thread unit, SIGKILLed mid-output
+   [ok] the child is writing
+   [ok] the child image is gone
+   find-unit-logs: 1
+   unit id / closed-p (no end record after a SIGKILL): ("subagent-1" NIL)
+   records read by this image / gaps: (2089 NIL)
+   segments: 6
+   [ok] contiguous n-1 … n-K, no gap
+   last segment torn-p as the kill left it: NIL
+   append half a record (no LF, no CRC), as a kill mid-write leaves it
+   torn-p now: T
+   [ok] the torn tail is skipped: the same records
+   log-tail 2: ("n-2088" "n-2089")
+
+-- 7g. total-cap eviction: :log-total-cap 6000, segments of 2048 bytes
+   a (26 lines × 101 bytes) finished: usage 4442 / cap 6000, a on disk 4442, 26 lines
+   b (26 lines) finished: usage 4898 / cap 6000
+   a: 0 lines, 1 segment file(s), 456 bytes, gaps (:TOTAL-CAP), closed-p T
+   b: 26 lines, 4442 bytes, gaps NIL
+   [ok] a (finished first) lost segments to :total-cap, b kept all 26 lines
+   c (running) wrote 120 lines: usage 4744 / cap 6000
+   a: 0 lines, stub file ("00000003.seg"), 456 bytes
+   b: 0 lines, 456 bytes, gaps (:TOTAL-CAP)
+   c: 22 lines kept, 3832 bytes, gaps (:TOTAL-CAP), state :RUNNING
+   a's stub:
+   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 23-179689ed UNIT-ID subagent-1 KIND SUBAGENT
+                                         SEGMENT 3 FIRST-LINE 29 DROPPED-THROUGH 1 DROPPED-RECORDS 14
+                                         DROPPED-BYTES 1313)
+   line     30  seg 3  :DROP   NIL      (SEGMENT 2 FIRST-LINE 15 LAST-LINE 28 RECORDS 14 BYTES 1313 REASON
+                                         TOTAL-CAP)
+   line     31  seg 3  :END    NIL      (LAST-LINE 31 BYTES 2626)
+   gap lines 1-28: 28 records, 2626 bytes, reasons (:TOTAL-CAP)
+   [ok] a's stub accounts for every byte a wrote (26 × 101)
+   [ok] finished units emptied first, then c's old segments; c's newest kept
+   [ok] usage = the bytes of every segment and index file
+
+========================================================================
+Demos run: 7, failed: none; 15.6 s
