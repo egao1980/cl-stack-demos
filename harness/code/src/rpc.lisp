@@ -72,7 +72,8 @@
     (note "  skipped: no LM Studio model (the scripted mock ran every step above)")
     (return-from %q-real-model t))
   (code:with-client (client :cwd project
-                            :settings (code:make-settings :model (model-designator))
+                            :settings (code:make-settings :model (model-designator)
+                                                          :model-params (sampling-fields))
                             :user-config-dir config
                             :data-dir (data-dir)
                             :getenv (model-getenv)

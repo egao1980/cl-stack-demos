@@ -139,7 +139,8 @@ text → a step: the mock reads the ref it acts on from what the tool returned."
                            :name "fixer" :backend backend :model model
                            :instructions "You are a coding agent in a small shell project. Use the tools; keep answers short."
                            :tools (list units shell files) :permissions (fix-rules)
-                           :settings (agent:make-agent-settings :max-steps max-steps))
+                           :settings (agent:make-agent-settings :max-steps max-steps
+                                                          :llm (sampling-llm-settings)))
                           +fix-prompt+)))))
              (print-run run :max-lines max-lines)
              (when asked (show "asks (denied: unattended)" (reverse asked))))

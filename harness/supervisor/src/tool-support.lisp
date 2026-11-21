@@ -296,7 +296,8 @@ no server answers."
                                   (first chat))))
     (when *lm-model*
       (note "MODEL THAT RAN: ~a at ~a (~a)" *lm-model* (%url-host *lm-url*)
-            (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: a coder model, then the first chat model")))
+            (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: a coder model, then the first chat model"))
+      (note "~a" (sampling-description)))
     *lm-model*))
 
 (defun print-lm-usage ()

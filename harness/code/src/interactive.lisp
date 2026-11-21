@@ -415,8 +415,9 @@
   (let ((project (make-project "tui-real"
                                `(("notes.txt" ,(format nil "Release notes~%Codename: Juniper~%Ships: 2026-12-01~%"))))))
     (with-tui (tui program :rows 24 :model (model-designator) :providers nil :getenv (model-getenv)
-                   :argv (list "--append-system-prompt" *no-think* "--max-turns" "6"
-                               "--allowed-tools" "read" "--disallowed-tools" "write,edit,multi_edit,bash"))
+                   :argv (list* "--append-system-prompt" *no-think* "--max-turns" "6"
+                               "--allowed-tools" "read" "--disallowed-tools" "write,edit,multi_edit,bash"
+                               (sampling-flags)))
         (project (scratch-dir "tui-real-config") nil)
       (%wait tui "Message, @file")
       (send-line tui "Read @notes.txt and give the codename in one sentence, in **bold**.")

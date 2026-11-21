@@ -120,9 +120,10 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
         (show "picked chat model" model)
         (note "MODEL THAT RAN: ~a at ~a (~a)" model (%url-host *lm-studio-url*)
               (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: a 2b, then a 4b, then any chat model"))
+        (note "~a" (sampling-description))
         (unless model (error "no chat model in LM Studio"))
 
-        (stage "5b. two requests, same long system prompt, prompt_cache_key \"harness-demo-run\" (reasoning_effort none)")
+        (stage (format nil "5b. two requests, same long system prompt, prompt_cache_key \"harness-demo-run\", the ~(~a~) preset" (sampling-mode)))
         (let ((system (%long-system-prompt)))
           (show "system prompt chars" (length system))
           (setf (car log) nil)
@@ -134,16 +135,20 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                                                   (list (llm:system-turn system)
                                                         (llm:user-turn question))
                                                   :model model
-                                                  :settings '(:temperature 0 :max-tokens 512
-                                                              :extra (:prompt-cache-key
-                                                                      "harness-demo-run"
-                                                                      :reasoning-effort "none"))))
+                                                  :settings (sampling-llm-settings
+                                                             :max-tokens 512
+                                                             :extra '(:prompt-cache-key
+                                                                      "harness-demo-run"))))
                           (secs (/ (- (get-internal-real-time) t0) internal-time-units-per-second))
                           (sent (car (first (car log))))
                           (raw (cdr (first (car log)))))
                      (note "~a: ~a" label question)
                      (show "  prompt_cache_key sent" (%json-field sent "prompt_cache_key"))
                      (show "  reasoning_effort sent" (%json-field sent "reasoning_effort"))
+                     (show "  sampling fields sent"
+                           (loop for (k) in (sampling-fields)
+                                 collect (list k (let ((v (%json-field sent k)))
+                                                   (if (hash-table-p v) (json:encode v) v)))))
                      (show "  reply" (llm:llm-response-text response))
                      (show "  thinking chars" (length (or (llm:llm-response-thinking response) "")))
                      (show "  finish reason" (llm:llm-response-finish-reason response))

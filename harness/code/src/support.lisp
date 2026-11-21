@@ -139,11 +139,13 @@ never the user's ~/.local/share."
   (ensure-directories-exist (merge-pathnames "data/" *scratch*)))
 
 (defun cli (argv &key cwd config (input ""))
-  "RUN-CLI with ARGV (prefixed by --cwd CWD and the current model's --model),
-the private CONFIG directory and the current model's providers and
-environment. → (values exit stdout stderr)."
+  "RUN-CLI with ARGV (prefixed by --cwd CWD, the current model's --model and,
+for the real model, the sampling preset's --model-param flags), the private
+CONFIG directory and the current model's providers and environment. → (values
+exit stdout stderr)."
   (let* ((argv (append (and cwd (list "--cwd" (%native cwd)))
                        (list "--model" (model-designator))
+                       (and (real-model-p) (sampling-flags))
                        argv))
          (err (make-string-output-stream))
          (exit nil)

@@ -1,5 +1,5 @@
 (defsystem "harness-demos-supervisor"
-  :version "0.2.0"
+  :version "0.3.0"
   :description "Live demo of supervisor-protocol 0.3.1: H8a (scopes, queries, restarts with backoff, the replayable event stream, caps + LRU eviction, stop escalation, the orphan sweep after a crash), H8b (rotated, capped unit logs: drop markers, range reads, tail, follow, binary output, torn tails, the total cap) and H8c (the log search index, agent-tools 0.3.1's unit tools, an agent finding and fixing a failure from process logs on a scripted mock and on a live model)"
   :author "egao1980"
   :license "MIT"
@@ -23,6 +23,7 @@
   :serial t
   :pathname "src"
   :components ((:file "package")
+               (:file "sampling")       ; HARNESS_DEMOS_MODE: the sampling preset of live calls
                (:file "support")
                (:file "units-demo")       ; Demos 1-5: scopes, queries, restarts, events, caps, stops
                (:file "sweep-demo")       ; Demo 6: crash recovery (orphan sweep)
