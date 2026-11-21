@@ -1,5 +1,5 @@
 (defsystem "harness-demos-image"
-  :version "0.2.0"
+  :version "0.2.1"
   :description "Live demo of lisp-mcp/agent (H4a: form-resources, a spawned Swank image through the native tool source, observe mode, agent runs with permission rules; H4b: image events, a background debugger in the agent inbox, restarts under restart: rules, job events, observe); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
@@ -18,6 +18,7 @@
                (:version "http-backend-async" "0.2.21")
                (:version "json-protocol" "0.2.1")
                (:version "json-backend-jzon" "0.2.1")
+               "babel"
                "uiop")
   ;; repl-spawn images load swank with ASDF from where this image finds it:
   ;; an install root, not a dependency (as in lisp-mcp).

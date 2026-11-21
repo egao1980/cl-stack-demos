@@ -1,22 +1,5 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable names
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO2.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.010
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.054
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.002
-This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
 SBCL is free software, provided as is, with absolutely no warranty.
@@ -60,18 +43,6 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3>
 WARNING:
    redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-CONNECTION>
 WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
-; compiling file "<repo>/harness/data/lisp-diff-demo.lisp" (written 20 NOV 2026 08:29:24 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/data/lisp-diff-demo-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.010
-; compiling file "<repo>/harness/data/engine-api-demo.lisp" (written 20 NOV 2026 08:28:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/data/engine-api-demo-tmpAAURSO1.fasl
-; compilation finished in 0:00:00.012
-; compiling file "<repo>/harness/data/run.lisp" (written 20 NOV 2026 08:28:42 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/data/run-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.001
 
 ========================================================================
 == Demo 1: diff-protocol 0.3.0
@@ -164,7 +135,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     apply-diff a diff state-equal b => T
 
 --- 1d. parse-diff :unified on real `git diff` output, then apply-diff
-    git version: git version 2.54.0 (Apple Git-157)
+    git version: git version 2.56.0
     git diff -M HEAD~1 HEAD:
       | diff --git a/README b/README
       | index 377d70c..e117347 100644
@@ -403,7 +374,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     (schema-snapshot-equal folded v2 :dialect :sqlite3) => T
     fold of the inverted ops from v2 = v1 => T
     diff-schema v2 v2 :complete t => no ops => T
-    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {800537F683}> conflicts with snapshot: no column ITEMS.LEGACY
+    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009AFA9A3}> conflicts with snapshot: no column ITEMS.LEGACY
 
 --- 3b. alter-column-op on SQLite: table rebuild, data preserved
     op: alter-column-op items: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
@@ -804,7 +775,7 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
 ========================================================================
 
 --- 6a. register-diff-engine and find-diff-engine
-    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {8009EEA143}>
+    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {8005AEEED3}>
     find-diff-engine :env is the registered instance => T
     registering :env again keeps the first instance => T
 

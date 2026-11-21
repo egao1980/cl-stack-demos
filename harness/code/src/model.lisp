@@ -61,8 +61,14 @@ model (no embedding or OCR models)."
           (find-if #'tools-p chat)
           (first chat)))))
 
+(defun %model-override ()
+  "The exact model id in HARNESS_DEMOS_MODEL, or NIL when unset or empty."
+  (let ((id (uiop:getenv "HARNESS_DEMOS_MODEL")))
+    (and id (plusp (length (string-trim " " id))) (string-trim " " id))))
+
 (defun detect-model ()
-  "Set *MODEL*. → *MODEL*."
+  "Set *MODEL*: HARNESS_DEMOS_MODEL when set and LM Studio answers, else
+%PICK-MODEL's heuristic. → *MODEL*."
   (banner "Model")
   (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend)
   (let* ((token (%lm-token))
@@ -75,14 +81,18 @@ model (no embedding or OCR models)."
                   (note "LM Studio at ~a not reachable: ~a" *lm-studio-url* (clip (princ-to-string c) 160))
                   nil)))
          (capabilities (and ids (%capabilities token)))
-         (id (and ids (%pick-model ids capabilities))))
+         (override (%model-override))
+         (id (and ids (or override (%pick-model ids capabilities)))))
     (show "LM_API_TOKEN found" (and token (plusp (length token)) t))
     (when ids
       (show "GET /v1/models" ids)
       (show "capabilities (/api/v0/models)" capabilities))
     (setf *model* (if id (list :lm-studio id) (list :mock)))
+    (when (and override ids (not (member override ids :test #'string=)))
+      (note "HARNESS_DEMOS_MODEL ~a is not in GET /v1/models; using it anyway (LM Studio may load it on demand)" override))
     (if id
-        (note "MODEL THAT RAN: LM Studio ~a (real model; its output varies run to run)" id)
+        (note "MODEL THAT RAN: LM Studio ~a (~a; real model, its output varies run to run)"
+              id (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then tool_use"))
         (note "MODEL THAT RAN: scripted mock provider \"mock\" (no LM Studio model available)"))
     *model*))
 

@@ -61,6 +61,11 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
     (dolist (k path v)
       (setf v (and (hash-table-p v) (gethash k v))))))
 
+(defun %model-override ()
+  "The exact model id in HARNESS_DEMOS_MODEL, or NIL when unset or empty."
+  (let ((id (uiop:getenv "HARNESS_DEMOS_MODEL")))
+    (and id (plusp (length (string-trim " " id))) (string-trim " " id))))
+
 (defun %pick-model (models)
   (let ((ids (mapcar #'llm:llm-model-info-id models)))
     (flet ((chat-p (id) (notany (lambda (bad) (search bad id)) '("embed" "ocr"))))
@@ -84,9 +89,12 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                                                    :request-fn (%tapping-request-fn log))))
       (stage "5a. list models")
       (let* ((models (llm:list-models backend))
-             (model (%pick-model models)))
+             (override (%model-override))
+             (model (or override (%pick-model models))))
         (show "models" (mapcar #'llm:llm-model-info-id models))
         (show "picked chat model" model)
+        (note "MODEL THAT RAN: LM Studio ~a (~a)" model
+              (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: a 2b, then a 4b, then any chat model"))
         (unless model (error "no chat model in LM Studio"))
 
         (stage "5b. two requests, same long system prompt, prompt_cache_key \"harness-demo-run\" (reasoning_effort none)")

@@ -1,5 +1,5 @@
 (defsystem "harness-demos-agent"
-  :version "0.2.0"
+  :version "0.2.1"
   :description "Live demos of the coding-agent harness: permissions, file and shell tools, TUI widgets, markdown and diff rendering, tty backend, OpenAI prompt cache"
   :author "egao1980"
   :license "MIT"
