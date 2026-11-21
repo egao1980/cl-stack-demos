@@ -1,10 +1,13 @@
 (defsystem "harness-demos-image"
-  :version "0.1.0"
-  :description "Live demo of lisp-mcp/agent (H4a): form-resources, a spawned Swank image through the native tool source, observe mode, agent runs with permission rules; LM Studio or a scripted model"
+  :version "0.2.0"
+  :description "Live demo of lisp-mcp/agent (H4a: form-resources, a spawned Swank image through the native tool source, observe mode, agent runs with permission rules; H4b: image events, a background debugger in the agent inbox, restarts under restart: rules, job events, observe); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
-  :depends-on ((:version "lisp-mcp" "0.6.0")
-               (:version "lisp-mcp/agent" "0.6.0")
+  :depends-on ((:version "lisp-mcp" "0.7.0")
+               (:version "lisp-mcp/agent" "0.7.0")
+               ;; 0.2.8 kills a spawned image's whole tree: on Windows ros.exe runs SBCL
+               ;; as its child, which outlived the kill (egao1980/repl-protocol#11)
+               (:version "repl-protocol" "0.2.8")
                (:version "ai-agent-protocol" "0.12.0")
                (:version "llm-protocol" "0.5.0")
                (:version "llm-protocol-openai" "0.4.0")
@@ -27,4 +30,5 @@
                (:file "scanner")
                (:file "image")
                (:file "agent")
+               (:file "events")
                (:file "run")))
