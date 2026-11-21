@@ -20,7 +20,7 @@
               "  if [ \"$2\" = \"$3\" ]; then echo \"ok - $1\"; else echo \"FAIL $1: got $2, expected $3 (calc.sh)\"; failed=$((failed+1)); fi"
               "}"
               "i=1; while [ $i -le 80 ]; do echo \"[setup] fixture $i of 80 loaded\"; i=$((i+1)); done"
-              "echo \"warning: TEST_SEED not set, using 42\" >&2"
+              "echo \"warning: TEST_SEED not set, using 42\""
               "check \"mul 3 4\" \"$(mul 3 4)\" 12"
               "i=1; while [ $i -le 40 ]; do echo \"[bench] iteration $i took 0.$((i % 7))ms\"; i=$((i+1)); done"
               "check \"add 2 3\" \"$(add 2 3)\" 5"

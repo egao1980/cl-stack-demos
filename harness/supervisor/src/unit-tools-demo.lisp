@@ -46,7 +46,7 @@ the commands mean the same everywhere; NIL elsewhere."
               "  fi"
               "  i=$((i+1))"
               "done"
-              "echo \"make: *** [build/mod120.o] Error 1\" >&2"
+              "echo \"make: *** [build/mod120.o] Error 1\""
               "exit 2"))
 
 (defparameter +echo-sh+
