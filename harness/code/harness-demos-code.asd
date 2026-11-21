@@ -1,5 +1,5 @@
 (defsystem "harness-demos-code"
-  :version "0.6.0"
+  :version "0.6.1"
   :description "Live demo of cl-stack-code: -p (H3a: text, stream-json, headless denial, layered settings, AGENTS.md discovery), the interactive mode (H3b) on the headless terminal, and plan mode (H5a: plan, project, approve, drift, reject; git and copy areas) and checkpoints with rewind (H5b: git private refs, jj @ commits, folder snapshots; files / both rewinds, drift restarts, plan checkpoints, retention, the rewind dialog), and the Lisp image (H4b: -p --lisp-image spawn with image_event lines, onDebugger turn and notice with the banner and status marker, observe against an attached image); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"

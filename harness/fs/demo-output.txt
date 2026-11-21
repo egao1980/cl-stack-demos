@@ -23,22 +23,22 @@ WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-
    more-p: NIL
    content-hash: "sha256:31d0cdeb90cb840ea8e3121874b8ed2a1d3cd1860d66228ed8742b2e758d5bcc"
    octets-hash of the same bytes: "sha256:31d0cdeb90cb840ea8e3121874b8ed2a1d3cd1860d66228ed8742b2e758d5bcc"
-   stat: #<CL-STACK-PATHLIB:FILE-STAT :FILE <tmp> 31>
+   stat: #<CL-STACK-PATHLIB:FILE-STAT :FILE <tmp>/hd-pathlib-1Y6VFMM3/notes.txt 31>
    stat mode: "#o644"
 
 -- atomic write, then a compare-and-swap write that loses the race
-   atomic write → path: "<tmp>"
+   atomic write → path: "<tmp>/hd-pathlib-1Y6VFMM3/config.txt"
      hash: "sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c"
      written-p: T
    directory after (no temp file left): ("config.txt" "notes.txt")
    external writer changed config.txt; now writing with :expected-hash = our old hash
    signalled: CL-STACK-PATHLIB:CONTENT-HASH-MISMATCH
-     report: "content of #P\"<tmp>" changed: expected \"sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c\", found \"sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2\""
+     report: "content of #P\"<tmp>/hd-pathlib-1Y6VFMM3/config.txt\" changed: expected \"sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c\", found \"sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2\""
      expected: "sha256:03396c1f4d5ed5c646560102f33fad142e48946d79dafb13ba9e99f0ae18972c"
      actual: "sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2"
      restarts offered: (CL-STACK-PATHLIB:OVERWRITE CL-STACK-PATHLIB:USE-CURRENT CL-STACK-PATHLIB:RETRY)
    choosing USE-CURRENT
-   write-text returned path: "<tmp>"
+   write-text returned path: "<tmp>/hd-pathlib-1Y6VFMM3/config.txt"
      hash (current content): "sha256:78f239a5707c20fc01cfd46b5a2e528d4f51465636cf3a4bff3305c23af859a2"
      written-p: NIL
    file content now: "v=2 (other writer)
@@ -73,7 +73,7 @@ WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-
    README.md:2:0: TODO: write docs
    keep.log:1:10: kept log: TODO re-included
    src/main.lisp:1:17: (defun main () ; TODO: args
-   grep "todo" :case-insensitive :include "*.lisp" :max-results 1: (#<CL-STACK-PATHLIB:GREP-MATCH <tmp>
+   grep "todo" :case-insensitive :include "*.lisp" :max-results 1: (#<CL-STACK-PATHLIB:GREP-MATCH <tmp>/hd-pathlib-1Y6VFMM3/proj/src/main.lisp:1:17>)
      truncated-p: T
 
 -- fs-snapshot / fs-snapshot-changes / fs-restore
@@ -100,7 +100,7 @@ WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-
    snapshot after restore = #1: T
 
 -- open-area :copy, edits (pathlib + /bin/sh), area-changes, commit with a conflict
-   area-root: "<tmp>"
+   area-root: "<tmp>/area-B718KH-4004244535-1-7SXFTE"
    area-mechanism: :COPY
    area copy files (scratch.tmp ignored): (".gitignore" "app.lisp" "log.txt" "shared.txt")
    manifest: (#<CL-STACK-PATHLIB:SNAPSHOT-ENTRY ".gitignore" :FILE sha256:cd626bd30aa3875cc7c01d50050e4f88e84d4691457209871f27494ffd5f4ab4>
@@ -114,7 +114,7 @@ WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-
    MODIFIED   shared.txt  sha256:c01b68e2 -> sha256:a1af36fd
    base/shared.txt edited after the area opened; committing
    signalled: CL-STACK-PATHLIB:AREA-CONFLICT
-     report: "\"shared.txt\" changed in the base and in the area #<CL-STACK-PATHLIB:AREA :COPY <tmp> :OPEN>"
+     report: "\"shared.txt\" changed in the base and in the area #<CL-STACK-PATHLIB:AREA :COPY <tmp>/area-B718KH-4004244535-1-7SXFTE :OPEN>"
      path: "shared.txt"
      open-entry: #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "shared.txt" :FILE sha256:c01b68e26cdc47545cae78b2a7dad8b372a93a02bee249ab9729249ef6b4f75c>
      base-entry: #<CL-STACK-PATHLIB:SNAPSHOT-ENTRY "shared.txt" :FILE sha256:9f70d4392d5bd27f3ed87248f816c099a6dc4e41f7f93d2ced4bbaf49478c91e>
@@ -143,7 +143,7 @@ line 2 from /bin/sh
 ========================================================================
 == Demo 2: process-protocol 0.4.0 / process-backend-uiop 0.3.1
 ========================================================================
-   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005FD0923}>
+   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005FF0243}>
 
 -- binary stdout captured as exact octets: printf '\0\377\376'
    exit-code: 0
@@ -164,7 +164,7 @@ line 2 from /bin/sh
    parent has HOME: T
    child HOME = parent HOME: T
    child DEMO_VAR: "added by :env"
-   child variable count: 63
+   child variable count: 64
 
 -- :env with a NIL value unsets an inherited variable
    child HOME: NIL
@@ -212,7 +212,7 @@ line 2 from /bin/sh
 
 -- make-git-store
    git-version: "2.56.0"
-   git-store-path: "<tmp>"
+   git-store-path: "<tmp>/hd-git-VNEQ8ZAA/repo/"
    git-store-bare-p: NIL
    content-primary: :STATE
 
@@ -314,8 +314,8 @@ D tree:/README.md
 R tree:/bin/run.sh tree:/bin/start.sh
 M tree:/src/app.lisp
 A tree:/notes/todo.txt
-   captured 28c4d58a2f57 "agent checkpoint" parents=("a88a07a10047") recorded=1795253292 valid=1795253292
-   refs/agent/checkpoint: "28c4d58a2f57"
+   captured ce15cf2fb0c6 "agent checkpoint" parents=("a88a07a10047") recorded=1795255741 valid=1795255741
+   refs/agent/checkpoint: "ce15cf2fb0c6"
    files in capture: "bin/start.sh
 notes/todo.txt
 src/app.lisp
@@ -360,8 +360,8 @@ src/app.lisp
 ========================================================================
 == Demo 4: revision-backend-jj 0.2.0
 ========================================================================
-   built repo with jj CLI: (:BASE "urkmxvzovvyl" :SECOND "kkwrskuvuuww" :LEFT "ttxozlxxqtyy" :RIGHT
-                            "quwsywwolnrr" :MERGE "vxnrxwrpvlwu")
+   built repo with jj CLI: (:BASE "rttmzklxmnyl" :SECOND "otrwtnlqtuno" :LEFT "ktuwnowyvwrw" :RIGHT
+                            "mlvzqsxpvrwm" :MERGE "lumzwoxxxsnv")
 
 -- make-jj-store
    jj-version: "0.47.1"
@@ -372,40 +372,40 @@ src/app.lisp
                      :TAG-REWRITE NIL)
 
 -- revisions: change ids (revision-id) vs commit ids (provenance :commit-id)
-     main: change urkmxvzovvyl commit 47dbfe1813db "base" parents=NIL recorded=1700000000
-     main: change kkwrskuvuuww commit 7b566291239b "second" parents=("urkmxvzovvyl") recorded=1700000100
-   jj log (CLI) for comparison: "kkwrskuvuuww 7b566291239b second
-urkmxvzovvyl 47dbfe1813db base"
+     main: change rttmzklxmnyl commit 318809ae991a "base" parents=NIL recorded=1700000000
+     main: change otrwtnlqtuno commit 901e1344893a "second" parents=("rttmzklxmnyl") recorded=1700000100
+   jj log (CLI) for comparison: "otrwtnlqtuno 901e1344893a second
+rttmzklxmnyl 318809ae991a base"
 
 -- commit-revision from a tree value onto main (fixed clock)
-   new revision change lyszmstppxuy commit 10e5cf75e749 "third: from a tree value" parents=("kkwrskuvuuww") recorded=1700000300
-   provenance: (:COMMIT-ID "10e5cf75e749b108ba4fc0adcb89634013040427" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
+   new revision change wowwrlonupyp commit 6fbca13fbd23 "third: from a tree value" parents=("otrwtnlqtuno") recorded=1700000300
+   provenance: (:COMMIT-ID "6fbca13fbd23e97f399c3a5be96879f0dd630b1d" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
                 "demo@example.invalid" :COMMITTER-NAME "Demo User" :COMMITTER-EMAIL "demo@example.invalid"
                 :CONFLICT NIL :EMPTY NIL)
 
 -- refs: bookmark + tag, list-refs
-   MOVABLE  main → lyszmstppxuy
-   TAG      v1 → urkmxvzovvyl
+   MOVABLE  main → wowwrlonupyp
+   TAG      v1 → rttmzklxmnyl
    merge-base left right: "base"
    heads: ("" "merge left+right (conflict left in)" "third: from a tree value")
 
 -- rewrite a mutable change with jj describe: same change id, new commit id
-   before change kkwrskuvuuww commit 7b566291239b "second" parents=("urkmxvzovvyl") recorded=1700000100
-   after  change kkwrskuvuuww commit 247d6d70d4b6 "second (reworded)" parents=("urkmxvzovvyl") recorded=1700000400
+   before change otrwtnlqtuno commit 901e1344893a "second" parents=("rttmzklxmnyl") recorded=1700000100
+   after  change otrwtnlqtuno commit 80e23c3300fe "second (reworded)" parents=("rttmzklxmnyl") recorded=1700000400
    same change id: T
    commit id changed: T
    old commit id still resolves (hidden commit): "second"
 
 -- operation log and rev-as-of :recorded
-   op 86929bc46fe4 end 1700000405000 "describe commit 7b566291239b715516df29fe8797b0ba9a446672"
-   op fd7389b179de end 1795253294974 "set tag v1 to commit 47dbfe1813db884ea22c6305251f7583c7c59e1d"
-   op 570c0c0572ed end 1795253294693 "point bookmark main to commit 10e5cf75e749b108ba4fc0adcb89634013040427"
-   op 43e8e1614c48 end 1795253294496 "forget workspace rbjj-9cyeajszs37i"
-   op b5adccb01b56 end 1795253294384 "commit 9951634491f9fef3ce40d655572e93770a6e627d"
-   op bf1f635003a6 end 1795253294346 "snapshot working copy"
-   op before describe: "fd7389b179de"
+   op 695f290431db end 1700000405000 "describe commit 901e1344893af7c5d4f7189a380e8a3f1ca08cf3"
+   op 39f0ff9b168e end 1795255744933 "set tag v1 to commit 318809ae991afa690ad8c05beab51d1b106ac4e4"
+   op 219d0f35a56a end 1795255744640 "point bookmark main to commit 6fbca13fbd23e97f399c3a5be96879f0dd630b1d"
+   op 63551c1f5b44 end 1795255744433 "forget workspace rbjj-ubu45xfk83xy"
+   op 1186603c2707 end 1795255744312 "commit 9ea97480be657e2a7f498130b3eeea2994e8f87c"
+   op 9d0916540a44 end 1795255744274 "snapshot working copy"
+   op before describe: "39f0ff9b168e"
    rev-as-of t0+350 :recorded on main: "second"
-   rev-as-of t0+120 :recorded on main change kkwrskuvuuww commit 7b566291239b "second" parents=("urkmxvzovvyl") recorded=1700000100
+   rev-as-of t0+120 :recorded on main change otrwtnlqtuno commit 901e1344893a "second" parents=("rttmzklxmnyl") recorded=1700000100
    rev-as-of t0+50 :valid on main: "base"
 
 -- state-diff base → third at :summary and :content (unified)
@@ -433,16 +433,16 @@ diff --git a/src/lib.lisp b/src/lib.lisp
 +(defun lib () 3)
 
 -- a committed conflict: merge(left, right) with a.txt unresolved
-   merge change vxnrxwrpvlwu commit 93d1823d679d "merge left+right (conflict left in)" parents=("ttxozlxxqtyy"
-                                                                                                "quwsywwolnrr") recorded=1700000250
+   merge change lumzwoxxxsnv commit d2cf7957c9e9 "merge left+right (conflict left in)" parents=("ktuwnowyvwrw"
+                                                                                                "mlvzqsxpvrwm") recorded=1700000250
    provenance :conflict: T
    revision-conflicts: (("a.txt" . 2))
    read-text /a.txt @merge (materialized conflict): "<<<<<<< conflict 1 of 1
-%%%%%%% diff from: urkmxvzo 47dbfe18 \"base\"
-\\\\\\\\\\\\\\        to: ttxozlxx 90abe22e \"left\"
+%%%%%%% diff from: rttmzklx 318809ae \"base\"
+\\\\\\\\\\\\\\        to: ktuwnowy 77b64acb \"left\"
 -one
 +left
-+++++++ quwsywwo 80cd2c3d \"right\"
++++++++ mlvzqsxp da688aba \"right\"
 right
 >>>>>>> conflict 1 of 1 ends
 "
@@ -454,22 +454,22 @@ diff --git a/a.txt b/a.txt
 @@ -1 +1,8 @@
 -left
 +<<<<<<< conflict 1 of 1
-+%%%%%%% diff from: urkmxvzo 47dbfe18 "base"
-+\\\\\\\        to: ttxozlxx 90abe22e "left"
++%%%%%%% diff from: rttmzklx 318809ae "base"
++\\\\\\\        to: ktuwnowy 77b64acb "left"
 +-one
 ++left
-++++++++ quwsywwo 80cd2c3d "right"
+++++++++ mlvzqsxp da688aba "right"
 +right
 +>>>>>>> conflict 1 of 1 ends
 
 -- CAS: move-ref main with a stale :expected → ref-conflict
-   main now: "lyszmstppxuy"
-   caller believes main is: "urkmxvzovvyl"
+   main now: "wowwrlonupyp"
+   caller believes main is: "rttmzklxmnyl"
    signalled: REVISION-PROTOCOL:REF-CONFLICT
-     report: "ref \"main\" moved: expected \"urkmxvzovvylxtnpuyxtvyqonnzututw\", found \"lyszmstppxuyowwnmyzxkvyknzquwxmn\""
+     report: "ref \"main\" moved: expected \"rttmzklxmnylumokpvwsmkmpvrwvmpnx\", found \"wowwrlonupypxnlouqlxytlmrxnwtpym\""
      restarts offered: (REVISION-PROTOCOL:USE-CURRENT REVISION-PROTOCOL:RETRY)
    choosing USE-CURRENT
-   move-ref returned: "lyszmstppxuy"
+   move-ref returned: "wowwrlonupyp"
    main unchanged: T
 
 ========================================================================
@@ -575,20 +575,20 @@ diff --git a/a.txt b/a.txt
    drained paths: ("a/one.txt" "a/two.txt" "b/two.txt" "c" "c/d" "c/d/x.txt" "child.txt" "e" "e/f.txt"
                    "keep.txt" "new.txt")
    complete-p: T
-   drain wall time, ms: 53.8
+   drain wall time, ms: 53.6
    a/untouched.txt reported (expected NIL): NIL
    second drain with no edits in between (paths complete-p): (NIL T)
 
 -- an area with :journal :auto over 2000 files: fs-area-changes vs :rescan t
    drain floor: an idle journal-drain on this mechanism, ms (min of 3): 51.8
    area-journal mechanism: :FSEVENTS
-   first call (absorbs the copy's own events): 0 changes; full rescan 72.9 ms, journal 52.8 ms; EQUAL: T
-   round 1 (5 edits, cumulative): 6 changes; full rescan 68.6 ms, journal 60.8 ms; EQUAL: T
-   round 2 (5 edits, cumulative): 12 changes; full rescan 67.4 ms, journal 59.5 ms; EQUAL: T
-   round 3 (5 edits, cumulative): 18 changes; full rescan 65.6 ms, journal 58.6 ms; EQUAL: T
-   no edits since the last call: 18 changes; full rescan 71.3 ms, journal 52.9 ms; EQUAL: T
-   rounds 1-3 total: full rescan 201.6 ms, journal 178.9 ms (1.1x)
-   journal minus 3 drain floors (the narrowed re-examination itself): 23.5 ms vs 201.6 ms
+   first call (absorbs the copy's own events): 0 changes; full rescan 72.8 ms, journal 51.9 ms; EQUAL: T
+   round 1 (5 edits, cumulative): 6 changes; full rescan 68.7 ms, journal 60.9 ms; EQUAL: T
+   round 2 (5 edits, cumulative): 12 changes; full rescan 67.1 ms, journal 58.8 ms; EQUAL: T
+   round 3 (5 edits, cumulative): 18 changes; full rescan 71.8 ms, journal 59.7 ms; EQUAL: T
+   no edits since the last call: 18 changes; full rescan 68.1 ms, journal 52.6 ms; EQUAL: T
+   rounds 1-3 total: full rescan 207.6 ms, journal 179.4 ms (1.2x)
+   journal minus 3 drain floors (the narrowed re-examination itself): 24.0 ms vs 207.6 ms
    final changes:
    ADDED      d00/moved-1.txt  sha256:f8746c06
    ADDED      d00/moved-2.txt  sha256:250ffc6e
@@ -617,10 +617,10 @@ diff --git a/a.txt b/a.txt
    MODIFIED   sub/y.txt  sha256:3bb2abb6 -> sha256:4e0c8b58
    ADDED      w.txt  sha256:50e721e4
    inject an overflow into the :FSEVENTS journal: T
-   after the injected overflow: 2 changes; full rescan 0.3 ms, journal 52.6 ms; EQUAL: T
+   after the injected overflow: 2 changes; full rescan 0.4 ms, journal 52.4 ms; EQUAL: T
    ADDED      sub/v.txt  sha256:4c94485e
    MODIFIED   x.txt  sha256:73cb3858 -> sha256:34484d4d
-   next call (complete again): 3 changes; full rescan 0.5 ms, journal 53.3 ms; EQUAL: T
+   next call (complete again): 3 changes; full rescan 0.6 ms, journal 52.9 ms; EQUAL: T
    a raw drain on a fresh journal after an injected overflow: ((NIL NIL) (NIL T))
 
 -- cl-stack-pathlib/journal-suite: run-journal-suite :FSEVENTS
@@ -630,7 +630,7 @@ diff --git a/a.txt b/a.txt
            :SYMLINK-CREATE :SYMLINK-RETARGET :MODE-CHANGE :CASE-ONLY-RENAME :BURST :BURST-DELETE
            :CHILD-PROCESS)
    failures: NIL
-   elapsed seconds: 1.6
+   elapsed seconds: 1.7
    suite passed for :FSEVENTS: 19/19 steps keep the law
 
 -- verdict
@@ -638,94 +638,3 @@ diff --git a/a.txt b/a.txt
 
 ========================================================================
 Demos run: 7, failed: none
-
-
-########################################################################
-## Linux (ci-base container, Linux 7.2.12-orbstack-00394-gbecdd6130068 x86_64; SBCL 2.6.7.roswell): Demo 7 only, (harness-demos-fs::demo-journal)
-########################################################################
-========================================================================
-== Demo 7: cl-stack-pathlib 0.9.0 change journals (R4b) on fs-backend-darwin / fs-backend-linux 0.1.0
-========================================================================
-
--- the mechanism registry: what :auto picks on this OS
-   OS: :LINUX
-   registered ranking, best first (watch-mechanisms): (:FSEVENTS :INOTIFY :POLL)
-   available for a local temp directory: (:INOTIFY :POLL)
-   available on a memory filesystem: (:POLL)
-   fs-watch :auto → journal-mechanism: :INOTIFY
-   journal-open-p: T
-   journal-open-p after journal-close: NIL
-   journal-close again (idempotent): NIL
-   journal-drain after close: CL-STACK-PATHLIB:JOURNAL-ERROR
-   fs-watch :mechanism :FSEVENTS here (unavailable): CL-STACK-PATHLIB:UNSUPPORTED-OPERATION
-
--- fs-watch a tree, edit it (pathlib, CL rename, a child process), journal-drain
-   journal-mechanism: :INOTIFY
-   edits: create new.txt; modify a/one.txt; rename a/two.txt → b/two.txt;
-          delete keep.txt; mkdir c/d/ with c/d/x.txt; a child sh (process-protocol)
-          writes child.txt and makes e/ with e/f.txt
-   drained paths: ("a/one.txt" "a/two.txt" "b/two.txt" "c" "child.txt" "e"
-                   "keep.txt" "new.txt")
-   complete-p: T
-   drain wall time, ms: 1.0
-   a/untouched.txt reported (expected NIL): NIL
-   second drain with no edits in between (paths complete-p): (NIL T)
-
--- an area with :journal :auto over 2000 files: fs-area-changes vs :rescan t
-   drain floor: an idle journal-drain on this mechanism, ms (min of 3): 0.0
-   area-journal mechanism: :INOTIFY
-   first call (absorbs the copy's own events): 0 changes; full rescan 60.0 ms, journal 2.0 ms; EQUAL: T
-   round 1 (5 edits, cumulative): 6 changes; full rescan 60.0 ms, journal 5.0 ms; EQUAL: T
-   round 2 (5 edits, cumulative): 12 changes; full rescan 56.0 ms, journal 4.0 ms; EQUAL: T
-   round 3 (5 edits, cumulative): 18 changes; full rescan 56.0 ms, journal 4.0 ms; EQUAL: T
-   no edits since the last call: 18 changes; full rescan 106.0 ms, journal 1.0 ms; EQUAL: T
-   rounds 1-3 total: full rescan 172.0 ms, journal 13.0 ms (13.2x)
-   journal minus 3 drain floors (the narrowed re-examination itself): 13.0 ms vs 172.0 ms
-   final changes:
-   ADDED      d00/moved-1.txt  sha256:f8746c06
-   ADDED      d00/moved-2.txt  sha256:250ffc6e
-   ADDED      d00/moved-3.txt  sha256:d543b88c
-   MODIFIED   d01/f007.txt  sha256:61c5b84c -> sha256:456d7b1a
-   MODIFIED   d02/f007.txt  sha256:f0d805b0 -> sha256:5f75f165
-   MODIFIED   d03/f007.txt  sha256:5e7a358e -> sha256:d767ef7c
-   REMOVED    d06/f050.txt  sha256:00d71cad
-   REMOVED    d07/f050.txt  sha256:b5cb7f98
-   REMOVED    d08/f050.txt  sha256:c5a2344e
-   ADDED      d11/new-1.txt  sha256:11507a0e
-   ADDED      d12/new-2.txt  sha256:11507a0e
-   ADDED      d13/new-3.txt  sha256:11507a0e
-   REMOVED    d16/f060.txt  sha256:f8746c06
-   REMOVED    d17/f060.txt  sha256:250ffc6e
-   REMOVED    d18/f060.txt  sha256:d543b88c
-   MODIFIED   d19/f010.txt  sha256:b3b6cd22 -> sha256:6b631f50
-   MODIFIED   d19/f020.txt  sha256:47b0905d -> sha256:0fd2748a
-   MODIFIED   d19/f030.txt  sha256:68e9e9ee -> sha256:5e34d8a5
-   journal closed with the area: T
-
--- incomplete drains (complete-p NIL) → a full rescan, the same answer
-   fs-watch :mechanism :poll, after an edit: (paths complete-p): (NIL NIL)
-   area-journal mechanism: :POLL
-   :poll area: 2 changes; full rescan 0.0 ms, journal 0.0 ms; EQUAL: T
-   MODIFIED   sub/y.txt  sha256:3bb2abb6 -> sha256:4e0c8b58
-   ADDED      w.txt  sha256:50e721e4
-   inject an overflow into the :INOTIFY journal: T
-   after the injected overflow: 2 changes; full rescan 0.0 ms, journal 1.0 ms; EQUAL: T
-   ADDED      sub/v.txt  sha256:4c94485e
-   MODIFIED   x.txt  sha256:73cb3858 -> sha256:34484d4d
-   next call (complete again): 3 changes; full rescan 0.0 ms, journal 0.0 ms; EQUAL: T
-   a raw drain on a fresh journal after an injected overflow: ((NIL NIL)
-                                                               (NIL T))
-
--- cl-stack-pathlib/journal-suite: run-journal-suite :INOTIFY
-   steps run: 19
-   steps: (:NO-EDITS :CREATE :MODIFY-SAME-SIZE :MODIFY-SIZE :REVERT :DELETE
-           :RENAME-IN-DIRECTORY :RENAME-ACROSS-DIRECTORIES :DIRECTORY-CREATE
-           :DIRECTORY-DELETE :DIRECTORY-RENAME :IGNORED :SYMLINK-CREATE
-           :SYMLINK-RETARGET :MODE-CHANGE :CASE-ONLY-RENAME :BURST
-           :BURST-DELETE :CHILD-PROCESS)
-   failures: NIL
-   elapsed seconds: 0.4
-   suite passed for :INOTIFY: 19/19 steps keep the law
-
--- verdict
-   law breaks (journal ≠ full rescan): NIL

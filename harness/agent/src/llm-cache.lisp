@@ -1,10 +1,28 @@
 (in-package #:harness-demos-agent)
 
-;;; Demo 5: llm-protocol-openai 0.4.0 prompt cache, live against LM Studio.
-;;; The token comes from LM_API_TOKEN, else from the workspace .env; it is
+;;; Demo 5: llm-protocol-openai 0.4.0 prompt cache, live against LM Studio (or
+;;; the OpenAI-compatible server in HARNESS_DEMOS_BASE_URL). The key comes from
+;;; HARNESS_DEMOS_API_KEY, else LM_API_TOKEN, else the workspace .env; it is
 ;;; never printed.
 
-(defparameter *lm-studio-url* "http://127.0.0.1:1234/v1")
+(defparameter *default-base-url* "http://127.0.0.1:1234/v1")
+
+(defun %base-url ()
+  "HARNESS_DEMOS_BASE_URL (any OpenAI-compatible /v1 endpoint), else LM
+Studio's default."
+  (let ((u (uiop:getenv "HARNESS_DEMOS_BASE_URL")))
+    (string-right-trim "/" (if (and u (plusp (length (string-trim " " u))))
+                               (string-trim " " u)
+                               *default-base-url*))))
+
+(defun %url-host (url)
+  "host[:port] of URL, for the output (the key is never printed)."
+  (let* ((start (let ((p (search "://" url))) (if p (+ p 3) 0)))
+         (end (or (position #\/ url :start start) (length url))))
+    (subseq url start end)))
+
+(defparameter *lm-studio-url* (%base-url)
+  "The endpoint; DETECT-MODEL reads HARNESS_DEMOS_BASE_URL again.")
 
 (defun %env-file-value (path key)
   (when (probe-file path)
@@ -16,10 +34,14 @@
                    (return (string-trim " \"'" (subseq line (1+ p))))))))))
 
 (defun %lm-token ()
-  (or (uiop:getenv "LM_API_TOKEN")
-      (%env-file-value (or (uiop:getenv "HARNESS_DEMOS_ENV_FILE")
-                           (merge-pathnames "Projects/cl-workspace/.env" (user-homedir-pathname)))
-                       "LM_API_TOKEN")))
+  "HARNESS_DEMOS_API_KEY when set, else LM_API_TOKEN from the environment or
+the workspace .env. \"\" (empty or absent) sends no Authorization header."
+  (string-trim " " (or (uiop:getenv "HARNESS_DEMOS_API_KEY")
+                       (uiop:getenv "LM_API_TOKEN")
+                       (%env-file-value (or (uiop:getenv "HARNESS_DEMOS_ENV_FILE")
+                                            (merge-pathnames "Projects/cl-workspace/.env" (user-homedir-pathname)))
+                                        "LM_API_TOKEN")
+                       "")))
 
 (defun %body-text (body)
   (etypecase body
@@ -61,6 +83,11 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
     (dolist (k path v)
       (setf v (and (hash-table-p v) (gethash k v))))))
 
+(defun %model-override ()
+  "The exact model id in HARNESS_DEMOS_MODEL, or NIL when unset or empty."
+  (let ((id (uiop:getenv "HARNESS_DEMOS_MODEL")))
+    (and id (plusp (length (string-trim " " id))) (string-trim " " id))))
+
 (defun %pick-model (models)
   (let ((ids (mapcar #'llm:llm-model-info-id models)))
     (flet ((chat-p (id) (notany (lambda (bad) (search bad id)) '("embed" "ocr"))))
@@ -70,10 +97,11 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
 
 (defun demo-llm-cache ()
   (banner "Demo 5: llm-protocol-openai 0.4.0 prompt cache, live LM Studio")
-  (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend)
+  (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend
+        *lm-studio-url* (%base-url))
   (let ((hp:*http-backend* (http-backend-async:make-async-backend))
         (token (%lm-token)))
-    (show "LM_API_TOKEN found" (and token (plusp (length token)) t))
+    (show "API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN)" (and (plusp (length token)) t))
     ;; No LM Studio (CI runners): report the skip instead of failing the run.
     (handler-case (http:request :get (format nil "~a/models" *lm-studio-url*) :timeout 5)
       ((or hp:http-connection-error hp:http-timeout-error) (c)
@@ -84,9 +112,12 @@ the bound backend) and pushing (request-json . response-json) onto LOG's car."
                                                    :request-fn (%tapping-request-fn log))))
       (stage "5a. list models")
       (let* ((models (llm:list-models backend))
-             (model (%pick-model models)))
+             (override (%model-override))
+             (model (or override (%pick-model models))))
         (show "models" (mapcar #'llm:llm-model-info-id models))
         (show "picked chat model" model)
+        (note "MODEL THAT RAN: ~a at ~a (~a)" model (%url-host *lm-studio-url*)
+              (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: a 2b, then a 4b, then any chat model"))
         (unless model (error "no chat model in LM Studio"))
 
         (stage "5b. two requests, same long system prompt, prompt_cache_key \"harness-demo-run\" (reasoning_effort none)")
