@@ -722,7 +722,7 @@ stderr:
    2│  ⎿ notes.txt│
    3││
    4│● read <tmp-root>/cl-stack-code-de…│
-   5│  ⎿ Tool read rejected its arguments: private/var/folders/z7/7gcqc88j6hxd63ltgk…│
+   5│  ⎿ Tool read rejected its arguments: <tmp-root>…│
    6│    … +1 lines│
    7││
    8│● read /notes.txt│
