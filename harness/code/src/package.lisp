@@ -10,7 +10,9 @@
                     (#:bt #:bordeaux-threads)
                     (#:w #:tui-protocol/widgets)
                     (#:h #:tui-backend-terminal)
-                    (#:tl #:terminal-backend-lisp))
+                    (#:tl #:terminal-backend-lisp)
+                    (#:rpc #:rpc-protocol)
+                    (#:stdio #:rpc-backend-stdio))
   (:export #:run-demos
            #:demo-text
            #:demo-stream-json
@@ -27,4 +29,8 @@
            #:demo-checkpoints-interactive
            #:demo-image-headless
            #:demo-image-interactive
-           #:demo-image-observe))
+           #:demo-image-observe
+           #:demo-sdk
+           #:demo-rpc-wire
+           #:demo-rpc-process
+           #:rpc-child-main))

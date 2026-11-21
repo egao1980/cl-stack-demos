@@ -4,7 +4,8 @@
   '(demo-text demo-stream-json demo-headless-denial demo-settings demo-instructions
     demo-interactive demo-plan-headless demo-plan-interactive demo-plan-real-model
     demo-checkpoints demo-checkpoints-plan demo-checkpoints-retention demo-checkpoints-interactive
-    demo-image-headless demo-image-interactive demo-image-observe))
+    demo-image-headless demo-image-interactive demo-image-observe
+    demo-sdk demo-rpc-wire demo-rpc-process))
 
 (defun run-demos (&key (demos *demos*))
   "Run each demo; an error is printed and the next demo runs. → T when none
@@ -15,7 +16,8 @@ raised an error."
       (dolist (name '("cl-stack-code" "ai-agent-protocol" "agent-tools" "cli-protocol"
                       "cli-backend-clingon" "cl-stack-pathlib" "revision-protocol" "revision-backend-git" "revision-backend-jj" "diff-protocol" "llm-protocol" "llm-protocol-openai"
                       "tui-protocol" "tui-markdown" "tui-backend-terminal" "tui-backend-tty"
-                      "steer-protocol" "http-backend-async" "event-backend-libuv" "lisp-mcp" "lisp-mcp/agent" "repl-backend-swank"))
+                      "steer-protocol" "http-backend-async" "event-backend-libuv" "lisp-mcp" "lisp-mcp/agent" "repl-backend-swank"
+                      "rpc-protocol" "rpc-protocol-json" "rpc-backend-stdio"))
         (let ((system (asdf:find-system name nil)))
           (note "  ~22a ~a" name (and system (asdf:component-version system)))))
       (detect-model)
