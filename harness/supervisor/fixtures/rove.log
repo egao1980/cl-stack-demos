@@ -1,0 +1,72 @@
+WARNING: System definition file #P"/home/dev/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names; cl-repo: testing calc in a fresh image
+WARNING: System definition file #P"/home/dev/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; compiling file "/home/dev/calc/calc-test.lisp" (written 21 NOV 2026 01:00:48 PM):
+
+; wrote /home/dev/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64/home/dev/calc/calc-test-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.012
+WARNING:
+   Deprecated recursive use of (ASDF/OPERATE:OPERATE 'ASDF/LISP-ACTION:LOAD-OP
+   '("calc/tests")) while visiting (ASDF/LISP-ACTION:TEST-OP "calc/tests") -
+   please use proper dependencies instead
+
+Testing System calc/tests
+
+;; testing 'calc/tests'
+[37madd-small-numbers[0m
+  [32m✓ [0m[90mExpect (= 3 (ADD 1 2)) to be true.[0m
+  [32m✓ [0m[90mExpect (= 0 (ADD -1 1)) to be true.[0m
+[37madd-floats[0m
+  [31m× [0m[31m0) 0.1 + 0.2 is 0.3[0m
+[37mdiv-integers[0m
+  [32m✓ [0m[90mExpect (= 2 (DIV 4 2)) to be true.[0m
+  [32m✓ [0m[90mExpect (= 1/2 (DIV 1 2)) to be true.[0m
+[37mdiv-by-zero-signals[0m
+  [32m✓ [0m[90mExpect (DIV 1 0) to signal DIVISION-BY-ZERO.[0m
+[37mparse-amount-plain[0m
+  [32m✓ [0m[90mExpect (= 42 (PARSE-AMOUNT "42")) to be true.[0m
+[37mparse-amount-with-currency[0m
+  [31m× [0m[31m1) leading currency sign is skipped[0m
+[37mparse-amount-empty[0m
+  [32m✓ [0m[90mExpect (NULL (PARSE-AMOUNT "")) to be true.[0m
+
+[31m× 1 of 1 test failed[0m
+
+[37m0) calc/tests
+     › ADD-FLOATS
+[0m
+   [37m0.1 + 0.2 is 0.3[0m
+       at ./calc-test.lisp:7:2
+     [90m(= 0.3d0 #1=(CALC:ADD 0.1d0 0.2d0))
+         #1# = 0.30000000000000004d0[0m
+
+[37m1) calc/tests
+     › PARSE-AMOUNT-WITH-CURRENCY
+[0m
+   [37mleading currency sign is skipped[0m
+       at ./calc-test.lisp:16:2
+   [31mTYPE-ERROR: The value
+                 NIL
+               is not of type
+                 NUMBER[0m
+     [90m(= 42 (CALC:PARSE-AMOUNT "$42"))[0m
+
+     [90m0: (SB-KERNEL:TWO-ARG-= 42 NIL)[0m
+     [90m1: (= 42 NIL)[0m
+     [90m2: ((LAMBDA NIL :IN "/home/dev/calc/calc-test.lisp"))[0m
+     [90m3: (ROVE/CORE/TEST::CALL-WITH-TESTING-WITH-OPTIONS parse-amount-with-currency PARSE-AMOUNT-WITH-CURRENCY #<FUNCTION (LAMBDA NIL :IN "/home/dev/calc/calc-test.lisp") {70090B561B}>)[0m
+     [90m4: ((:METHOD RUN-SUITE-TESTS (ROVE/CORE/SUITE/PACKAGE::SUITE)) #<SUITE {7008CA07D3}>)[0m
+     [90m5: ((:METHOD RUN-SYSTEM (ASDF/SYSTEM:SYSTEM)) #<SYSTEM "calc/tests">)[0m
+     [90m6: ((LAMBDA NIL :IN ROVE/CORE/SUITE::RUN-SYSTEM-TESTS))[0m
+     [90m7: (ROVE/CORE/SUITE::CALL-WITH-SUITE #<FUNCTION (LAMBDA NIL :IN ROVE/CORE/SUITE::RUN-SYSTEM-TESTS) {7008CA06FB}>)[0m
+     [90m8: ((:METHOD INVOKE-REPORTER (T T)) #<SPEC-REPORTER PASSED=0, FAILED=0> #<FUNCTION (LAMBDA NIL :IN RUN) {7008CA06DB}>)[0m
+     [90m9: ((:METHOD RUN (T)) #<SYSTEM "calc/tests"> STYLE NIL ENV NIL MARKS NIL SHARD NIL SHARDS NIL JUNIT-FILE NIL)[0m
+     [90m10: ((SB-PCL::EMF ASDF/ACTION:PERFORM) #<unused argument> #<unused argument> #<TEST-OP > #<SYSTEM "calc/tests">)[0m
+     [90m11: ((LAMBDA NIL :IN ASDF/ACTION:CALL-WHILE-VISITING-ACTION))[0m
+     [90m12: ((:METHOD ASDF/ACTION:PERFORM-WITH-RESTARTS :AROUND (T T)) #<TEST-OP > #<SYSTEM "calc/tests">)[0m
+     [90m13: ((:METHOD ASDF/PLAN:PERFORM-PLAN (T)) #<SEQUENTIAL-PLAN {7008CA0383}>)[0m
+     [90m14: ((FLET SB-C::WITH-IT :IN SB-C::%WITH-COMPILATION-UNIT))[0m
+
+Summary:
+  1 test failed.
+    - calc/tests

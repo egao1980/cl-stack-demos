@@ -7,7 +7,13 @@ It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
 WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
+WARNING: redefining LLM-PROTOCOL:INVOKE-RETRY in DEFUN
+WARNING: redefining LLM-PROTOCOL:INVOKE-USE-VALUE in DEFUN
+WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+
+supervisor-protocol 0.3.0, agent-tools 0.3.0, llm-protocol-openai 0.6.0 on SBCL 2.6.9 (Darwin)
 
 ========================================================================
 == Demo 1: supervisor-protocol 0.2.0 (H8a) — scopes and units
@@ -28,16 +34,18 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
 
 -- the unit table (supervisor-units, start order)
    id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  11956
-   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  11958
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  55863
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  55865
    subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :RUNNING  -
-   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  11960
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  55867
    [ok] every process unit has a pid, the thread none
 
 -- echo round trip: send-unit-input, then unit-output
    [ok] the server echoed the line
    unit-output: "hello supervisor
 "
+
+   [demo-scopes: 0.3 s]
 
 ========================================================================
 == Demo 2: queries by kind / owner / label / state; close the subagent scope
@@ -64,31 +72,33 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    close-scope again (idempotent): NIL
    scope-closed-p: T
    id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  11956
-   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  11958
+   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  55863
+   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  55865
    subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :KILLED   -
-   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   11960
+   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   55867
    [ok] the subagent's thread and its job are :killed, the rest :running
    the thread's result (cooperative stop): :DONE
    start-unit in the closed scope → signalled: SUPERVISOR-PROTOCOL:SCOPE-CLOSED
+
+   [demo-queries: 0.0 s]
 
 ========================================================================
 == Demo 3: kill the server's process → one restart with backoff; the event stream
 ========================================================================
 
--- kill -9 / taskkill /F the server (pid 11958) from outside
+-- kill -9 / taskkill /F the server (pid 55865) from outside
    last seq before the kill: 10
    [ok] restarted: :running again with restart-count 1
    same unit, same id: "rpc-1"
-   [ok] a new pid (11958 → 11971)
+   [ok] a new pid (55865 → 55870)
    [ok] the new process is wired to the same unit
 
 -- the server's events (subscribe :since 0, from Demo 1 on)
    #  3 rpc-1      :STATE             NIL       → :STARTING  (+0.00 s)
    #  4 rpc-1      :STATE             :STARTING → :RUNNING   (+0.00 s)
-   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)  (+0.21 s)
-   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)  (+0.21 s)
-   # 13 rpc-1      :STATE             :FAILED   → :STARTING  (+0.71 s)
+   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)  (+0.20 s)
+   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)  (+0.20 s)
+   # 13 rpc-1      :STATE             :FAILED   → :STARTING  (+0.70 s)
    # 14 rpc-1      :STATE             :STARTING → :RUNNING   (+0.81 s)
    [ok] transitions: nil→starting→running→failed, restart-scheduled, failed→starting→running
    failed detail (external kill = non-zero exit, no signal recorded): (:EXIT-CODE 137 :SIGNAL NIL)
@@ -111,14 +121,16 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    unsubscribe: NIL
    subscription-active-p after unsubscribe: NIL
 
+   [demo-restart: 1.1 s]
+
 ========================================================================
 == Demo 4: caps + LRU eviction (:kind-caps (:shell-job 2))
 ========================================================================
 
 -- at the cap: shell-job-1 finished, shell-job-2 running
    id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   11973
-   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  11975
+   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   55872
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  55874
 
 -- start a third → the least recently used FINISHED unit is evicted silently
    started: "shell-job-3"
@@ -126,8 +138,8 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    #  6 shell-job-1 :EVICTED           :EXITED   → NIL      
    [ok] the finished unit was evicted
    id               kind        owner                                  state     pid
-   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  11975
-   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  11977
+   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  55874
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  55876
 
 -- start a fourth with both live → unit-limit-reached; take EVICT-LRU
    signalled: SUPERVISOR-PROTOCOL:UNIT-LIMIT-REACHED
@@ -139,8 +151,8 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    victim's state: :KILLED
    [ok] the victim was stopped and evicted
    id               kind        owner                                  state     pid
-   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  11977
-   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  11979
+   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  55876
+   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  55878
 
 -- start a fifth → unit-limit-reached; take ABORT
      restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
@@ -154,13 +166,15 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    [ok] restarts: only ABORT
    [ok] refused starts took no id: the next one is shell-job-5
 
+   [demo-caps: 0.4 s]
+
 ========================================================================
 == Demo 5: stop escalation — graceful → stop-timeout → FORCE
 ========================================================================
 
 -- a process that ignores SIGTERM (stop-unit :grace 1)
    signalled (not an error): SUPERVISOR-PROTOCOL:STOP-TIMEOUT
-     phase / waited: (:GRACEFUL 1.0020580000000003d0)
+     phase / waited: (:GRACEFUL 1.0020479999999994d0)
      restarts: (SUPERVISOR-PROTOCOL:FORCE SUPERVISOR-PROTOCOL:KEEP-WAITING)
    → FORCE
    final state: :KILLED
@@ -169,9 +183,9 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    [ok] forced after the grace: :killed by :kill
 
 -- a thread that never polls unit-stop-requested-p (stop-unit :grace 0.5): KEEP-WAITING once, then FORCE
-   stop-timeout #1 waited: 0.5020449999999994d0
+   stop-timeout #1 waited: 0.50204d0
    → KEEP-WAITING
-   stop-timeout #2 waited: 1.0042579999999997d0
+   stop-timeout #2 waited: 1.0043629999999997d0
    → FORCE (bt2:interrupt-thread unwinds the body)
    final state: :KILLED
    seconds: 1.0
@@ -181,6 +195,8 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
 -- unhandled stop-timeout → forced anyway
    [ok] stop-unit returned :KILLED
 
+   [demo-stop: 2.4 s]
+
 ========================================================================
 == Demo 6: crash recovery — SIGKILL a child supervisor, the next one sweeps its orphans
 ========================================================================
@@ -188,11 +204,11 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    child image ready after (s): 0.4
 
 -- before the crash
-   child image pid: 11992
+   child image pid: 55885
    units in the child (shell-job tree, rpc, subagent thread): 3
-   shell-job root pid: 11993
-   grandchild pids: (11995 11996)
-   rpc server pid: 11998
+   shell-job root pid: 55886
+   grandchild pids: (55887 55889)
+   rpc server pid: 55891
    unit files (process units only): ("<sup>--rpc-1.unit" "<sup>--shell-job-1.unit")
    one unit file's keys: (:FORMAT :SUPERVISOR-ID :SUPERVISOR-PID :SUPERVISOR-OS-START :UNIT-ID :KIND :PID
                           :PGID :OS-START :COMMAND :CWD :INSPECTOR)
@@ -200,20 +216,22 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
 
 -- SIGKILL the child image (taskkill /F on Windows): no exit hook runs
    child alive: NIL
-   orphans alive (pid alive-p): ((11998 T) (11995 T) (11996 T) (11993 T))
+   orphans alive (pid alive-p): ((55891 T) (55887 T) (55889 T) (55886 T))
    [ok] the crash left every unit process behind
 
 -- make-supervisor :state-directory (same directory) → sweep-orphans first
    make-supervisor seconds (incl. the sweep): 0.3
-   rpc-1        pid  11998 pgid  11998  :KILLED killed (11998)
-   shell-job-1  pid  11993 pgid  11993  :KILLED killed (11993 11995 11996)
+   rpc-1        pid  55891 pgid  55891  :KILLED killed (55891)
+   shell-job-1  pid  55886 pgid  55886  :KILLED killed (55886 55887 55889)
    [ok] two records (rpc-1, shell-job-1), both :killed
    [ok] the killed pids are exactly the four orphans
 
 -- after the sweep
    [ok] every orphan is dead, grandchildren included
-   orphans alive: ((11998 NIL) (11995 NIL) (11996 NIL) (11993 NIL))
+   orphans alive: ((55891 NIL) (55887 NIL) (55889 NIL) (55886 NIL))
    unit files left: 0
+
+   [demo-sweep: 1.9 s]
 
 ========================================================================
 == Demo 7: supervisor-protocol 0.2.0 (H8b) — rotated, capped unit logs
@@ -244,7 +262,7 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    line   2978  seg 13  :DROP   NIL      (SEGMENT 9 FIRST-LINE 1985 LAST-LINE 2232 RECORDS 248 BYTES 251904
                                           REASON ROTATED)
    newest segment's header (cumulative drops):
-   line   2977  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 11955-7e5c7766 UNIT-ID shell-job-1 KIND
+   line   2977  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 55862-1646c860 UNIT-ID shell-job-1 KIND
                                           SHELL-JOB SEGMENT 13 FIRST-LINE 2977 DROPPED-THROUGH 8
                                           DROPPED-RECORDS 1984 DROPPED-BYTES 2019328)
    end record:
@@ -263,7 +281,7 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    [ok] the output lines continue across the segments (the header line is not output)
    :types t on the same range shows the next segment's header:
    line   2728  seg 11  :OUTPUT :STDOUT  line-02710 xxxxxxxxxxxxx…(1023 chars)
-   line   2729  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 11955-7e5c7766 UNIT-ID shell-job-1 KIND
+   line   2729  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 55862-1646c860 UNIT-ID shell-job-1 KIND
                                           SHELL-JOB SEGMENT 12 FIRST-LINE 2729 DROPPED-THROUGH 7
                                           DROPPED-RECORDS 1736 DROPPED-BYTES 1767424)
    paging: :limit 2 → lines / gaps / next-line: ((2235 2236) 1 2237)
@@ -289,8 +307,8 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    bytes written / rebuilt from records: (2549 2549)
    [ok] every byte unchanged (equalp)
    records: 14
-   a raw base64 record in the segment file: "4 1795266227130 8001 ob. AAECAwQFBgcICQ== c33ee940"
-   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795266227130 8001 ot. tab	there, ESC \x1b[1m bold 6f644593
+   a raw base64 record in the segment file: "4 1795278522644 8555 ob. AAECAwQFBgcICQ== f08394ac"
+   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795278522644 8555 ot. tab	there, ESC \x1b[1m bold f395098f
 
 -- disk usage vs the total cap
    supervisor-log-usage / log-total-cap: (836131 4194304)
@@ -301,14 +319,14 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    [ok] the child image is gone
    find-unit-logs: 1
    unit id / closed-p (no end record after a SIGKILL): ("subagent-1" NIL)
-   records read by this image / gaps: (2371 NIL)
+   records read by this image / gaps: (2288 NIL)
    segments: 7
    [ok] contiguous n-1 … n-K, no gap
    last segment torn-p as the kill left it: NIL
    append half a record (no LF, no CRC), as a kill mid-write leaves it
    torn-p now: T
    [ok] the torn tail is skipped: the same records
-   log-tail 2: ("n-2370" "n-2371")
+   log-tail 2: ("n-2287" "n-2288")
 
 -- 7g. total-cap eviction: :log-total-cap 6000, segments of 2048 bytes
    a (26 lines × 101 bytes) finished: usage 4451 / cap 6000, a on disk 4451, 26 lines
@@ -321,7 +339,7 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    b: 0 lines, 459 bytes, gaps (:TOTAL-CAP)
    c: 22 lines kept, 3838 bytes, gaps (:TOTAL-CAP), state :RUNNING
    a's stub:
-   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 11955-8070416c UNIT-ID subagent-1 KIND
+   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 55862-ed5c546f UNIT-ID subagent-1 KIND
                                          SUBAGENT SEGMENT 3 FIRST-LINE 29 DROPPED-THROUGH 1 DROPPED-RECORDS
                                          14 DROPPED-BYTES 1313)
    line     30  seg 3  :DROP   NIL      (SEGMENT 2 FIRST-LINE 15 LAST-LINE 28 RECORDS 14 BYTES 1313 REASON
@@ -332,336 +350,870 @@ supervisor-protocol 0.2.0 on SBCL 2.6.9 (Darwin)
    [ok] finished units emptied first, then c's old segments; c's newest kept
    [ok] usage = the bytes of every segment and index file
 
-========================================================================
-Demos run: 7, failed: none; 9.8 s
-
-########################################################################
-## Linux run (ci-base container, linux/amd64 under emulation, cl-repo run)
-########################################################################
-supervisor-protocol 0.2.0 on SBCL 2.6.7.roswell (Linux)
+   [demo-logs: 3.6 s]
 
 ========================================================================
-== Demo 1: supervisor-protocol 0.2.0 (H8a) — scopes and units
+== Demo 8: the log search index (supervisor-protocol/search 0.3.0, H8c)
 ========================================================================
 
--- the scope tree
-   :SUPERVISOR    (root)
-   :SESSION       session-1
-   :AGENT         session-1 › coder
-   :TOOL-SOURCE   session-1 › coder › echo-tools
-   :AGENT         session-1 › coder › subagent-1
-   supervisor-id (<pid>-<8 hex>): 11
+-- 8a. tokenize and line-kinds (tokenizer version 1; kinds (:ERROR :WARNING :STACK-TRACE :TEST-FAILURE :EXIT))
+   src/parser.c:7:12: error: use of undeclared identifier 'tokn'; did you mean 'tok'?
+       kinds (:ERROR)  terms ("src/parser.c:7:12" "src/parser.c" "parser.c" "src" "parser" "7" "12" "error"
+                              "use" "of" "undeclared" "identifier" "tokn" "did" "you" "mean" "tok")
+   src/util.c:2:32: warning: unused variable 'y' [-Wunused-variable]
+       kinds (:WARNING)  terms ("src/util.c:2:32" "src/util.c" "util.c" "src" "util" "2" "32" "warning"
+                                "unused" "variable" "wunused-variable" "wunused" "variable")
+   make: *** [src/parser.o] Error 1
+       kinds (:ERROR)  terms ("make" "src/parser.o" "parser.o" "src" "parser" "error" "1")
+   1 error generated.
+       kinds (:ERROR)  terms ("1" "error" "generated")
+   0 errors, 2 warnings
+       kinds NIL  terms ("0" "errors" "2" "warnings")
+   cc -Wall -Wextra -O2 -c -o src/errors.o src/errors.c
+       kinds NIL  terms ("cc" "wall" "wextra" "o2" "src/errors.o" "errors.o" "src" "errors" "src/errors.c"
+                         "errors.c" "src" "errors")
+     × 1) leading currency sign is skipped
+       kinds (:TEST-FAILURE)  terms ("1" "leading" "currency" "sign" "is" "skipped")
+   TypeError: Cannot read properties of undefined (reading 'roles')
+       kinds (:ERROR)  terms ("typeerror" "type" "error" "cannot" "read" "properties" "of" "undefined"
+                              "reading" "roles")
+       at userRoles (/home/dev/webapp/src/routes.js:5:23)
+       kinds NIL  terms ("at" "userroles" "user" "roles" "home/dev/webapp/src/routes.js:5:23"
+                         "home/dev/webapp/src/routes.js" "routes.js" "home" "dev" "webapp" "src" "routes"
+                         "js" "5" "23")
+   (node:11554) [DEP0005] DeprecationWarning: Buffer() is deprecated
+       kinds (:WARNING)  terms ("node:11554" "node" "node" "11554" "dep0005" "deprecationwarning"
+                                "deprecation" "warning" "buffer" "is" "deprecated")
+   --- FAIL: TestParseHTTPResponse_v2 (0.00s)
+       kinds (:TEST-FAILURE)  terms ("fail" "testparsehttpresponse_v2" "test" "parse" "http" "response" "v2"
+                                     "0.00s" "0" "00s")
+   FAIL add: got -1, expected 5
+       kinds (:TEST-FAILURE)  terms ("fail" "add" "got" "1" "expected" "5")
+   no error in my-package::parse-amount
+       kinds NIL  terms ("no" "error" "in" "my-package::parse-amount" "my-package" "parse-amount" "my"
+                         "package" "parse" "amount")
+   query-terms of TypeError "reading 'roles'" routes.js → terms ("typeerror" "type" "error" "reading" "roles"
+                                                                 "routes.js" "routes" "js") phrases ("reading 'roles'")
 
--- start: a shell job (agent), an echo server (tool source, :restart :on-failure), a subagent thread
-   [ok] the subagent started its own shell job
-   restart policy of the server: :ON-FAILURE
-   kind-default-restart :rpc / :shell-job: (:ON-FAILURE :NEVER)
+-- 8a'. classify-lines finds a stack trace (kind on the first line, extent to the last)
+   line 1 (:ERROR :STACK-TRACE) ends at 6  TypeError: Cannot read properties of undefined (reading 'rol…(64 chars)
 
--- the unit table (supervisor-units, start order)
-   id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  26
-   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  32
-   subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :RUNNING  -
-   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :RUNNING  39
-   [ok] every process unit has a pid, the thread none
+-- 8b. three units' logs: make (a compile error), cl-repo test (Rove failures), npm run dev (TypeErrors)
+   shell-job-1 (:TOOL "make"): 53 lines, state :EXITED
+   shell-job-2 (:TOOL "cl-repo test"): 74 lines, state :EXITED
+   shell-job-3 (:TOOL "npm run dev"): 28 lines, state :EXITED
+   index-log-keys: ("shell-job-1" "shell-job-2" "shell-job-3")
+   refresh-index → records tokenized: 149
+   index-stats: (:LOGS 3 :SEGMENTS 3 :RECORDS 149 :TERMS 616 :TOKENIZED 149 :LOADED 0 :WRITTEN 3 :REBUILT 0)
 
--- echo round trip: send-unit-input, then unit-output
-   [ok] the server echoed the line
-   unit-output: "hello supervisor
-"
+-- search "undeclared identifier" → 1 of 1 hit
+   shell-job-1:1:20  error score 4.796  src/parser.c:7:12: error: use of undeclared identifier 'tokn'; did you mean 'tok'?
+         18 stdout cc -Wall -Wextra -O2 -c -o src/net.o src/net.c
+         19 stdout cc -Wall -Wextra -O2 -c -o src/parser.o src/parser.c
+     >   20 stdout src/parser.c:7:12: error: use of undeclared identifier 'tokn'; did you mean 'tok'?
+         21 stdout     7 |     return tokn->kind + depth;
+         22 stdout       |            ^~~~
 
-========================================================================
-== Demo 2: queries by kind / owner / label / state; close the subagent scope
-========================================================================
+-- search "TYPE-ERROR parse-amount" → 2 of 2 hits
+   shell-job-2:1:49  error score 9.520     TYPE-ERROR: The value
+         47 stdout    leading currency sign is skipped
+         48 stdout        at ./calc-test.lisp:16:2
+     >   49 stdout    TYPE-ERROR: The value
+         50 stdout                  NIL
+         51 stdout                is not of type
+   shell-job-2:1:28   score 6.436    ✓ Expect (= 42 (PARSE-AMOUNT "42")) to be true.
 
--- find-units
-   :kind :shell-job: ("shell-job-1" "shell-job-2")
-   :kind (:rpc :subagent): ("rpc-1" "subagent-1")
-   :owner coder (recursive): ("shell-job-1" "rpc-1" "subagent-1" "shell-job-2")
-   :owner coder :recursive nil: ("shell-job-1")
-   [ok] :owner coder :recursive nil → only the agent's own job
-   :owner subagent-1: ("subagent-1" "shell-job-2")
-   :owner echo-tools: ("rpc-1")
-   :labels (:server "echo"): ("rpc-1")
-   [ok] :labels (:server "echo") → the server
-   :labels (:purpose "test"): ("shell-job-2")
-   :state :running: ("shell-job-1" "rpc-1" "subagent-1" "shell-job-2")
-   find-unit "rpc-1": "rpc-1"
-   scope-units subagent-1: ("subagent-1" "shell-job-2")
+-- search "TypeError roles" → 2 of 2 hits
+   shell-job-3:1:19  error,stack-trace score 6.524 extent 19-24  TypeError: Cannot read properties of undefined (reading 'roles')
+         18 stdout 2026-11-21T12:00:02.000Z GET /api/users/2/roles 500 6ms
+     >   19 stderr TypeError: Cannot read properties of undefined (reading 'roles')
+         20 stderr     at userRoles (/home/dev/webapp/src/routes.js:5:23)
+   shell-job-3:1:8  error,stack-trace score 5.510 extent 8-13  TypeError: Cannot read properties of undefined (reading 'roles')
 
--- close-scope subagent-1 → only its units stop (one stop wave)
-   close-scope: T
-   seconds: 0.1
-   close-scope again (idempotent): NIL
-   scope-closed-p: T
-   id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  session-1 › coder                      :RUNNING  26
-   rpc-1            :RPC        session-1 › coder › echo-tools         :RUNNING  32
-   subagent-1       :SUBAGENT   session-1 › coder › subagent-1         :KILLED   -
-   shell-job-2      :SHELL-JOB  session-1 › coder › subagent-1         :KILLED   39
-   [ok] the subagent's thread and its job are :killed, the rest :running
-   the thread's result (cooperative stop): :DONE
-   start-unit in the closed scope → signalled: SUPERVISOR-PROTOCOL:SCOPE-CLOSED
+-- search "src/util.c unused" → 2 of 2 hits
+   shell-job-1:1:47  warning score 11.665  src/util.c:2:32: warning: unused variable 'y' [-Wunused-variable]
+   shell-job-2:1:65   score 2.444       10: ((SB-PCL::EMF ASDF/ACTION:PERFORM) #<unused argument> #<unused argument> #<TEST-O…(117 chars)
 
-========================================================================
-== Demo 3: kill the server's process → one restart with backoff; the event stream
-========================================================================
+-- search "\"Cannot read properties\"" (:STREAMS (:STDERR)) → 2 of 2 hits
+   shell-job-3:1:19  error,stack-trace score 6.063 extent 19-24  TypeError: Cannot read properties of undefined (reading 'roles')
+   shell-job-3:1:8  error,stack-trace score 5.688 extent 8-13  TypeError: Cannot read properties of undefined (reading 'roles')
+   [ok] undeclared identifier → the cc error line of the build unit (line 20; line 1 is the segment header)
+   [ok] TYPE-ERROR parse-amount → the Rove unit
+   [ok] TypeError roles → a stack trace in the dev server's stderr
+   [ok] src/util.c unused → the warning (line 47)
+   [ok] a phrase on stderr → both TypeErrors
 
--- kill -9 / taskkill /F the server (pid 32) from outside
-   last seq before the kill: 10
-   [ok] restarted: :running again with restart-count 1
-   same unit, same id: "rpc-1"
-   [ok] a new pid (32 → 47)
-   [ok] the new process is wired to the same unit
+-- search "" (:KINDS (:ERROR :STACK-TRACE :TEST-FAILURE :WARNING)) → 12 of 17 hits
+   shell-job-2:1:30  test-failure    × 1) leading currency sign is skipped
+   shell-job-2:1:21  test-failure    × 0) 0.1 + 0.2 is 0.3
+   shell-job-3:1:19  error,stack-trace extent 19-24  TypeError: Cannot read properties of undefined (reading 'roles')
+   shell-job-3:1:8  error,stack-trace extent 8-13  TypeError: Cannot read properties of undefined (reading 'roles')
+   shell-job-2:1:55  stack-trace extent 55-69       0: (SB-KERNEL:TWO-ARG-= 42 NIL)
+   shell-job-2:1:49  error     TYPE-ERROR: The value
+   shell-job-1:1:28  error  make: *** [src/parser.o] Error 1
+   shell-job-1:1:27  error  1 error generated.
+   shell-job-1:1:20  error  src/parser.c:7:12: error: use of undeclared identifier 'tokn'; did you mean 'tok'?
+   shell-job-3:1:17  warning  (Use `node --trace-deprecation ...` to show where the warning was created)
+   shell-job-3:1:16  warning  (node:11554) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usab…(190 chars)
+   shell-job-2:1:10  warning     Deprecated recursive use of (ASDF/OPERATE:OPERATE 'ASDF/LISP-ACTION:LOAD-OP
+   (kinds only: no score, ordered by severity (test failure, stack trace, error, warning), then newest first)
+   [ok] kinds-only: test failures first
 
--- the server's events (subscribe :since 0, from Demo 1 on)
-   #  3 rpc-1      :STATE             NIL       → :STARTING  (+0.00 s)
-   #  4 rpc-1      :STATE             :STARTING → :RUNNING   (+0.00 s)
-   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)  (+0.20 s)
-   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)  (+0.20 s)
-   # 13 rpc-1      :STATE             :FAILED   → :STARTING  (+0.71 s)
-   # 14 rpc-1      :STATE             :STARTING → :RUNNING   (+0.78 s)
-   [ok] transitions: nil→starting→running→failed, restart-scheduled, failed→starting→running
-   failed detail (external kill = non-zero exit, no signal recorded): (:EXIT-CODE 137 :SIGNAL NIL)
-   restart-scheduled detail: (:ATTEMPT 1 :DELAY 0.5)
-   restart-delay (0.5 2 30) for attempts 1..5: (0.5 1.0 2.0 4.0 8.0)
-   [ok] waited the backoff: 0.510 s between :failed and the relaunch (≥ 0.5)
-   [ok] seq numbers have no gaps
+-- search "" (:KINDS (:EXIT)) → 3 of 3 hits
+   shell-job-3:1:28  exit  [end of output]
+   shell-job-2:1:74  exit  [end of output]
+   shell-job-1:1:53  exit  [end of output]
 
--- replay: subscribe :since 10 (the kill's predecessor), then live events
-   replayed (4 events):
-   # 11 rpc-1      :STATE             :RUNNING  → :FAILED   (:EXIT-CODE 137 :SIGNAL NIL)
-   # 12 rpc-1      :RESTART-SCHEDULED :FAILED   → :STARTING (:ATTEMPT 1 :DELAY 0.5)
-   # 13 rpc-1      :STATE             :FAILED   → :STARTING
-   # 14 rpc-1      :STATE             :STARTING → :RUNNING 
-   [ok] the replay starts right after SINCE
-   events-since → (count complete-p): (4 T)
-   now stop the server: its events reach the replaying subscriber live
-   # 15 rpc-1      :STATE             :RUNNING  → :KILLED   (:EXIT-CODE 0 :SIGNAL :TERM)
-   [ok] replay + live: contiguous, no gap, no duplicate
-   unsubscribe: NIL
-   subscription-active-p after unsubscribe: NIL
+-- search "error" (:UNITS ("shell-job-1")) → 1 of 1 hit
+   shell-job-1:1:20  error score 2.380  src/parser.c:7:12: error: use of undeclared identifier 'tokn'; did you mean 'tok'?
 
-========================================================================
-== Demo 4: caps + LRU eviction (:kind-caps (:shell-job 2))
-========================================================================
+-- 8c. a search across a rotation and after a drop: 400 lines, 2 KiB segments, 4 kept
+   (log line numbers count the segment header lines too, so output line 395 is log line 419)
+   segment 00000011: lines    318-   348,   31 records,    2003 bytes on disk,     551 output bytes
+   segment 00000012: lines    349-   379,   31 records,    2035 bytes on disk,     583 output bytes
+   segment 00000013: lines    380-   410,   31 records,    2003 bytes on disk,     551 output bytes
+   segment 00000014: lines    411-   425,   15 records,    1146 bytes on disk,     258 output bytes
+   log-read lines 1-3 → records: 0
+   gap lines 1-317: 317 records, 5748 bytes, reasons (:ROTATED)
 
--- at the cap: shell-job-1 finished, shell-job-2 running
-   id               kind        owner                                  state     pid
-   shell-job-1      :SHELL-JOB  (root)                                 :EXITED   53
-   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  58
+-- search "failure" (:UNITS ("shell-job-4")) → 2 of 2 hits
+   shell-job-4:14:419  error score 1.960  error: late failure in stage-c (output line 395)
+   shell-job-4:12:360  error score 1.626  error: middle failure in stage-b (output line 340)
+   [ok] the early failure (rotated out) is not found; the late and middle ones are, newest first
+   [ok] the hits are in two different retained segments
 
--- start a third → the least recently used FINISHED unit is evicted silently
-   started: "shell-job-3"
-   find-unit of the evicted one: NIL
-   #  6 shell-job-1 :EVICTED           :EXITED   → NIL      
-   [ok] the finished unit was evicted
-   id               kind        owner                                  state     pid
-   shell-job-2      :SHELL-JOB  (root)                                 :RUNNING  58
-   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  64
+-- search "stage-a" (:UNITS ("shell-job-4")) → 0 of 0 hits
+   [ok] stage-a (dropped) → no hit
 
--- start a fourth with both live → unit-limit-reached; take EVICT-LRU
-   signalled: SUPERVISOR-PROTOCOL:UNIT-LIMIT-REACHED
-     kind / limit: (:SHELL-JOB 2)
-     victim (LRU live unit; c was touched): "shell-job-2"
-     restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
-   → EVICT-LRU
-   started: "shell-job-4"
-   victim's state: :KILLED
-   [ok] the victim was stopped and evicted
-   id               kind        owner                                  state     pid
-   shell-job-3      :SHELL-JOB  (root)                                 :RUNNING  64
-   shell-job-4      :SHELL-JOB  (root)                                 :RUNNING  70
+-- 8c'. hit-excerpt of the first retained output line (320) with context 3: the gap before it is reported
+   shell-job-4:11:320   score 3.241  step 302 of 400 ok
+     >  320 stdout step 302 of 400 ok
+        321 stdout step 303 of 400 ok
+        322 stdout step 304 of 400 ok
+        323 stdout step 305 of 400 ok
+   gap lines 1-317: 317 records, 5748 bytes, reasons (:ROTATED)
+   [ok] the excerpt reports the rotated gap
 
--- start a fifth → unit-limit-reached; take ABORT
-     restarts: (SUPERVISOR-PROTOCOL:EVICT-LRU ABORT)
-   → ABORT
-   start-unit returned: NIL
-   [ok] ABORT: nothing started, units unchanged
+-- 8d. .six persistence: 20 000 lines in 64 KiB segments, a fresh index loads them, a rebuild is byte-identical
+   20027 lines in 26 segments
+   index 1, first refresh: 0.233 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 20000
+                                           :LOADED 0 :WRITTEN 26 :REBUILT 0)
+   index 1, refresh with nothing new: 0.0013 s
+   index 1, search "timed out worker-3": 0.0084 s
+   .six files: 26 (one per sealed segment; the newest segment of a closed log too), 2446937 bytes in all
+   first .six header bytes ("SPSI", format, tokenizer): (83 80 83 73 1 0 0 0 1 0 0 0)
+   index 2 (fresh, loads .six): 0.118 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 0
+                                                :LOADED 26 :WRITTEN 0 :REBUILT 0)
+   [ok] a fresh index tokenizes nothing
+   [ok] same top hit as index 1
+   deleted 00000001.six, corrupted a byte of 00000002.six
+   index 3: 0.133 s  stats (:LOGS 1 :SEGMENTS 26 :RECORDS 20000 :TERMS 29927 :TOKENIZED 1631 :LOADED 24
+                            :WRITTEN 2 :REBUILT 1)
+   [ok] the rebuilt .six files are byte-identical
 
--- interacting units are never evicted: no EVICT-LRU without a victim
-   victim: NIL
-   restarts: (ABORT)
-   [ok] restarts: only ABORT
-   [ok] refused starts took no id: the next one is shell-job-5
-
-========================================================================
-== Demo 5: stop escalation — graceful → stop-timeout → FORCE
-========================================================================
-
--- a process that ignores SIGTERM (stop-unit :grace 1)
-   signalled (not an error): SUPERVISOR-PROTOCOL:STOP-TIMEOUT
-     phase / waited: (:GRACEFUL 1.0020110000000004d0)
-     restarts: (SUPERVISOR-PROTOCOL:FORCE SUPERVISOR-PROTOCOL:KEEP-WAITING)
-   → FORCE
-   final state: :KILLED
-   unit-signal (the last stop sent): :KILL
-   seconds: 1.1
-   [ok] forced after the grace: :killed by :kill
-
--- a thread that never polls unit-stop-requested-p (stop-unit :grace 0.5): KEEP-WAITING once, then FORCE
-   stop-timeout #1 waited: 0.5040050000000003d0
-   → KEEP-WAITING
-   stop-timeout #2 waited: 1.0070119999999996d0
-   → FORCE (bt2:interrupt-thread unwinds the body)
-   final state: :KILLED
-   seconds: 1.0
-   unit-condition (a forced stop is not a failure): NIL
-   [ok] two stop-timeouts, :killed, the UNWIND-PROTECT cleanup ran
-
--- unhandled stop-timeout → forced anyway
-   [ok] stop-unit returned :KILLED
+   [demo-search: 1.0 s]
 
 ========================================================================
-== Demo 6: crash recovery — SIGKILL a child supervisor, the next one sweeps its orphans
+== Demo 9: the unit tools as an agent sees them (agent-tools 0.3.0, H8c)
 ========================================================================
-   [ok] the child supervisor started its units
-   child image ready after (s): 0.9
 
--- before the crash
-   child image pid: 93
-   units in the child (shell-job tree, rpc, subagent thread): 3
-   shell-job root pid: 97
-   grandchild pids: (109 112)
-   rpc server pid: 104
-   unit files (process units only): ("<sup>--rpc-1.unit" "<sup>--shell-job-1.unit")
-   one unit file's keys: (:FORMAT :SUPERVISOR-ID :SUPERVISOR-PID :SUPERVISOR-OS-START :UNIT-ID :KIND :PID
-                          :PGID :OS-START :COMMAND :CWD :INSPECTOR)
-   [ok] 4 processes: tree root, 2 grandchildren, rpc server
+-- 9a. make-unit-tools: names, caps, approval, permission resources
+   names: ("unit_list" "unit_search" "unit_read" "unit_tail" "unit_control")
+   caps (max-output max-results default-k max-k context max-read-lines max-wait): (30000 100 10 50 2 2000
+                                                                                   600000)
+   needs approval (list search read tail control): (NIL NIL NIL NIL T)
+   unit_list    {}                                                   → ("*")
+   unit_search  {"query":"error"}                                    → ("unit:*")
+   unit_search  {"query":"error","units":["shell-job-*","rpc-1"]}    → ("unit:shell-job-*" "unit:rpc-1")
+   unit_read    {"ref":"shell-job-2:1:120"}                          → ("unit:shell-job-2")
+   unit_tail    {"unit":"shell-job-3"}                               → ("unit:shell-job-3")
+   unit_control {"unit":"shell-job-3","action":"stop"}               → ("stop:shell-job-3")
+   unit_control {"unit":"subagent-1","action":"restart"}             → ("restart:subagent-1")
+   unit_control not json                                             → ("*")
 
--- SIGKILL the child image (taskkill /F on Windows): no exit hook runs
-   child alive: NIL
-   orphans alive (pid alive-p): ((104 T) (109 T) (112 T) (97 T))
-   [ok] the crash left every unit process behind
+-- 9b. bash under a supervisor: a foreground command is a unit; the H2c text is unchanged
 
--- make-supervisor :state-directory (same directory) → sweep-orphans first
-   make-supervisor seconds (incl. the sweep): 1.2
-   rpc-1        pid    104 pgid    104  :KILLED killed (104)
-   shell-job-1  pid     97 pgid     97  :KILLED killed (97 109 112)
-   [ok] two records (rpc-1, shell-job-1), both :killed
-   [ok] the killed pids are exactly the four orphans
+   > bash {"command":"echo hello; sleep 0.2; echo oops >&2; exit 3"}
+   | hello
+   | oops
+   | [exit code 3]
 
--- after the sweep
-   [ok] every orphan is dead, grandchildren included
-   orphans alive: ((104 NIL) (109 NIL) (112 NIL) (97 NIL))
-   unit files left: 0
+-- 9c. a background build (noisy, fails): job_output and job_list keep their H2c text, backed by the unit log
+
+   > bash {"command":"sh build.sh","run_in_background":true}
+   | Started job shell-job-2: sh build.sh
+   | Read its output with job_output (job_id "shell-job-2"); stop it with job_kill.
+
+   > job_output {"job_id":"shell-job-2","wait_ms":20000}
+   | cc -O2 -c -o build/mod1.o src/mod1.c
+   | cc -O2 -c -o build/mod2.o src/mod2.c
+   | cc -O2 -c -o build/mod3.o src/mod3.c
+   | cc -O2 -c -o build/mod4.o src/mod4.c
+   | cc -O2 -c -o build/mod5.o src/mod5.c
+   | cc -O2 -c -o build/mod6.o src/mod6.c
+   | cc -O2 -c -o build/mod7.o src/mod7.c
+   | cc -O2 -c -o build/mod8.o src/mod8.c
+   | cc -O2 -c -o build/mod9.o src/mod9.c
+   | cc -O2 -c -o build/mod10.o src/mod10.c
+   | cc -O2 -c -o build/mod11.o src/mod11.c
+   | cc -O2 -c -o build/mod12.o src/mod12.c
+   | cc -O2 -c -o build/mod13.o src/mod13.c
+   | cc -O2 -c -o build/mod14.o src/mod14.c
+   | cc -O2 -c -o build/mod15.o src/mod15.c
+   | [truncated: 6962 characters omitted; redirect the output to a file and use read or grep on it]
+   | cc -O2 -c -o build/mod187.o src/mod187.c
+   | cc -O2 -c -o build/mod188.o src/mod188.c
+   | cc -O2 -c -o build/mod189.o src/mod189.c
+   | cc -O2 -c -o build/mod190.o src/mod190.c
+   | cc -O2 -c -o build/mod191.o src/mod191.c
+   | cc -O2 -c -o build/mod192.o src/mod192.c
+   | cc -O2 -c -o build/mod193.o src/mod193.c
+   | cc -O2 -c -o build/mod194.o src/mod194.c
+   | cc -O2 -c -o build/mod195.o src/mod195.c
+   | cc -O2 -c -o build/mod196.o src/mod196.c
+   | cc -O2 -c -o build/mod197.o src/mod197.c
+   | cc -O2 -c -o build/mod198.o src/mod198.c
+   | cc -O2 -c -o build/mod199.o src/mod199.c
+   | cc -O2 -c -o build/mod200.o src/mod200.c
+   | make: *** [build/mod120.o] Error 1
+   | [job shell-job-2 exited with code 2]
+
+   > bash {"command":"sh echo.sh","run_in_background":true}
+   | Started job shell-job-3: sh echo.sh
+   | Read its output with job_output (job_id "shell-job-3"); stop it with job_kill.
+
+   > job_output {"job_id":"shell-job-3","wait_ms":300}
+   | echo server ready
+   | [job shell-job-3 running]
+
+   > job_list {}
+   | shell-job-2	exited 2	sh build.sh
+   | shell-job-3	running	sh echo.sh
+
+   > job_output {"job_id":"job-1"}
+   ! AGENT-TOOLS:JOB-NOT-FOUND:
+   ! there is no job job-1 on this source; job_list shows the jobs
+
+-- 9d. unit_list (all, live only, by kind)
+
+   > unit_list {}
+   | id	kind	state	owner	started	lines	labels	command
+   | subagent-1	subagent	exited	-	<time>	3	role=reviewer	<thread>
+   | shell-job-1	shell-job	failed 3	shell	<time>	4	tool=bash	/bin/sh -c echo hello; sleep 0.2; echo oops >&2; exit 3
+   | shell-job-2	shell-job	failed 2	shell	<time>	206	tool=bash	/bin/sh -c sh build.sh
+   | shell-job-3	shell-job	running	shell	<time>	2	tool=bash	/bin/sh -c sh echo.sh
+
+   > unit_list {"state":"live"}
+   | id	kind	state	owner	started	lines	labels	command
+   | shell-job-3	shell-job	running	shell	<time>	2	tool=bash	/bin/sh -c sh echo.sh
+
+   > unit_list {"kind":"subagent"}
+   | id	kind	state	owner	started	lines	labels	command
+   | subagent-1	subagent	exited	-	<time>	3	role=reviewer	<thread>
+
+-- 9e. unit_search: ranked hits with refs, a kinds filter, no results
+
+   > unit_search {"query":"undeclared count","k":2}
+   | [1] shell-job-2:1:122 stdout <time> error
+   |     120	cc -O2 -c -o build/mod119.o src/mod119.c
+   |     121	cc -O2 -c -o build/mod120.o src/mod120.c
+   | >   122	src/mod120.c:14:5: error: 'count' undeclared (first use in this function)
+   |     123	   14 |     count += step;
+   |     124	      |     ^~~~~
+   | 
+   | [1 result]
+
+   > unit_search {"query":"","kinds":["error"],"context":0}
+   | [1] shell-job-2:1:205 stdout <time> error
+   | >   205	make: *** [build/mod120.o] Error 1
+   | 
+   | [2] shell-job-2:1:122 stdout <time> error
+   | >   122	src/mod120.c:14:5: error: 'count' undeclared (first use in this function)
+   | 
+   | [2 results]
+
+   > unit_search {"query":"segfault"}
+   | No results for "segfault" in 4 units
+
+   > unit_search {"query":""}
+   ! AI-AGENT-PROTOCOL:TOOL-INPUT-ERROR:
+   ! an empty query needs kinds: give words to search for, or kinds (error, warning, stack-trace, test-failure, exit)
+
+-- 9f. unit_read around the ref, then by range
+   [ok] the top hit is the error line of the build (shell-job-2, line 122: line 1 is the segment header)
+
+   > unit_read {"ref":"shell-job-2:1:122"}
+   | unit shell-job-2 (failed 2): lines 112-151 of 206
+   |     112	cc -O2 -c -o build/mod111.o src/mod111.c
+   |     113	cc -O2 -c -o build/mod112.o src/mod112.c
+   |     114	cc -O2 -c -o build/mod113.o src/mod113.c
+   |     115	cc -O2 -c -o build/mod114.o src/mod114.c
+   |     116	cc -O2 -c -o build/mod115.o src/mod115.c
+   |     117	cc -O2 -c -o build/mod116.o src/mod116.c
+   |     118	cc -O2 -c -o build/mod117.o src/mod117.c
+   |     119	cc -O2 -c -o build/mod118.o src/mod118.c
+   |     120	cc -O2 -c -o build/mod119.o src/mod119.c
+   |     121	cc -O2 -c -o build/mod120.o src/mod120.c
+   | >   122	src/mod120.c:14:5: error: 'count' undeclared (first use in this function)
+   |     123	   14 |     count += step;
+   |     124	      |     ^~~~~
+   |     125	cc -O2 -c -o build/mod121.o src/mod121.c
+   |     126	cc -O2 -c -o build/mod122.o src/mod122.c
+   |     127	cc -O2 -c -o build/mod123.o src/mod123.c
+   |     128	cc -O2 -c -o build/mod124.o src/mod124.c
+   |     129	cc -O2 -c -o build/mod125.o src/mod125.c
+   |     130	cc -O2 -c -o build/mod126.o src/mod126.c
+   |     131	cc -O2 -c -o build/mod127.o src/mod127.c
+   |     132	cc -O2 -c -o build/mod128.o src/mod128.c
+   |     133	cc -O2 -c -o build/mod129.o src/mod129.c
+   |     134	cc -O2 -c -o build/mod130.o src/mod130.c
+   |     135	cc -O2 -c -o build/mod131.o src/mod131.c
+   |     136	cc -O2 -c -o build/mod132.o src/mod132.c
+   |     137	cc -O2 -c -o build/mod133.o src/mod133.c
+   |     138	cc -O2 -c -o build/mod134.o src/mod134.c
+   |     139	cc -O2 -c -o build/mod135.o src/mod135.c
+   |     140	cc -O2 -c -o build/mod136.o src/mod136.c
+   |     141	cc -O2 -c -o build/mod137.o src/mod137.c
+   |     142	cc -O2 -c -o build/mod138.o src/mod138.c
+   |     143	cc -O2 -c -o build/mod139.o src/mod139.c
+   |     144	cc -O2 -c -o build/mod140.o src/mod140.c
+   |     145	cc -O2 -c -o build/mod141.o src/mod141.c
+   |     146	cc -O2 -c -o build/mod142.o src/mod142.c
+   |     147	cc -O2 -c -o build/mod143.o src/mod143.c
+   |     148	cc -O2 -c -o build/mod144.o src/mod144.c
+   |     149	cc -O2 -c -o build/mod145.o src/mod145.c
+   |     150	cc -O2 -c -o build/mod146.o src/mod146.c
+   |     151	cc -O2 -c -o build/mod147.o src/mod147.c
+   | [more: unit_read unit "shell-job-2" start_line 152]
+   (a ref read starts 10 lines before the ref; with limit 8 the ref line itself is not shown:)
+
+   > unit_read {"ref":"shell-job-2:1:122","limit":8}
+   | unit shell-job-2 (failed 2): lines 112-119 of 206
+   |     112	cc -O2 -c -o build/mod111.o src/mod111.c
+   |     113	cc -O2 -c -o build/mod112.o src/mod112.c
+   |     114	cc -O2 -c -o build/mod113.o src/mod113.c
+   |     115	cc -O2 -c -o build/mod114.o src/mod114.c
+   |     116	cc -O2 -c -o build/mod115.o src/mod115.c
+   |     117	cc -O2 -c -o build/mod116.o src/mod116.c
+   |     118	cc -O2 -c -o build/mod117.o src/mod117.c
+   |     119	cc -O2 -c -o build/mod118.o src/mod118.c
+   | [more: unit_read unit "shell-job-2" start_line 120]
+
+   > unit_read {"unit":"shell-job-2","start_line":199,"limit":5}
+   | unit shell-job-2 (failed 2): lines 199-203 of 206
+   |     199	cc -O2 -c -o build/mod195.o src/mod195.c
+   |     200	cc -O2 -c -o build/mod196.o src/mod196.c
+   |     201	cc -O2 -c -o build/mod197.o src/mod197.c
+   |     202	cc -O2 -c -o build/mod198.o src/mod198.c
+   |     203	cc -O2 -c -o build/mod199.o src/mod199.c
+   | [more: unit_read unit "shell-job-2" start_line 204]
+
+   > unit_read {"unit":"shell-job-2","start_line":900}
+   | unit shell-job-2 (failed 2): no output from line 900; the log ends at line 206
+
+-- 9g. unit_tail: the last lines; follow with after_line + wait_ms
+
+   > unit_tail {"unit":"shell-job-2","lines":3}
+   |     203	cc -O2 -c -o build/mod199.o src/mod199.c
+   |     204	cc -O2 -c -o build/mod200.o src/mod200.c
+   |     205	make: *** [build/mod120.o] Error 1
+   | [unit shell-job-2 failed with code 2; end of output]
+
+   > unit_control {"unit":"shell-job-3","action":"input","input":"ping\n"}
+   | Sent 5 characters to shell-job-3; read the reply with unit_tail after_line 2
+
+   > unit_tail {"unit":"shell-job-3","after_line":2,"wait_ms":10000}
+   |       3	got: ping
+   | [unit shell-job-3 running; continue with after_line 3]
+   (unit_tail returned after 0.0 s of its 10 s wait)
+   [ok] follow returned the reply as soon as it arrived
+
+   > unit_tail {"unit":"shell-job-3","after_line":3,"wait_ms":600}
+   | [unit shell-job-3 running; continue with after_line 3]
+   (a wait with nothing new returned after 0.6 s)
+
+   > unit_tail {"unit":"nope-1"}
+   ! AGENT-TOOLS:UNIT-NOT-FOUND:
+   ! unit nope-1 is not a unit these tools can see; unit_list shows the units (include_previous true also lists earlier sessions' logs)
+
+-- 9h. unit_control: input with eof (direct call), then through agent runs
+
+   > unit_control {"unit":"shell-job-3","action":"input","input":"last\n","eof":true}
+   | Sent 5 characters to shell-job-3, then closed its stdin; read the reply with unit_tail after_line 3
+
+   > unit_tail {"unit":"shell-job-3","after_line":3,"wait_ms":5000}
+   |       4	got: last
+   |       5	stdin closed, bye
+   | [unit shell-job-3 exited with code 0; end of output]
+
+   > bash {"command":"sleep 60","run_in_background":true}
+   | Started job shell-job-4: sleep 60
+   | Read its output with job_output (job_id "shell-job-4"); stop it with job_kill.
+
+-- 9h'. no rule: unit_control asks (approval by default); the demo denies
+     [approval asked] unit_control {"unit":"shell-job-4","action":"stop"} → deny
+
+    1. unit_control {"unit":"shell-job-4","action":"stop"}
+       status denied (error)
+       | Tool unit_control was not run: the user rejected the request
+       | Feedback: not now
+       | Do not repeat the same call. Follow the feedback above and continue.
+   finish reason: :STOP
+   answer | asked
+   [ok] one approval asked, the job still runs
+
+-- 9h''. with ("unit_control" "stop:shell-job-*" :allow): the stop runs without asking; a restart still asks
+   rule ("unit_control" "stop:shell-job-*" :ALLOW)
+     [approval asked] unit_control {"unit":"shell-job-2","action":"restart"} → deny
+     [approval asked] unit_control {"unit":"shell-job-2","action":"input","input":"x"} → deny
+
+    1. unit_control {"unit":"shell-job-4","action":"stop"}
+       status done
+       | Stopped shell-job-4: killed
+
+    2. unit_control {"unit":"shell-job-2","action":"restart"}
+       status denied (error)
+       | Tool unit_control was not run: the user rejected the request
+       | Feedback: not now
+       | Do not repeat the same call. Follow the feedback above and continue.
+
+    3. unit_control {"unit":"shell-job-2","action":"input","input":"x"}
+       status denied (error)
+       | Tool unit_control was not run: the user rejected the request
+       | Feedback: not now
+       | Do not repeat the same call. Follow the feedback above and continue.
+   finish reason: :STOP
+   answer | done
+   [ok] the stop was not asked; the restart and the input were
+
+   > job_list {}
+   | shell-job-2	exited 2	sh build.sh
+   | shell-job-3	exited 0	sh echo.sh
+   | shell-job-4	killed	sleep 60
+
+-- 9i. output caps: max-output 700, max-results 2, k max 50, a 600-character line
+
+   > unit_list {}
+   | id	kind	state	owner	started	lines	labels	command
+   | subagent-1	subagent	exited	-	<time>	3	role=reviewer	<thread>
+   | shell-job-1	shell-job	failed 3	shell	<time>	4	tool=bash	/bin/sh -c echo hello; sleep 0.2; echo oops >&2; exit 3
+   | [truncated: showing 2 of 6 units; filter by kind, state, owner or label]
+
+   > unit_search {"query":"error","k":5}
+   | [1] shell-job-5:1:2 stdout <time> error
+   | >     2	bundle.js:1:9 error: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx… [+121 chars]
+   | 
+   | [showing 1 of 3 results; raise k (max 50), narrow the query, units, kinds or since, or unit_read a ref]
+
+   > unit_search {"query":"error","k":51}
+   ! AI-AGENT-PROTOCOL:TOOL-INPUT-ERROR:
+   ! k must be an integer from 1 to 50, got 51
+
+   > unit_read {"unit":"shell-job-5"}
+   | unit shell-job-5 (exited): lines 1-2 of 3
+   |       2	bundle.js:1:9 error: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx… [+121 chars]
+
+   [demo-unit-tools: 1.6 s]
 
 ========================================================================
-== Demo 7: supervisor-protocol 0.2.0 (H8b) — rotated, capped unit logs
+== Demo 10: an agent finds and fixes a failure from process logs (scripted mock)
 ========================================================================
-   defaults: segment size × segments, total cap, max record: (1048576 5 268435456 8192)
-   this supervisor: total cap: 4194304
+   sh test.sh before the run (exit code): 1
 
--- 7a. a chatty unit: 3000 lines × 1024 bytes (3 MB) with :log-segment-size 256 KiB × :log-segments 4
-   unit-log-settings: (:ENABLED T :SEGMENT-SIZE 262144 :SEGMENTS 4)
-   [ok] the unit exited
-   seconds: 0.3
-   segment files on disk: ("00000010.seg" "00000011.seg" "00000012.seg" "00000013.seg")
-   their sizes: (261641 261641 261641 51434)
-   [ok] ≤ 4 segment files, each ≤ 262144 bytes
-   segment 00000010: lines   2229-  2476,  248 records,  261641 bytes on disk,  251904 output bytes
-   segment 00000011: lines   2477-  2724,  248 records,  261641 bytes on disk,  251904 output bytes
-   segment 00000012: lines   2725-  2972,  248 records,  261641 bytes on disk,  251904 output bytes
-   segment 00000013: lines   2973-  3023,   51 records,   51434 bytes on disk,   49152 output bytes
-   gap lines 1-2228: 2228 records, 2267136 bytes, reasons (:ROTATED)
-   output bytes written / kept / dropped: (3072000 804864 2267136)
-   [ok] dropped + kept = every byte written (exact)
-   [ok] the gap is the oldest prefix, reason :rotated
-   first kept / last line: ("line-02215…(1023 chars)" "line-03000…(1023 chars)")
-   drop markers in the retained segments: 4
-   first and last drop marker:
-   line   2230  seg 10  :DROP   NIL      (SEGMENT 6 FIRST-LINE 1237 LAST-LINE 1484 RECORDS 248 BYTES 251904
-                                          REASON ROTATED)
-   line   2974  seg 13  :DROP   NIL      (SEGMENT 9 FIRST-LINE 1981 LAST-LINE 2228 RECORDS 248 BYTES 251904
-                                          REASON ROTATED)
-   newest segment's header (cumulative drops):
-   line   2973  seg 13  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 23-1bfa9c00 UNIT-ID shell-job-1 KIND
-                                          SHELL-JOB SEGMENT 13 FIRST-LINE 2973 DROPPED-THROUGH 8
-                                          DROPPED-RECORDS 1980 DROPPED-BYTES 2015232)
-   end record:
-   line   3023  seg 13  :END    NIL      (LAST-LINE 3023 BYTES 3072000)
-   [ok] gap bytes = the newest header's :dropped-bytes + the markers written after it
-   memory: sink-stats total, unit-output length: (3072000 81950)
-   [ok] memory keeps only the head + tail
-   disk: this unit's segment + index bytes vs 4 × 256 KiB: (836525 1048576)
+-- scripted mock: the run
+   tools: ("unit_list" "unit_search" "unit_read" "unit_tail" "unit_control" "bash" "job_output" "job_input"
+           "job_kill" "job_list" "read" "edit" "grep" "ls")
+   rule ("bash" "*" :ALLOW)
+   rule ("bash" "program:rm" :DENY) feedback "do not delete files"
+   rule ("edit" "path:calc.sh" :ALLOW)
+   rule ("multi_edit" "path:calc.sh" :ALLOW)
+   rule ("write" "path:calc.sh" :ALLOW)
+   rule ("*" "path:test.sh" :DENY) feedback "fix the code under test (calc.sh), not the test"
+   prompt | The calc project's test suite fails. Run it in the background with bash (command "sh test.sh", run_in_background true) and wait for it with job_output (wait_ms 30000). Its output is long and noisy, so do not read it all: find the failure with unit_search (kinds ["test-failure"], units [the job id]), look at the lines around the hit with unit_read (its ref), read calc.sh and fix the faulty function with edit (do not change test.sh). Then run "sh test.sh" again with bash and confirm with unit_search (query "", kinds ["test-failure"], units [that run's unit id from the truncation note or unit_list]) that nothing failed. End with one sentence naming the fix.
 
--- 7b. log-read by line range across a rotation boundary
-   segment 11 ends at line 2724; read lines 2723-2727
-   line   2723  seg 11  :OUTPUT :STDOUT  line-02705 xxxxxxxxxxxxx…(1023 chars)
-   line   2724  seg 11  :OUTPUT :STDOUT  line-02706 xxxxxxxxxxxxx…(1023 chars)
-   line   2727  seg 12  :OUTPUT :STDOUT  line-02707 xxxxxxxxxxxxx…(1023 chars)
-   gaps / next-line: (NIL 2728)
-   [ok] the output lines continue across the segments (the header line is not output)
-   :types t on the same range shows the next segment's header:
-   line   2724  seg 11  :OUTPUT :STDOUT  line-02706 xxxxxxxxxxxxx…(1023 chars)
-   line   2725  seg 12  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 23-1bfa9c00 UNIT-ID shell-job-1 KIND
-                                          SHELL-JOB SEGMENT 12 FIRST-LINE 2725 DROPPED-THROUGH 7
-                                          DROPPED-RECORDS 1732 DROPPED-BYTES 1763328)
-   paging: :limit 2 → lines / gaps / next-line: ((2231 2232) 1 2233)
-     then :start next-line :limit 2: (2233 2234)
+    1. bash {"command":"sh test.sh","run_in_background":true}
+       status done
+       | Started job shell-job-1: sh test.sh
+       | Read its output with job_output (job_id "shell-job-1"); stop it with job_kill.
 
--- 7c. log-tail 3
-   line   3020  seg 13  :OUTPUT :STDOUT  line-02998 xxxxxxxxxxxxx…(1023 chars)
-   line   3021  seg 13  :OUTPUT :STDOUT  line-02999 xxxxxxxxxxxxx…(1023 chars)
-   line   3022  seg 13  :OUTPUT :STDOUT  line-03000 xxxxxxxxxxxxx…(1023 chars)
+    2. job_output {"job_id":"shell-job-1","wait_ms":30000}
+       status done
+       | [setup] fixture 1 of 80 loaded
+       | [setup] fixture 2 of 80 loaded
+       | [setup] fixture 3 of 80 loaded
+       | [setup] fixture 4 of 80 loaded
+       | [setup] fixture 5 of 80 loaded
+       | [setup] fixture 6 of 80 loaded
+       | [setup] fixture 7 of 80 loaded
+       | [setup] fixture 8 of 80 loaded
+       | [setup] fixture 9 of 80 loaded
+       | [setup] fixture 10 of 80 loaded
+       | [setup] fixture 11 of 80 loaded
+       | [setup] fixture 12 of 80 loaded
+       | [setup] fixture 13 of 80 loaded
+       | [setup] fixture 14 of 80 loaded
+       | [setup] fixture 15 of 80 loaded
+       | [setup] fixture 16 of 80 loaded
+       | [setup] fixture 17 of 80 loaded
+       | [setup] fixture 18 of 80 loaded
+       | [setup] fixture 19 of 80 loaded
+       | [setup] fixture 20 of 80 loaded
+       | [setup] fixture 21 of 80 loaded
+       | [setup] fixture 22 of 80 loaded
+       | [setup] fixture 23 of 80 loaded
+       | [truncated: 4242 characters omitted; redirect the output to a file and use read or grep on it]
+       | [teardown] released handle 36
+       | [teardown] released handle 37
+       | [teardown] released handle 38
+       | [teardown] released handle 39
+       | [teardown] released handle 40
+       | [teardown] released handle 41
+       | [teardown] released handle 42
+       | [teardown] released handle 43
+       | [teardown] released handle 44
+       | [teardown] released handle 45
+       | [teardown] released handle 46
+       | [teardown] released handle 47
+       | [teardown] released handle 48
+       | [teardown] released handle 49
+       | [teardown] released handle 50
+       | [teardown] released handle 51
+       | [teardown] released handle 52
+       | [teardown] released handle 53
+       | [teardown] released handle 54
+       | [teardown] released handle 55
+       | [teardown] released handle 56
+       | [teardown] released handle 57
+       | [teardown] released handle 58
+       | [teardown] released handle 59
+       | [teardown] released handle 60
+       | 1 check(s) failed
+       | [job shell-job-1 exited with code 1]
 
--- 7d. log-follow a live echo server
-   follow with nothing new, :wait 0.3 → (records ended-p): (NIL NIL)
-   woken after (s, input sent at 0.5): 0.5
-   line      2  seg 1  :OUTPUT :STDOUT  ping-1
-   line      3  seg 1  :OUTPUT :STDOUT  ping-2
-   ended-p while running: NIL
-   [ok] follow returned the echoed lines
-   after stop-unit: records / ended-p: (NIL T)
-   [ok] ENDED-P once the end record is there
+    3. unit_search {"query":"","kinds":["test-failure"],"units":["shell-job-1"]}
+       status done
+       | [1] shell-job-1:1:124 stdout <time> test-failure
+       |     122	[bench] iteration 39 took 0.4ms
+       |     123	[bench] iteration 40 took 0.5ms
+       | >   124	FAIL add 2 3: got -1, expected 5 (calc.sh)
+       |     125	ok - sub 7 2
+       |     126	[teardown] released handle 1
+       | 
+       | [1 result]
 
--- 7e. binary output round trip (two text lines, then bytes 0..255, 255..0, 2000 pseudo-random)
-   [ok] exited
-   bytes written / rebuilt from records: (2549 2549)
-   [ok] every byte unchanged (equalp)
-   records: 14
-   a raw base64 record in the segment file: "4 1795266196347 12407 ob. AAECAwQFBgcICQ== 52e1c3c2"
-   a raw escaped-text record (TAB kept raw, ESC written \x1b): 3 1795266196347 12407 ot. tab	there, ESC \x1b[1m bold 556f85b7
+    4. unit_read {"ref":"shell-job-1:1:124","limit":21}
+       status done
+       | unit shell-job-1 (failed 1): lines 114-134 of 187
+       |     114	[bench] iteration 31 took 0.3ms
+       |     115	[bench] iteration 32 took 0.4ms
+       |     116	[bench] iteration 33 took 0.5ms
+       |     117	[bench] iteration 34 took 0.6ms
+       |     118	[bench] iteration 35 took 0.0ms
+       |     119	[bench] iteration 36 took 0.1ms
+       |     120	[bench] iteration 37 took 0.2ms
+       |     121	[bench] iteration 38 took 0.3ms
+       |     122	[bench] iteration 39 took 0.4ms
+       |     123	[bench] iteration 40 took 0.5ms
+       | >   124	FAIL add 2 3: got -1, expected 5 (calc.sh)
+       |     125	ok - sub 7 2
+       |     126	[teardown] released handle 1
+       |     127	[teardown] released handle 2
+       |     128	[teardown] released handle 3
+       |     129	[teardown] released handle 4
+       |     130	[teardown] released handle 5
+       |     131	[teardown] released handle 6
+       |     132	[teardown] released handle 7
+       |     133	[teardown] released handle 8
+       |     134	[teardown] released handle 9
+       | [more: unit_read unit "shell-job-1" start_line 135]
 
--- disk usage vs the total cap
-   supervisor-log-usage / log-total-cap: (841172 4194304)
-   [ok] under the cap
+    5. read {"file_path":"calc.sh"}
+       status done
+       |      1	# calc.sh: small arithmetic helpers for the shell
+       |      2	add() { echo $(($1 - $2)); }
+       |      3	mul() { echo $(($1 * $2)); }
+       |      4	sub() { echo $(($1 - $2)); }
+       | hash: sha256:3f859db027def29b0dc936fe3300d4384783c1496c6de2e25cc260d45dbfcb10
 
--- 7f. a child supervisor with a chatty thread unit, SIGKILLed mid-output
-   [ok] the child is writing
-   [ok] the child image is gone
-   find-unit-logs: 1
-   unit id / closed-p (no end record after a SIGKILL): ("subagent-1" NIL)
-   records read by this image / gaps: (2089 NIL)
-   segments: 6
-   [ok] contiguous n-1 … n-K, no gap
-   last segment torn-p as the kill left it: NIL
-   append half a record (no LF, no CRC), as a kill mid-write leaves it
-   torn-p now: T
-   [ok] the torn tail is skipped: the same records
-   log-tail 2: ("n-2088" "n-2089")
+    6. edit {"file_path":"calc.sh","old_string":"add() { echo $(($1 - $2)); }","new_string":"add() { echo $(($1 + $2)); }"}
+       status done
+       | Edited calc.sh: 1 replacement
+       | --- a/calc.sh
+       | +++ b/calc.sh
+       | @@ -1,4 +1,4 @@
+       |  # calc.sh: small arithmetic helpers for the shell
+       | -add() { echo $(($1 - $2)); }
+       | +add() { echo $(($1 + $2)); }
+       |  mul() { echo $(($1 * $2)); }
+       |  sub() { echo $(($1 - $2)); }
+       | hash: sha256:faac65781a9bb7951b0594b168d6b03f54114117e6f2d74ed2f0a1eaf9bd17bd
 
--- 7g. total-cap eviction: :log-total-cap 6000, segments of 2048 bytes
-   a (26 lines × 101 bytes) finished: usage 4442 / cap 6000, a on disk 4442, 26 lines
-   b (26 lines) finished: usage 4898 / cap 6000
-   a: 0 lines, 1 segment file(s), 456 bytes, gaps (:TOTAL-CAP), closed-p T
-   b: 26 lines, 4442 bytes, gaps NIL
-   [ok] a (finished first) lost segments to :total-cap, b kept all 26 lines
-   c (running) wrote 120 lines: usage 4744 / cap 6000
-   a: 0 lines, stub file ("00000003.seg"), 456 bytes
-   b: 0 lines, 456 bytes, gaps (:TOTAL-CAP)
-   c: 22 lines kept, 3832 bytes, gaps (:TOTAL-CAP), state :RUNNING
-   a's stub:
-   line     29  seg 3  :HEADER NIL      (FORMAT 1 SUPERVISOR-ID 23-179689ed UNIT-ID subagent-1 KIND SUBAGENT
-                                         SEGMENT 3 FIRST-LINE 29 DROPPED-THROUGH 1 DROPPED-RECORDS 14
-                                         DROPPED-BYTES 1313)
-   line     30  seg 3  :DROP   NIL      (SEGMENT 2 FIRST-LINE 15 LAST-LINE 28 RECORDS 14 BYTES 1313 REASON
-                                         TOTAL-CAP)
-   line     31  seg 3  :END    NIL      (LAST-LINE 31 BYTES 2626)
-   gap lines 1-28: 28 records, 2626 bytes, reasons (:TOTAL-CAP)
-   [ok] a's stub accounts for every byte a wrote (26 × 101)
-   [ok] finished units emptied first, then c's old segments; c's newest kept
-   [ok] usage = the bytes of every segment and index file
+    7. bash {"command":"sh test.sh"}
+       status done
+       | [setup] fixture 1 of 80 loaded
+       | [setup] fixture 2 of 80 loaded
+       | [setup] fixture 3 of 80 loaded
+       | [setup] fixture 4 of 80 loaded
+       | [setup] fixture 5 of 80 loaded
+       | [setup] fixture 6 of 80 loaded
+       | [setup] fixture 7 of 80 loaded
+       | [setup] fixture 8 of 80 loaded
+       | [setup] fixture 9 of 80 loaded
+       | [setup] fixture 10 of 80 loaded
+       | [setup] fixture 11 of 80 loaded
+       | [setup] fixture 12 of 80 loaded
+       | [setup] fixture 13 of 80 loaded
+       | [setup] fixture 14 of 80 loaded
+       | [setup] fixture 15 of 80 loaded
+       | [setup] fixture 16 of 80 loaded
+       | [setup] fixture 17 of 80 loaded
+       | [setup] fixture 18 of 80 loaded
+       | [setup] fixture 19 of 80 loaded
+       | [setup] fixture 20 of 80 loaded
+       | [setup] fixture 21 of 80 loaded
+       | [setup] fixture 22 of 80 loaded
+       | [truncated: 4334 characters omitted; the full output is in unit shell-job-2: use unit_read or unit_search]
+       | [teardown] released handle 39
+       | [teardown] released handle 40
+       | [teardown] released handle 41
+       | [teardown] released handle 42
+       | [teardown] released handle 43
+       | [teardown] released handle 44
+       | [teardown] released handle 45
+       | [teardown] released handle 46
+       | [teardown] released handle 47
+       | [teardown] released handle 48
+       | [teardown] released handle 49
+       | [teardown] released handle 50
+       | [teardown] released handle 51
+       | [teardown] released handle 52
+       | [teardown] released handle 53
+       | [teardown] released handle 54
+       | [teardown] released handle 55
+       | [teardown] released handle 56
+       | [teardown] released handle 57
+       | [teardown] released handle 58
+       | [teardown] released handle 59
+       | [teardown] released handle 60
+       | all checks passed
+       | [exit code 0]
+
+    8. unit_search {"query":"","kinds":["test-failure","error"],"units":["shell-job-2"]}
+       status done
+       | No results for "" with kinds test-failure, error in 1 unit
+   finish reason: :STOP
+   answer | Fixed add() in calc.sh: it subtracted ($1 - $2) instead of adding; the rerun passes and has no test failures.
+
+-- scripted mock: checked by the demo after the run
+   calc.sh | # calc.sh: small arithmetic helpers for the shell
+   calc.sh | add() { echo $(($1 + $2)); }
+   calc.sh | mul() { echo $(($1 * $2)); }
+   calc.sh | sub() { echo $(($1 - $2)); }
+   calc.sh | 
+   sh test.sh exit code (run by the demo): 0
+   test.sh unchanged: T
+   steps (tool calls) 8; tools used: bash ×2, job_output ×1, unit_search ×2, unit_read ×1, read ×1, edit ×1; wall time 0.2 s
+   [ok] the tests pass after the run
+   [ok] the tools used were unit_search and unit_read, not a dump
+   [ok] the first search found the FAIL line
+   [ok] the confirming search finds no failure
+
+   [demo-agent-fix-mock: 0.3 s]
 
 ========================================================================
-Demos run: 7, failed: none; 15.6 s
+== Demo 11: the same task on a live model
+========================================================================
+   API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN): T
+   MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL)
+
+-- live unsloth/Qwen3.8-Flash-Next-GGUF (varies run to run): the run
+   tools: ("unit_list" "unit_search" "unit_read" "unit_tail" "unit_control" "bash" "job_output" "job_input"
+           "job_kill" "job_list" "read" "edit" "grep" "ls")
+   rule ("bash" "*" :ALLOW)
+   rule ("bash" "program:rm" :DENY) feedback "do not delete files"
+   rule ("edit" "path:calc.sh" :ALLOW)
+   rule ("multi_edit" "path:calc.sh" :ALLOW)
+   rule ("write" "path:calc.sh" :ALLOW)
+   rule ("*" "path:test.sh" :DENY) feedback "fix the code under test (calc.sh), not the test"
+   prompt | The calc project's test suite fails. Run it in the background with bash (command "sh test.sh", run_in_background true) and wait for it with job_output (wait_ms 30000). Its output is long and noisy, so do not read it all: find the failure with unit_search (kinds ["test-failure"], units [the job id]), look at the lines around the hit with unit_read (its ref), read calc.sh and fix the faulty function with edit (do not change test.sh). Then run "sh test.sh" again with bash and confirm with unit_search (query "", kinds ["test-failure"], units [that run's unit id from the truncation note or unit_list]) that nothing failed. End with one sentence naming the fix.
+
+    1. bash {"command":"sh test.sh","run_in_background":true,"description":"Run calc test suite in background"}
+       status done
+       | Started job shell-job-1: sh test.sh
+       | Read its output with job_output (job_id "shell-job-1"); stop it with job_kill.
+
+    2. job_output {"job_id":"shell-job-1","wait_ms":30000}
+       status done
+       | [setup] fixture 1 of 80 loaded
+       | [setup] fixture 2 of 80 loaded
+       | [setup] fixture 3 of 80 loaded
+       | [setup] fixture 4 of 80 loaded
+       | [setup] fixture 5 of 80 loaded
+       | [setup] fixture 6 of 80 loaded
+       | [setup] fixture 7 of 80 loaded
+       | [setup] fixture 8 of 80 loaded
+       | [setup] fixture 9 of 80 loaded
+       | [setup] fixture 10 of 80 loaded
+       | [setup] fixture 11 of 80 loaded
+       | [setup] fixture 12 of 80 loaded
+       | [setup] fixture 13 of 80 loaded
+       | [setup] fixture 14 of 80 loaded
+       | [setup] fixture 15 of 80 loaded
+       | [setup] fixture 16 of 80 loaded
+       | [setup] fixture 17 of 80 loaded
+       | [setup] fixture 18 of 80 loaded
+       | [setup] fixture 19 of 80 loaded
+       | [setup] fixture 20 of 80 loaded
+       | [setup] fixture 21 of 80 loaded
+       | [setup] fixture 22 of 80 loaded
+       | [setup] fixture 23 of 80 loaded
+       | [truncated: 4242 characters omitted; redirect the output to a file and use read or grep on it]
+       | [teardown] released handle 36
+       | [teardown] released handle 37
+       | [teardown] released handle 38
+       | [teardown] released handle 39
+       | [teardown] released handle 40
+       | [teardown] released handle 41
+       | [teardown] released handle 42
+       | [teardown] released handle 43
+       | [teardown] released handle 44
+       | [teardown] released handle 45
+       | [teardown] released handle 46
+       | [teardown] released handle 47
+       | [teardown] released handle 48
+       | [teardown] released handle 49
+       | [teardown] released handle 50
+       | [teardown] released handle 51
+       | … (11 more lines)
+
+    3. unit_search {"query":"","kinds":["test-failure"],"units":["shell-job-1"]}
+       status done
+       | [1] shell-job-1:1:124 stdout <time> test-failure
+       |     122	[bench] iteration 39 took 0.4ms
+       |     123	[bench] iteration 40 took 0.5ms
+       | >   124	FAIL add 2 3: got -1, expected 5 (calc.sh)
+       |     125	ok - sub 7 2
+       |     126	[teardown] released handle 1
+       | 
+       | [1 result]
+
+    4. read {"file_path":"calc.sh"}
+       status done
+       |      1	# calc.sh: small arithmetic helpers for the shell
+       |      2	add() { echo $(($1 - $2)); }
+       |      3	mul() { echo $(($1 * $2)); }
+       |      4	sub() { echo $(($1 - $2)); }
+       | hash: sha256:3f859db027def29b0dc936fe3300d4384783c1496c6de2e25cc260d45dbfcb10
+
+    5. edit {"file_path":"calc.sh","old_string":"add() { echo $(($1 - $2)); }","new_string":"add() { echo $(($1 + $2)); }"}
+       status done
+       | Edited calc.sh: 1 replacement
+       | --- a/calc.sh
+       | +++ b/calc.sh
+       | @@ -1,4 +1,4 @@
+       |  # calc.sh: small arithmetic helpers for the shell
+       | -add() { echo $(($1 - $2)); }
+       | +add() { echo $(($1 + $2)); }
+       |  mul() { echo $(($1 * $2)); }
+       |  sub() { echo $(($1 - $2)); }
+       | hash: sha256:faac65781a9bb7951b0594b168d6b03f54114117e6f2d74ed2f0a1eaf9bd17bd
+
+    6. bash {"command":"sh test.sh","timeout_ms":120000,"description":"Re-run calc test suite"}
+       status done
+       | [setup] fixture 1 of 80 loaded
+       | [setup] fixture 2 of 80 loaded
+       | [setup] fixture 3 of 80 loaded
+       | [setup] fixture 4 of 80 loaded
+       | [setup] fixture 5 of 80 loaded
+       | [setup] fixture 6 of 80 loaded
+       | [setup] fixture 7 of 80 loaded
+       | [setup] fixture 8 of 80 loaded
+       | [setup] fixture 9 of 80 loaded
+       | [setup] fixture 10 of 80 loaded
+       | [setup] fixture 11 of 80 loaded
+       | [setup] fixture 12 of 80 loaded
+       | [setup] fixture 13 of 80 loaded
+       | [setup] fixture 14 of 80 loaded
+       | [setup] fixture 15 of 80 loaded
+       | [setup] fixture 16 of 80 loaded
+       | [setup] fixture 17 of 80 loaded
+       | [setup] fixture 18 of 80 loaded
+       | [setup] fixture 19 of 80 loaded
+       | [setup] fixture 20 of 80 loaded
+       | [setup] fixture 21 of 80 loaded
+       | [setup] fixture 22 of 80 loaded
+       | [truncated: 4334 characters omitted; the full output is in unit shell-job-2: use unit_read or unit_search]
+       | [teardown] released handle 39
+       | [teardown] released handle 40
+       | [teardown] released handle 41
+       | [teardown] released handle 42
+       | [teardown] released handle 43
+       | [teardown] released handle 44
+       | [teardown] released handle 45
+       | [teardown] released handle 46
+       | [teardown] released handle 47
+       | [teardown] released handle 48
+       | [teardown] released handle 49
+       | [teardown] released handle 50
+       | [teardown] released handle 51
+       | [teardown] released handle 52
+       | [teardown] released handle 53
+       | [teardown] released handle 54
+       | [teardown] released handle 55
+       | … (7 more lines)
+
+    7. unit_search {"query":"","kinds":["test-failure"],"units":["shell-job-2"]}
+       status done
+       | No results for "" with kinds test-failure in 1 unit
+
+    8. unit_search {"query":"add 2 3","units":["shell-job-2"],"kinds":[]}
+       status done
+       | [1] shell-job-2:1:124 stdout <time> -
+       |     122	[bench] iteration 39 took 0.4ms
+       |     123	[bench] iteration 40 took 0.5ms
+       | >   124	ok - add 2 3
+       |     125	ok - sub 7 2
+       |     126	[teardown] released handle 1
+       | 
+       | [2] shell-job-2:1:83 stdout <time> -
+       |      81	[setup] fixture 80 of 80 loaded
+       |      82	warning: TEST_SEED not set, using 42
+       | >    83	ok - mul 3 4
+       |      84	[bench] iteration 1 took 0.1ms
+       |      85	[bench] iteration 2 took 0.2ms
+       | 
+       | [3] shell-job-2:1:3 stdout <time> -
+       |       2	[setup] fixture 1 of 80 loaded
+       | >     3	[setup] fixture 2 of 80 loaded
+       |       4	[setup] fixture 3 of 80 loaded
+       |       5	[setup] fixture 4 of 80 loaded
+       | 
+       | [3 results]
+   finish reason: :STOP
+   answer | Fixed: `add()` in calc.sh computed `$1 - $2` instead of `$1 + $2`, so it now echoes the sum — the re-run reports "all checks passed" with no test failures.
+
+-- live unsloth/Qwen3.8-Flash-Next-GGUF (varies run to run): checked by the demo after the run
+   calc.sh | # calc.sh: small arithmetic helpers for the shell
+   calc.sh | add() { echo $(($1 + $2)); }
+   calc.sh | mul() { echo $(($1 * $2)); }
+   calc.sh | sub() { echo $(($1 - $2)); }
+   calc.sh | 
+   sh test.sh exit code (run by the demo): 0
+   test.sh unchanged: T
+   steps (tool calls) 8; tools used: bash ×2, job_output ×1, unit_search ×3, read ×1, edit ×1; wall time 198.7 s
+   token usage per model call (prompt tokens, cached included):
+     call  1: input   3852  output     79    88.3 s
+     call  2: input   3978  output     88    10.5 s
+     call  3: input   4666  output    146    18.7 s
+     call  4: input   5097  output    107    14.0 s
+     call  5: input   5378  output    217    29.2 s
+     call  6: input   6148  output     85    14.5 s
+     call  7: input   6261  output     89    12.1 s
+     call  8: input   6721  output     63    11.2 s
+     8 calls; max input 6721 tokens; total input 42101; total output 874 tokens; 198.5 s in model calls
+   LIVE RESULT: fixed (sh test.sh exits 0, test.sh untouched); 8 model calls, max input 6721 tokens, 874 output tokens, 198.7 s wall
+
+   [demo-agent-fix-live: 200.5 s]
+
+========================================================================
+Demos run: 11, failed: none; 213.0 s

@@ -1,0 +1,26 @@
+2026-11-21T12:00:00.000Z dev server listening on http://localhost:3000
+2026-11-21T12:00:00.250Z watching src/ for changes
+2026-11-21T12:00:00.500Z GET /api/users 200 5ms
+2026-11-21T12:00:00.750Z GET /api/users 200 6ms
+2026-11-21T12:00:01.000Z GET /favicon.ico 404 7ms
+2026-11-21T12:00:01.250Z GET /api/users/1/roles 500 3ms
+TypeError: Cannot read properties of undefined (reading 'roles')
+    at userRoles (/home/dev/webapp/src/routes.js:5:23)
+    at Server.<anonymous> (/home/dev/webapp/src/server.js:13:30)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+2026-11-21T12:00:01.500Z GET /api/users 200 4ms
+2026-11-21T12:00:01.750Z GET /legacy 200 5ms
+(node:11554) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-21T12:00:02.000Z GET /api/users/2/roles 500 6ms
+TypeError: Cannot read properties of undefined (reading 'roles')
+    at userRoles (/home/dev/webapp/src/routes.js:5:23)
+    at Server.<anonymous> (/home/dev/webapp/src/server.js:13:30)
+    at Server.emit (node:events:518:28)
+    at parserOnIncoming (node:_http_server:1153:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:117:17)
+2026-11-21T12:00:02.250Z GET /api/users 200 7ms
+2026-11-21T12:00:02.500Z GET /health 404 3ms
+2026-11-21T12:00:02.750Z GET /api/users 200 4ms
