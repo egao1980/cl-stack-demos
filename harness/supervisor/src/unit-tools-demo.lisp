@@ -61,6 +61,17 @@ the commands mean the same everywhere; NIL elsewhere."
          (fields (uiop:split-string line :separator " ")))
     (second fields)))
 
+(defun first-hit-text (search-result)
+  "The text of the line hit [1] marks with \">\" in a unit_search result string."
+  (let ((marked (find-if (lambda (l) (and (plusp (length l)) (char= #\> (char l 0))))
+                         (uiop:split-string search-result :separator (string #\Newline)))))
+    (and marked (let ((tab (position #\Tab marked))) (and tab (subseq marked (1+ tab)))))))
+
+(defun ref-line (ref)
+  "The line number of a \"<unit>:<segment>:<line>\" ref."
+  (let ((p (position #\: ref :from-end t)))
+    (and p (parse-integer ref :start (1+ p) :junk-allowed t))))
+
 (defun after-line-of (text)
   "The L of \"… after_line L\" in a tool result."
   (let ((p (search "after_line " text :from-end t)))
@@ -110,11 +121,17 @@ the commands mean the same everywhere; NIL elsewhere."
     (tool-call units "unit_search" "query" "segfault")
     (tool-call units "unit_search" "query" "" )
     (stage "9f. unit_read around the ref, then by range")
-    (check "the top hit is the error line of the build (shell-job-2, line 122: line 1 is the segment header)"
-           (equal ref "shell-job-2:1:122"))
+    (check "the top hit is the error line of the build, in shell-job-2 (the ref comes from the result)"
+           (and ref (eql 0 (search "shell-job-2:" ref))
+                (equal (first-hit-text r)
+                       "src/mod120.c:14:5: error: 'count' undeclared (first use in this function)")))
+    (note "(ref ~a: line ~a, after the header and 120 cc lines)" ref (and ref (ref-line ref)))
     (tool-call units "unit_read" "ref" ref)
-    (note "(a ref read starts 10 lines before the ref; with limit 8 the ref line itself is not shown:)")
-    (tool-call units "unit_read" "ref" ref "limit" 8)
+    (note "(a ref read starts 10 lines before the ref; a limit too small for that centres the ref:)")
+    (let ((small (tool-call units "unit_read" "ref" ref "limit" 8)))
+      (check "limit 8 still shows the ref line, marked"
+             (and small ref
+                  (search (format nil ">~6d~c" (ref-line ref) #\Tab) small))))
     (tool-call units "unit_read" "unit" "shell-job-2" "start_line" 199 "limit" 5)
     (tool-call units "unit_read" "unit" "shell-job-2" "start_line" 900)
     (stage "9g. unit_tail: the last lines; follow with after_line + wait_ms")
