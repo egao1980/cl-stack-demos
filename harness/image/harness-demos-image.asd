@@ -1,5 +1,5 @@
 (defsystem "harness-demos-image"
-  :version "0.2.1"
+  :version "0.2.2"
   :description "Live demo of lisp-mcp/agent (H4a: form-resources, a spawned Swank image through the native tool source, observe mode, agent runs with permission rules; H4b: image events, a background debugger in the agent inbox, restarts under restart: rules, job events, observe); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
@@ -10,7 +10,8 @@
                (:version "repl-protocol" "0.2.8")
                (:version "ai-agent-protocol" "0.12.0")
                (:version "llm-protocol" "0.5.0")
-               (:version "llm-protocol-openai" "0.4.0")
+               ;; 0.5.1 reads "tool_calls": null as no tool calls (egao1980/llm-protocol-openai#14)
+               (:version "llm-protocol-openai" "0.5.1")
                (:version "event-protocol" "0.2.2")
                (:version "event-backend-libuv" "0.2.2")
                (:version "http-protocol" "0.4.0")

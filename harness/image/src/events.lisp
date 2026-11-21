@@ -437,6 +437,7 @@ restart). → true when the worker then finished with the right total."
                                                    "The worker still waits in the debugger (see the last <lisp-image-event>). Answer it with debug-invoke-restart."))))
                                run)))))
                (%print-run run :width 500)
+               (print-lm-usage label)
                (show "answer" (or (ignore-errors (agent:agent-run-text run)) ""))
                (show "event kinds the callback saw" (%kinds (funcall seen)))
                (show "event turns in the run (the first message included)"
