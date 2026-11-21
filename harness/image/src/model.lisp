@@ -148,6 +148,7 @@ a coder model, else the first chat model."
               (format nil "MODEL THAT RAN: ~a at ~a for the real-model run (~a)" *lm-model*
                       (%url-host *lm-studio-url*) (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then first chat model"))
               "no LM Studio model: the real-model run is skipped"))
+    (when *lm-model* (note "~a" (sampling-description)))
     *lm-model*))
 
 ;;; A scripted mock: each step is (tool-name . json-arguments) or a string.

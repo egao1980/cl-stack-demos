@@ -1,5 +1,5 @@
 (defsystem "harness-demos-image"
-  :version "0.2.2"
+  :version "0.3.0"
   :description "Live demo of lisp-mcp/agent (H4a: form-resources, a spawned Swank image through the native tool source, observe mode, agent runs with permission rules; H4b: image events, a background debugger in the agent inbox, restarts under restart: rules, job events, observe); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
@@ -27,6 +27,7 @@
   :serial t
   :pathname "src"
   :components ((:file "package")
+               (:file "sampling")       ; HARNESS_DEMOS_MODE: the sampling preset of live calls
                (:file "support")
                (:file "model")
                (:file "scanner")

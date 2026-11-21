@@ -1,5 +1,5 @@
 (defsystem "harness-demos-agent"
-  :version "0.2.2"
+  :version "0.3.0"
   :description "Live demos of the coding-agent harness: permissions, file and shell tools, TUI widgets, markdown and diff rendering, tty backend, OpenAI prompt cache"
   :author "egao1980"
   :license "MIT"
@@ -35,6 +35,7 @@
   :serial t
   :pathname "src"
   :components ((:file "package")
+               (:file "sampling")       ; HARNESS_DEMOS_MODE: the sampling preset of live calls
                (:file "permissions")
                (:file "file-tools")
                (:file "tui-widgets")

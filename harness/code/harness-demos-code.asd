@@ -1,9 +1,9 @@
 (defsystem "harness-demos-code"
-  :version "0.7.0"
+  :version "0.8.0"
   :description "Live demo of cl-stack-code: -p (H3a: text, stream-json, headless denial, layered settings, AGENTS.md discovery), the interactive mode (H3b) on the headless terminal, and plan mode (H5a: plan, project, approve, drift, reject; git and copy areas) and checkpoints with rewind (H5b: git private refs, jj @ commits, folder snapshots; files / both rewinds, drift restarts, plan checkpoints, retention, the rewind dialog), and the Lisp image (H4b: -p --lisp-image spawn with image_event lines, onDebugger turn and notice with the banner and status marker, observe against an attached image), and the session's units (H8d: the process panel on the headless terminal, follow and search, unit control under the agent's permission rules, failure notices, the units/* RPC methods, the crash sweep); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
-  :depends-on ((:version "cl-stack-code" "0.8.0")
+  :depends-on ((:version "cl-stack-code" "0.9.0")
                ;; H8d: the session supervisor and the unit tools
                (:version "supervisor-protocol" "0.3.1")
                (:version "agent-tools" "0.3.1")
@@ -50,6 +50,7 @@
   :serial t
   :pathname "src"
   :components ((:file "package")
+               (:file "sampling")       ; HARNESS_DEMOS_MODE: the sampling preset of live calls
                (:file "support")
                (:file "model")
                (:file "demos")

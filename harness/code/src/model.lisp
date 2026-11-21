@@ -127,8 +127,11 @@ model (no embedding or OCR models)."
     (when (and override ids (not (member override ids :test #'string=)))
       (note "HARNESS_DEMOS_MODEL ~a is not in GET /v1/models; using it anyway (LM Studio may load it on demand)" override))
     (if id
-        (note "MODEL THAT RAN: ~a at ~a (~a; real model, its output varies run to run)"
-              id (%url-host *lm-studio-url*) (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then tool_use"))
+        (progn
+          (note "MODEL THAT RAN: ~a at ~a (~a; real model, its output varies run to run)"
+                id (%url-host *lm-studio-url*) (if override "from HARNESS_DEMOS_MODEL" "picked by the heuristic: coder, then tool_use"))
+          (note "~a; every real-model run gets it as --model-param flags (cl-stack-code 0.9.0 modelParams)"
+                (sampling-description)))
         (note "MODEL THAT RAN: scripted mock provider \"mock\" (no LM Studio model available)"))
     *model*))
 

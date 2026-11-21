@@ -410,7 +410,8 @@ restart). → true when the worker then finished with the right total."
                           :instructions (format nil "~a~%~%~a" (if edit +ledger-instructions+ +ledger-restart-instructions+)
                                                 (lt:lisp-tools-instructions tools))
                           :tools (list tools) :permissions rules
-                          :settings (agent:make-agent-settings :max-steps 30))))
+                          :settings (agent:make-agent-settings
+                                      :max-steps 30 :llm (sampling-llm-settings)))))
              (show-event "the event (taken by the demo; it becomes the run's first message)" event)
              (show "the agent's tools" (lt:lisp-tools-names tools))
              (show "rules" (mapcar #'princ-to-string rules))

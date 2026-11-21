@@ -159,7 +159,8 @@
                              :instructions (format nil "You fix Common Lisp code in a live image with the tools. Be brief.~%~%~a"
                                                    (lt:lisp-tools-instructions tools))
                              :tools (list tools) :permissions rules
-                             :settings (agent:make-agent-settings :max-steps 20))
+                             :settings (agent:make-agent-settings
+                                        :max-steps 20 :llm (sampling-llm-settings)))
                             +shop-prompt+)))))
              (%print-run run :width 400)
              (print-lm-usage label)
