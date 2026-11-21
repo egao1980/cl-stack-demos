@@ -12,7 +12,9 @@
                     (#:h #:tui-backend-terminal)
                     (#:tl #:terminal-backend-lisp)
                     (#:rpc #:rpc-protocol)
-                    (#:stdio #:rpc-backend-stdio))
+                    (#:stdio #:rpc-backend-stdio)
+                    (#:sup #:supervisor-protocol)
+                    (#:tp #:terminal-protocol))
   (:export #:run-demos
            #:demo-text
            #:demo-stream-json
@@ -33,4 +35,5 @@
            #:demo-sdk
            #:demo-rpc-wire
            #:demo-rpc-process
+           #:demo-units
            #:rpc-child-main))

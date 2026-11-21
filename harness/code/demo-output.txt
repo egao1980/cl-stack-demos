@@ -26,9 +26,9 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
 ========================================================================
 == Loaded systems
 ========================================================================
-  cl-stack-code          0.7.0
+  cl-stack-code          0.8.0
   ai-agent-protocol      0.14.0
-  agent-tools            0.2.0
+  agent-tools            0.3.1
   cli-protocol           0.2.1
   cli-backend-clingon    0.2.1
   cl-stack-pathlib       0.9.0
@@ -36,8 +36,8 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
   revision-backend-git   0.5.1
   revision-backend-jj    0.3.1
   diff-protocol          0.4.0
-  llm-protocol           0.5.0
-  llm-protocol-openai    0.5.1
+  llm-protocol           0.6.0
+  llm-protocol-openai    0.6.0
   tui-protocol           0.2.0
   tui-markdown           0.2.0
   tui-backend-terminal   0.1.0
@@ -51,83 +51,83 @@ WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
   rpc-protocol           0.2.0
   rpc-protocol-json      0.1.1
   rpc-backend-stdio      0.2.0
+  supervisor-protocol    0.3.1
+  supervisor-protocol/search 0.3.1
 
 ========================================================================
 == Model
 ========================================================================
 API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN): T
 GET /v1/models:
-  | ("unsloth/Qwen3.8-Flash-Next-GGUF" "lmstudio-community/Qwen3.8-27B-GGUF"
-  |  "lmstudio-community/Qwen3.8-27B-GGUF:Q4_K_M"
-  |  "lmstudio-community/Qwen3.8-27B-GGUF:Q8_0" "sahilchachra/Unlimited-OCR-GGUF"
-  |  "lmstudio-community/gemma-4-12B-it-QAT-GGUF" "gpustack/bge-m3-GGUF"
-  |  "Qwen/Qwen3-Embedding-0.6B-GGUF" "ggml-org/embeddinggemma-300M-GGUF"
-  |  "lmstudio-community/NVIDIA-Nemotron-3-Nano-4B-GGUF" "qwen3-asr-0.6b")
-capabilities: /api/v0/models not available (not LM Studio?): tool use unknown
-MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL; real model, its output varies run to run)
+  | ("zai-org/glm-4.6v-flash" "nvidia/nemotron-3-nano-4b" "qwen3.5-2b"
+  |  "unlimited-ocr" "text-embedding-qwen3-embedding-0.6b" "text-embedding-bge-m3"
+  |  "text-embedding-nomic-embed-text-v1.5")
+capabilities (/api/v0/models):
+  | (("zai-org/glm-4.6v-flash" "tool_use") ("nvidia/nemotron-3-nano-4b" "tool_use")
+  |  ("qwen3.5-2b" "tool_use") ("unlimited-ocr")
+  |  ("text-embedding-qwen3-embedding-0.6b" "tool_use") ("text-embedding-bge-m3")
+  |  ("text-embedding-nomic-embed-text-v1.5"))
+MODEL THAT RAN: qwen3.5-2b at 127.0.0.1:1234 (from HARNESS_DEMOS_MODEL; real model, its output varies run to run)
 
 ========================================================================
 == Demo a: -p --output-format text, read a file and answer
 ========================================================================
-$ cl-stack-code --model openai:unsloth/Qwen3.8-Flash-Next-GGUF -p --output-format text --max-turns 8 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Read notes.txt and tell me the release codename in one sentence.'
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format text --max-turns 8 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Read notes.txt and tell me the release codename in one sentence.'
 exit code: 0
 stdout:
-  | The release codename is **Juniper**, shipping 2026-12-01.
+  | The release codename is **Juniper**.
 stderr: (empty)
 
 ========================================================================
 == Demo b: --output-format stream-json, an edit allowed by --allowed-tools 'edit(greeting.txt)'
 ========================================================================
-$ cl-stack-code --model openai:unsloth/Qwen3.8-Flash-Next-GGUF -p --output-format stream-json --max-turns 8 --allowed-tools edit(greeting.txt) --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'In greeting.txt replace the word Hello with Goodbye using the edit tool, then say done.'
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --max-turns 8 --allowed-tools edit(greeting.txt) --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'In greeting.txt replace the word Hello with Goodbye using the edit tool, then say done.'
 exit code: 0
 stderr: (empty)
-events: 18
-event types in order: ("system" "assistant" "tool_use" "tool_result" "result")
+events: 11
+event types in order: ("system" "assistant" "tool_use" "tool_result" "text_delta" "result")
 
 --- the events (text_delta folded)
-  {"type":"system","session_id":"94f3b9a12cf24090be9d00a847f72b63","subtype":"init","version":"0.7.0","cwd":"<tmp>/stream/","project_root":"<tmp>/stream/","model":"openai:unsloth/Qwen3.8-Flash-Next-GGUF","permission_mode":"default","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_kill","job_list"],"instructions":[]}
-  {"type":"assistant","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":2053,"output_tokens":43,"cache_read_tokens":1018,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":1,"id":"pQdPednNiXrQcF5BMzAMzWtPwLJvIbb3","name":"read","input":{"file_path":"greeting.txt"}}
-  {"type":"tool_result","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":1,"id":"pQdPednNiXrQcF5BMzAMzWtPwLJvIbb3","name":"read","status":"done","is_error":false,"content":"     1\tHello, world!\nhash: sha256:d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5"}
-  {"type":"assistant","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":87,"output_tokens":182,"cache_read_tokens":3113,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":2,"id":"gPdzF2vJQ8ZZD2iZW0KMfehuSM8WsFHp","name":"edit","input":{"file_path":"greeting.txt","old_string":"Hello","new_string":"Goodbye","expected_hash":"sha256:d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5"}}
-  {"type":"tool_result","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":2,"id":"gPdzF2vJQ8ZZD2iZW0KMfehuSM8WsFHp","name":"edit","status":"done","is_error":false,"content":"Edited greeting.txt: 1 replacement\n--- a/greeting.txt\n+++ b/greeting.txt\n@@ -1 +1 @@\n-Hello, world!\n+Goodbye, world!\nhash: sha256:50ebc23c1648f6835dc9c9a0e06751732b1707b073f7ced1065613b0d2ab4e99"}
-  {"type":"assistant","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":3,"text":"","finish_reason":"tool_use","usage":{"input_tokens":122,"output_tokens":275,"cache_read_tokens":3381,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":3,"id":"pkFVR3EqtTWOmrYIF1iHw22oOiYAfmxi","name":"read","input":{"file_path":"greeting.txt"}}
-  {"type":"tool_result","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":3,"id":"pkFVR3EqtTWOmrYIF1iHw22oOiYAfmxi","name":"read","status":"done","is_error":false,"content":"     1\tGoodbye, world!\nhash: sha256:50ebc23c1648f6835dc9c9a0e06751732b1707b073f7ced1065613b0d2ab4e99"}
-  {"type":"assistant","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":4,"text":"","finish_reason":"tool_use","usage":{"input_tokens":90,"output_tokens":76,"cache_read_tokens":3777,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":4,"id":"IrBXlYnlxZwZODqi3jacOrTFMxsRvCbw","name":"bash","input":{"command":"od -c greeting.txt | head -5"}}
-  {"type":"tool_result","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":4,"id":"IrBXlYnlxZwZODqi3jacOrTFMxsRvCbw","name":"bash","status":"denied","is_error":true,"content":"Tool bash was not run: approval is not available (no one can be asked)\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in sett… [541 chars]
-  {"type":"assistant","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":5,"text":"","finish_reason":"tool_use","usage":{"input_tokens":94,"output_tokens":194,"cache_read_tokens":3943,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":5,"id":"SnC1meJxIfc79POM2Nbu4hcojxtqlRWn","name":"grep","input":{"pattern":"Goodbye","path":"greeting.txt"}}
-  {"type":"tool_result","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":5,"id":"SnC1meJxIfc79POM2Nbu4hcojxtqlRWn","name":"grep","status":"done","is_error":false,"content":"greeting.txt:1:Goodbye, world!"}
-  {"type":"assistant","session_id":"94f3b9a12cf24090be9d00a847f72b63","step":6,"text":"","finish_reason":"stop","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"result","subtype":"success","is_error":false,"result":"","error":null,"num_turns":6,"duration_ms":160434,"usage":{"input_tokens":2446,"output_tokens":770,"cache_read_tokens":15232,"cache_write_tokens":0},"permission_denials":[{"id":"IrBXlYnlxZwZODqi3jacOrTFMxsRvCbw","name":"bash","input":{"command":"od -c greeting.txt | head -5"},"reason":"headless"}],"session_id":"94f3b9a12cf24090be9d00a… [411 chars]
+  {"type":"system","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","subtype":"init","version":"0.8.0","cwd":"<tmp>/stream/","project_root":"<tmp>/stream/","model":"openai:qwen3.5-2b","permission_mode":"default","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_kill","job_list","unit_list","unit_search","unit_read","unit_tail","unit_control"],"instruc… [410 chars]
+  {"type":"assistant","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":4693,"output_tokens":77,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":1,"id":"plYCDdQjvvoyzBtSGyjbrzNhKABAruHZ","name":"read","input":{"file_path":"greeting.txt"}}
+  {"type":"tool_result","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":1,"id":"plYCDdQjvvoyzBtSGyjbrzNhKABAruHZ","name":"read","status":"done","is_error":false,"content":"     1\tHello, world!\nhash: sha256:d9014c4624844aa5bac314773d6b689ad467fa4e1d1a50a1b8a99d5a95f72ff5"}
+  {"type":"assistant","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":4856,"output_tokens":176,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":2,"id":"OVgn0Pu4UhLO5l2hNewvY962hB93WJ6y","name":"edit","input":{"file_path":"greeting.txt","old_string":"Hello, world!","new_string":"Goodbye, world!"}}
+  {"type":"tool_result","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":2,"id":"OVgn0Pu4UhLO5l2hNewvY962hB93WJ6y","name":"edit","status":"done","is_error":false,"content":"Edited greeting.txt: 1 replacement\n--- a/greeting.txt\n+++ b/greeting.txt\n@@ -1 +1 @@\n-Hello, world!\n+Goodbye, world!\nhash: sha256:50ebc23c1648f6835dc9c9a0e06751732b1707b073f7ced1065613b0d2ab4e99"}
+  {"type":"assistant","session_id":"8bc0be10e6658dc8a7ef10b94d57bdab","step":3,"text":"Done!","finish_reason":"stop","usage":{"input_tokens":5153,"output_tokens":40,"cache_read_tokens":0,"cache_write_tokens":0}}
+    (2 text_delta events before it for step 3)
+  {"type":"result","subtype":"success","is_error":false,"result":"Done!","error":null,"num_turns":3,"duration_ms":6012,"usage":{"input_tokens":14702,"output_tokens":293,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"8bc0be10e6658dc8a7ef10b94d57bdab"}
 
 --- greeting.txt after the run
 greeting.txt:
   | Goodbye, world!
-tool results (name status):
-  | (("read" "done") ("edit" "done") ("read" "done") ("bash" "denied")
-  |  ("grep" "done"))
+tool results (name status): (("read" "done") ("edit" "done"))
 
 ========================================================================
 == Demo c: headless denial, a write without permission (default mode)
 ========================================================================
-$ cl-stack-code --model openai:unsloth/Qwen3.8-Flash-Next-GGUF -p --output-format stream-json --max-turns 4 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Create a file todo.txt containing the line 'ship it' using the write tool.'
-exit code: 0
-stderr: (empty)
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --max-turns 4 --append-system-prompt 'Answer briefly. Use the tools when the task needs a file; do not guess file contents. File paths are relative to the working directory: write greeting.txt, not /greeting.txt.' 'Create a file todo.txt containing the line 'ship it' using the write tool.'
+exit code: 1
+stderr:
+  | cl-stack-code: reached max turns (4)
 
 --- tool_use / tool_result / result events
-  {"type":"tool_use","session_id":"9e09969d63a94b8d6121defab45cf4b0","step":1,"id":"I0akYmeYl8TmEzMSzT9yGJON5REQeJIm","name":"write","input":{"file_path":"todo.txt","content":"ship it\n"}}
-  {"type":"tool_result","session_id":"9e09969d63a94b8d6121defab45cf4b0","step":1,"id":"I0akYmeYl8TmEzMSzT9yGJON5REQeJIm","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: approval is not available (no one can be asked)\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
-  {"type":"result","subtype":"success","is_error":false,"result":"I couldn't create `todo.txt` — the write was blocked because this session is running headless (`-p`) and can't prompt for approval. No file was created.\n\nTo proceed, re-run with one of:\n- `--allowed-tools \"Write\"` (or `\"write\"`)\n- a `permissions.allow` rule for Write in settings\n- `--permission-mode acceptEdits` or `bypassPermissions`\n\nThen the content to write is a single line: `ship it`.","error":null,"num_turns":2,"duration_ms":92321,"usage":{"input_tokens":2143,"output_tokens":512,"cache_read_tokens":4228,"cache_wri… [817 chars]
+  {"type":"tool_use","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":1,"id":"RXjjN792hjtsAm1Qj3lYJvbp6nDUMSmg","name":"write","input":{"file_path":"todo.txt","content":"ship it"}}
+  {"type":"tool_result","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":1,"id":"RXjjN792hjtsAm1Qj3lYJvbp6nDUMSmg","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: approval is not available (no one can be asked)\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"tool_use","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":2,"id":"yeeyZMsipdtH6LQ7hvMTya9Cp9neqZr5","name":"read","input":{"file_path":"todo.txt"}}
+  {"type":"tool_result","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":2,"id":"yeeyZMsipdtH6LQ7hvMTya9Cp9neqZr5","name":"read","status":"error","is_error":true,"content":"Tool read rejected its arguments: todo.txt not found; check the path with ls or glob\nFix the arguments to match the tool's input schema and call it again."}
+  {"type":"tool_use","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":3,"id":"rW4hSGpYXAo0wugKQ7B9xFt0wn2FItkT","name":"write","input":{"file_path":"todo.txt","content":"ship it"}}
+  {"type":"tool_result","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":3,"id":"rW4hSGpYXAo0wugKQ7B9xFt0wn2FItkT","name":"write","status":"denied","is_error":true,"content":"Tool write was not run: approval is not available (no one can be asked)\nFeedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"tool_use","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":4,"id":"kSDTi4rr0DikQ8Ypy4sSTfs4YaVtzY7q","name":"ls","input":{}}
+  {"type":"tool_result","session_id":"995ec1ebbcce1c219c6bdc6cf177a496","step":4,"id":"kSDTi4rr0DikQ8Ypy4sSTfs4YaVtzY7q","name":"ls","status":"done","is_error":false,"content":"README.md"}
+  {"type":"result","subtype":"error_max_turns","is_error":true,"result":"","error":"reached max turns (4)","num_turns":4,"duration_ms":11826,"usage":{"input_tokens":20472,"output_tokens":656,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[{"id":"RXjjN792hjtsAm1Qj3lYJvbp6nDUMSmg","name":"write","input":{"file_path":"todo.txt","content":"ship it"},"reason":"headless"},{"id":"rW4hSGpYXAo0wugKQ7B9xFt0wn2FItkT","name":"write","input":{"file_path":"todo.txt","content":"ship it"},"reason":"headless"}],"session_id":"995ec1ebbcce1c219c6bdc6cf177a496"}
 
 --- verdict
 todo.txt exists: NIL
-result subtype: success
-permission_denials: (("write" "headless"))
-a tool_result with status "denied" reached the model and the run finished (success).
+result subtype: error_max_turns
+permission_denials: (("write" "headless") ("write" "headless"))
+a tool_result with status "denied" reached the model and the run finished (error_max_turns).
 
 ========================================================================
 == Demo d: layered settings, user + project + local + flags
@@ -209,7 +209,7 @@ hidden tools (a bare deny): ("job_kill")
 
 --- a mock run on these files: its system init event
 exit: 0
-  {"type":"system","session_id":"e8fb34d414a13b55a80481ddd0788aac","subtype":"init","version":"0.7.0","cwd":"<tmp>/settings/","project_root":"<tmp>/settings/","model":"mock:flag-model","permission_mode":"acceptEdits","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_list"],"instructions":[]}
+  {"type":"system","session_id":"f4405fcd3dcc0ca3d9b315ad4cb31d73","subtype":"init","version":"0.8.0","cwd":"<tmp>/settings/","project_root":"<tmp>/settings/","model":"mock:flag-model","permission_mode":"acceptEdits","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_list","unit_list","unit_search","unit_read","unit_tail","unit_control"],"instructions":[]}
 
 ========================================================================
 == Demo e: AGENTS.md discovery and the assembled system prompt
@@ -372,7 +372,7 @@ what the model received (first request, user text):
   21││
   22││
   23││
-  24│⠙ Working… (Esc to interrupt)│
+  24│⠋ Working… (Esc to interrupt)│
   25│────────────────────────────────────────────────────────────────────────────────│
   26│> Message, @file, /help│
   27│ tui-mock · default · <tmp>/…/<run>/tui-md/ 0 in · 0 out│
@@ -640,26 +640,26 @@ the second request holds "one" and "First answer.": T
 
 --- f8: /help
   ┌ screen: /help
-   0│  /help                 this help│
-   1│  /clear                start a new conversation│
-   2│  /model [MODEL]        show or switch the model (provider or provider:model)│
-   3│  /permissions [MODE]   show the rules, or switch to default, acceptEdits,│
-   4│bypassPermissions or plan│
-   5│  /session              show the session id│
-   6│  /tree                 show the session's turns as a tree│
-   7│  /fork [AT]            branch off before turn AT (a number or an id from /tree;│
-   8│default the last)│
-   9│  /rewind [N] [PART]    go back N turns (default 1): conversation, files or│
-  10│both; later turns stay in /tree│
-  11│  /checkpoints          list the session's checkpoints (the file states /rewind│
-  12│restores)│
-  13│  /clone                continue in a copy of this session│
-  14│  /export FILE          write the conversation as markdown, or JSON for a .json│
-  15│FILE│
-  16│  /steer MESSAGE        send MESSAGE into the running turn (also Ctrl-T)│
-  17│  /plan                 show the open plan's projected change (plan mode)│
-  18│  /approve              apply the open plan to the project│
-  19│  /reject               discard the open plan│
+   0│  /model [MODEL]        show or switch the model (provider or provider:model)│
+   1│  /permissions [MODE]   show the rules, or switch to default, acceptEdits,│
+   2│bypassPermissions or plan│
+   3│  /session              show the session id│
+   4│  /tree                 show the session's turns as a tree│
+   5│  /fork [AT]            branch off before turn AT (a number or an id from /tree;│
+   6│default the last)│
+   7│  /rewind [N] [PART]    go back N turns (default 1): conversation, files or│
+   8│both; later turns stay in /tree│
+   9│  /checkpoints          list the session's checkpoints (the file states /rewind│
+  10│restores)│
+  11│  /clone                continue in a copy of this session│
+  12│  /export FILE          write the conversation as markdown, or JSON for a .json│
+  13│FILE│
+  14│  /steer MESSAGE        send MESSAGE into the running turn (also Ctrl-T)│
+  15│  /plan                 show the open plan's projected change (plan mode)│
+  16│  /approve              apply the open plan to the project│
+  17│  /reject               discard the open plan│
+  18│  /ps                   the session's units (shell jobs, servers, subagents):│
+  19│logs, search, stop (also Ctrl-P)│
   20│  /exit                 quit (also Ctrl-D, or Ctrl-C on an empty input)│
   21│Keys:│
   22│  Enter send · Alt+Enter, Shift+Enter or Ctrl+J newline · Up/Down history│
@@ -679,17 +679,17 @@ stderr:
   | cl-stack-code: the interactive mode needs a terminal on standard input and output; use -p PROMPT for a headless run
 
 --- f10: one turn on the LM Studio model, same program, same headless terminal
-  ┌ screen: the real model (unsloth/Qwen3.8-Flash-Next-GGUF) answered
+  ┌ screen: the real model (qwen3.5-2b) answered
    0│> Read @notes.txt and give the codename in one sentence, in **bold**.│
    1││
-   2│The release codename is Juniper.│
-   3││
+   2│● ls <tmp>/…│
+   3│  ⎿ notes.txt│
    4││
-   5││
-   6││
-   7││
+   5│● read notes.txt│
+   6│  ⎿      1      Release notes│
+   7│    … +3 lines│
    8││
-   9││
+   9│Juniper│
   10││
   11││
   12││
@@ -703,8 +703,8 @@ stderr:
   20││
   21│────────────────────────────────────────────────────────────────────────────────│
   22│> Message, @file, /help│
-  23│ openai:unsloth/Qwen3.8-Flash-Next-GGUF · default · …/tui-rea… 1901 in · 25 out│
-transcript entry kinds: (:USER :ASSISTANT)
+  23│ openai:qwen3.5-2b · default · <tmp>/…/tui-real/          11037 in · 255 out│
+transcript entry kinds: (:USER :TOOL :TOOL :ASSISTANT)
 
 --- f: steps that reached their last screen
   f1   yes
@@ -734,32 +734,32 @@ sh test.sh in the project before:
 $ cl-stack-code --model mock -p --output-format stream-json --permission-mode plan --max-turns 8 'The tests fail. Run sh test.sh, fix calc.sh, and run the tests again.'
 exit code: 0
 stderr:
-  | cl-stack-code: plan babd837e531e80e7b0f49f61b15d2f30: 1 file changed, not applied (cl-stack-code -p --resume 32cd667348cc26df45731254772c6253 --apply applies it)
+  | cl-stack-code: plan a801c181bf5d2a50724318e13cc0ac7a: 1 file changed, not applied (cl-stack-code -p --resume 0c616dd07ac30de42c37656dd22c874f --apply applies it)
 event types in order:
   | ("system" "plan" "assistant" "tool_use" "tool_result" "assistant" "tool_use"
   |  "tool_result" "assistant" "tool_use" "tool_result" "text_delta" "assistant"
   |  "plan" "result")
 
 --- g1: the events (text_delta folded)
-  {"type":"system","session_id":"32cd667348cc26df45731254772c6253","subtype":"init","version":"0.7.0","cwd":"<tmp>/plan-git/","project_root":"<tmp>/plan-git/","model":"mock","permission_mode":"plan","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_kill","job_list"],"instructions":[]}
-  {"type":"plan","session_id":"32cd667348cc26df45731254772c6253","subtype":"opened","plan_id":"babd837e531e80e7b0f49f61b15d2f30","kind":"git","area":"<tmp>/data/plans/<tmp-key>-plan-git/babd837e531e80e7b0f49f61b15d2f30/tree/","base":"c2472f1cbff0075ba3c37bf3e649ae108603c469"}
-  {"type":"assistant","session_id":"32cd667348cc26df45731254772c6253","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"32cd667348cc26df45731254772c6253","step":1,"id":"call-1-1","name":"bash","input":{"command":"sh test.sh"}}
-  {"type":"tool_result","session_id":"32cd667348cc26df45731254772c6253","step":1,"id":"call-1-1","name":"bash","status":"done","is_error":false,"content":"FAIL add 2 3: expected 5, got -1\nok   mul 4 5\n[exit code 1]"}
-  {"type":"assistant","session_id":"32cd667348cc26df45731254772c6253","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"32cd667348cc26df45731254772c6253","step":2,"id":"call-2-1","name":"edit","input":{"file_path":"calc.sh","old_string":"$(( $1 - $2 ))","new_string":"$(( $1 + $2 ))"}}
-  {"type":"tool_result","session_id":"32cd667348cc26df45731254772c6253","step":2,"id":"call-2-1","name":"edit","status":"done","is_error":false,"content":"Edited calc.sh: 1 replacement\n--- a/calc.sh\n+++ b/calc.sh\n@@ -1,6 +1,6 @@\n # calc.sh: arithmetic helpers\n add() {\n-  echo $(( $1 - $2 ))\n+  echo $(( $1 + $2 ))\n }\n \n mul() {\nhash: sha256:2cac1dde5e56deb5028cdeb1045ffa3dad052de507eb2566a… [417 chars]
-  {"type":"assistant","session_id":"32cd667348cc26df45731254772c6253","step":3,"text":"","finish_reason":"tool_use","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"32cd667348cc26df45731254772c6253","step":3,"id":"call-3-1","name":"bash","input":{"command":"sh test.sh"}}
-  {"type":"tool_result","session_id":"32cd667348cc26df45731254772c6253","step":3,"id":"call-3-1","name":"bash","status":"done","is_error":false,"content":"ok   add 2 3\nok   mul 4 5\nall tests passed\n[exit code 0]"}
-  {"type":"assistant","session_id":"32cd667348cc26df45731254772c6253","step":4,"text":"Fixed add() in calc.sh (it subtracted). sh test.sh now prints:\nok   add 2 3\nok   mul 4 5\nall tests passed\n[exit code 0]","finish_reason":"stop","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"system","session_id":"0c616dd07ac30de42c37656dd22c874f","subtype":"init","version":"0.8.0","cwd":"<tmp>/plan-git/","project_root":"<tmp>/plan-git/","model":"mock","permission_mode":"plan","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_kill","job_list","unit_list","unit_search","unit_read","unit_tail","unit_control"],"instructions":[]}
+  {"type":"plan","session_id":"0c616dd07ac30de42c37656dd22c874f","subtype":"opened","plan_id":"a801c181bf5d2a50724318e13cc0ac7a","kind":"git","area":"<tmp>/data/plans/<tmp-key>-plan-git/a801c181bf5d2a50724318e13cc0ac7a/tree/","base":"b58688949a6ea17208763fcbcc59f3994506673a"}
+  {"type":"assistant","session_id":"0c616dd07ac30de42c37656dd22c874f","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"0c616dd07ac30de42c37656dd22c874f","step":1,"id":"call-1-1","name":"bash","input":{"command":"sh test.sh"}}
+  {"type":"tool_result","session_id":"0c616dd07ac30de42c37656dd22c874f","step":1,"id":"call-1-1","name":"bash","status":"done","is_error":false,"content":"FAIL add 2 3: expected 5, got -1\nok   mul 4 5\n[exit code 1]"}
+  {"type":"assistant","session_id":"0c616dd07ac30de42c37656dd22c874f","step":2,"text":"","finish_reason":"tool_use","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"0c616dd07ac30de42c37656dd22c874f","step":2,"id":"call-2-1","name":"edit","input":{"file_path":"calc.sh","old_string":"$(( $1 - $2 ))","new_string":"$(( $1 + $2 ))"}}
+  {"type":"tool_result","session_id":"0c616dd07ac30de42c37656dd22c874f","step":2,"id":"call-2-1","name":"edit","status":"done","is_error":false,"content":"Edited calc.sh: 1 replacement\n--- a/calc.sh\n+++ b/calc.sh\n@@ -1,6 +1,6 @@\n # calc.sh: arithmetic helpers\n add() {\n-  echo $(( $1 - $2 ))\n+  echo $(( $1 + $2 ))\n }\n \n mul() {\nhash: sha256:2cac1dde5e56deb5028cdeb1045ffa3dad052de507eb2566a… [417 chars]
+  {"type":"assistant","session_id":"0c616dd07ac30de42c37656dd22c874f","step":3,"text":"","finish_reason":"tool_use","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"0c616dd07ac30de42c37656dd22c874f","step":3,"id":"call-3-1","name":"bash","input":{"command":"sh test.sh"}}
+  {"type":"tool_result","session_id":"0c616dd07ac30de42c37656dd22c874f","step":3,"id":"call-3-1","name":"bash","status":"done","is_error":false,"content":"ok   add 2 3\nok   mul 4 5\nall tests passed\n[exit code 0]"}
+  {"type":"assistant","session_id":"0c616dd07ac30de42c37656dd22c874f","step":4,"text":"Fixed add() in calc.sh (it subtracted). sh test.sh now prints:\nok   add 2 3\nok   mul 4 5\nall tests passed\n[exit code 0]","finish_reason":"stop","usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0}}
     (1 text_delta events before it for step 4)
-  {"type":"plan","session_id":"32cd667348cc26df45731254772c6253","subtype":"projected","plan_id":"babd837e531e80e7b0f49f61b15d2f30","changes":[{"path":"calc.sh","kind":"modified"}],"diff":"diff --git a/calc.sh b/calc.sh\n--- a/calc.sh\n+++ b/calc.sh\n@@ -1,6 +1,6 @@\n # calc.sh: arithmetic helpers\n add() {\n-  echo $(( $1 - $2 ))\n+  echo $(( $1 + $2 ))\n }\n \n mul() {\n"}
-  {"type":"result","subtype":"success","is_error":false,"result":"Fixed add() in calc.sh (it subtracted). sh test.sh now prints:\nok   add 2 3\nok   mul 4 5\nall tests passed\n[exit code 0]","error":null,"num_turns":4,"duration_ms":1341,"usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"32cd667348cc26df45731254772c6253","pl… [869 chars]
+  {"type":"plan","session_id":"0c616dd07ac30de42c37656dd22c874f","subtype":"projected","plan_id":"a801c181bf5d2a50724318e13cc0ac7a","changes":[{"path":"calc.sh","kind":"modified"}],"diff":"diff --git a/calc.sh b/calc.sh\n--- a/calc.sh\n+++ b/calc.sh\n@@ -1,6 +1,6 @@\n # calc.sh: arithmetic helpers\n add() {\n-  echo $(( $1 - $2 ))\n+  echo $(( $1 + $2 ))\n }\n \n mul() {\n"}
+  {"type":"result","subtype":"success","is_error":false,"result":"Fixed add() in calc.sh (it subtracted). sh test.sh now prints:\nok   add 2 3\nok   mul 4 5\nall tests passed\n[exit code 0]","error":null,"num_turns":4,"duration_ms":1525,"usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"0c616dd07ac30de42c37656dd22c874f","pl… [869 chars]
 result subtype: success
 result permission_denials: []
 result plan (id kind status changes):
-  | ("babd837e531e80e7b0f49f61b15d2f30" "git" "open"
+  | ("a801c181bf5d2a50724318e13cc0ac7a" "git" "open"
   |  "[{\"path\":\"calc.sh\",\"kind\":\"modified\"}]")
 
 --- g1: the real tree is unchanged
@@ -775,10 +775,10 @@ sh test.sh in the project:
 plan: (:GIT :OPEN)
 plan base (commit) = opened.base: T
 base's parent is HEAD: T
-plan ref: refs/cl-stack-code/plans/babd837e531e80e7b0f49f61b15d2f30
+plan ref: refs/cl-stack-code/plans/a801c181bf5d2a50724318e13cc0ac7a
 git worktree list:
-  | <tmp>/plan-git                                                                                                                                     3eecce8 [main]
-  | <tmp>/data/plans/<tmp-key>-plan-git/babd837e531e80e7b0f49f61b15d2f30/tree c2472f1 (detached HEAD)
+  | <tmp>/plan-git                                                                                                                                     d8b490a [main]
+  | <tmp>/data/plans/<tmp-key>-plan-git/a801c181bf5d2a50724318e13cc0ac7a/tree b586889 (detached HEAD)
 git status --porcelain in the area: M calc.sh
 
 --- g1: the projected diff (the "projected" event)
@@ -798,7 +798,7 @@ diff:
 plan-diff-text = the event's diff: T
 
 --- g2: -p --resume SESSION --apply: no model call, the plan is applied
-$ cl-stack-code --model mock -p --resume 32cd667348cc26df45731254772c6253 --apply
+$ cl-stack-code --model mock -p --resume 0c616dd07ac30de42c37656dd22c874f --apply
 exit code: 0
 stdout (the applied diff):
   | diff --git a/calc.sh b/calc.sh
@@ -813,7 +813,7 @@ stdout (the applied diff):
   |  
   |  mul() {
 stderr:
-  | cl-stack-code: plan babd837e531e80e7b0f49f61b15d2f30: applied 1 file
+  | cl-stack-code: plan a801c181bf5d2a50724318e13cc0ac7a: applied 1 file
 calc.sh in the project:
   | # calc.sh: arithmetic helpers
   | add() {
@@ -832,8 +832,8 @@ git status --porcelain (uncommitted edit; HEAD, branch, index untouched): M calc
 HEAD unchanged: T
 plan status: :APPLIED
 area removed: T
-git worktree list: <tmp>/plan-git 3eecce8 [main]
-the plan ref's commit: subject, and parent = the base: ("cl-stack-code plan babd837e531e80e7b0f49f61b15d2f30" T)
+git worktree list: <tmp>/plan-git d8b490a [main]
+the plan ref's commit: subject, and parent = the base: ("cl-stack-code plan a801c181bf5d2a50724318e13cc0ac7a" T)
 
 --- g3: drift: the working copy changes calc.sh while the plan is open
 $ cl-stack-code --model mock -p --output-format stream-json --permission-mode plan --max-turns 8 'The tests fail. Run sh test.sh, fix calc.sh, and run the tests again.'
@@ -853,17 +853,17 @@ the user appended sub() to calc.sh in the project; git diff:
   | +}
 
 --- g3: --resume SESSION --apply (default --on-drift abort)
-$ cl-stack-code --model mock -p --output-format stream-json --resume e481fb0d0dc49695e8ab8a0671610b0d --apply
+$ cl-stack-code --model mock -p --output-format stream-json --resume 4e3f20f9a07d9122487c28add9fac1ee --apply
 exit code: 1
 stderr:
-  | cl-stack-code: plan 3a4982c0385c3d8dc20209144b388b40: the working copy changed at calc.sh; nothing applied (use --on-drift rebase or --on-drift overwrite)
-  {"type":"plan","session_id":"e481fb0d0dc49695e8ab8a0671610b0d","subtype":"drift","plan_id":"3a4982c0385c3d8dc20209144b388b40","paths":["calc.sh"]}
-  {"type":"result","subtype":"error_during_execution","is_error":true,"result":"","error":"plan 3a4982c0385c3d8dc20209144b388b40: the working copy changed at calc.sh; nothing applied (use --on-drift rebase or --on-drift overwrite)","num_turns":0,"duration_ms":1106,"usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"e481fb0d0… [899 chars]
+  | cl-stack-code: plan 88c75282e6e693f47cb54c6b5de3ea41: the working copy changed at calc.sh; nothing applied (use --on-drift rebase or --on-drift overwrite)
+  {"type":"plan","session_id":"4e3f20f9a07d9122487c28add9fac1ee","subtype":"drift","plan_id":"88c75282e6e693f47cb54c6b5de3ea41","paths":["calc.sh"]}
+  {"type":"result","subtype":"error_during_execution","is_error":true,"result":"","error":"plan 88c75282e6e693f47cb54c6b5de3ea41: the working copy changed at calc.sh; nothing applied (use --on-drift rebase or --on-drift overwrite)","num_turns":0,"duration_ms":1199,"usage":{"input_tokens":0,"output_tokens":0,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"4e3f20f9a… [899 chars]
 calc.sh in the project is still the user's: T
 
 --- g3: approve-plan in Lisp: plan-drift, its restarts, rebase-plan
 condition: CL-STACK-CODE:PLAN-DRIFT
-message: the working copy changed since plan 3a4982c0385c3d8dc20209144b388b40 was opened: calc.sh
+message: the working copy changed since plan 88c75282e6e693f47cb54c6b5de3ea41 was opened: calc.sh
 plan-drift-paths: ("calc.sh")
 restarts:
   | (CL-STACK-CODE:REBASE-PLAN CL-STACK-CODE:OVERWRITE-PLAN
@@ -898,7 +898,7 @@ the projected diff against the new base (only the plan's change):
 calc.sh in the project is still the user's (a rebase writes nothing): T
 
 --- g3: --resume SESSION --apply again
-$ cl-stack-code --model mock -p --resume e481fb0d0dc49695e8ab8a0671610b0d --apply
+$ cl-stack-code --model mock -p --resume 4e3f20f9a07d9122487c28add9fac1ee --apply
 exit code: 0
 stdout:
   | diff --git a/calc.sh b/calc.sh
@@ -913,7 +913,7 @@ stdout:
   |  
   |  mul() {
 stderr:
-  | cl-stack-code: plan 3a4982c0385c3d8dc20209144b388b40: applied 1 file
+  | cl-stack-code: plan 88c75282e6e693f47cb54c6b5de3ea41: applied 1 file
 calc.sh in the project:
   | # calc.sh: arithmetic helpers
   | add() {
@@ -937,22 +937,22 @@ sh test.sh in the project:
 $ cl-stack-code --model mock -p --output-format stream-json --permission-mode plan --max-turns 8 'The tests fail. Run sh test.sh, fix calc.sh, and run the tests again.'
 plan run exit: 0
 before: area exists, plan ref exists, worktrees: (T T 2)
-$ cl-stack-code --model mock -p --resume 78f4cd6e0ce7f2fc7f7012cc9264f6aa --reject
+$ cl-stack-code --model mock -p --resume 2e17e3c73c74666d94660afd1053798a --reject
 exit code: 0
 stdout: (empty)
 stderr:
-  | cl-stack-code: plan b1448b63f7505260581395a7970e1faa: discarded
+  | cl-stack-code: plan 3ee110460cf5fca59b861d966548c374: discarded
 plan status: :DISCARDED
 after: area exists, plan ref exists, worktrees: (NIL NIL 1)
 git status --porcelain: (clean)
 calc.sh in the project is the original: T
 
 --- g4: --apply after the reject
-$ cl-stack-code --model mock -p --resume 78f4cd6e0ce7f2fc7f7012cc9264f6aa --apply
+$ cl-stack-code --model mock -p --resume 2e17e3c73c74666d94660afd1053798a --apply
 exit code: 2
 stdout: (empty)
 stderr:
-  | cl-stack-code: session 78f4cd6e0ce7f2fc7f7012cc9264f6aa has no open plan
+  | cl-stack-code: session 2e17e3c73c74666d94660afd1053798a has no open plan
 
 --- g5: the same flow on a plain folder (--plan-area copy), text output
 $ cl-stack-code --model mock -p --permission-mode plan --plan-area copy --max-turns 8 'The tests fail. Run sh test.sh, fix calc.sh, and run the tests again.'
@@ -976,7 +976,7 @@ stdout (the answer, an empty line, the projected diff):
   |  
   |  mul() {
 stderr:
-  | cl-stack-code: plan 563c4ca089f3169165a247fb1b5d06ba: 1 file changed, not applied (cl-stack-code -p --resume 2b2cd507b0b4a2c23531a17d309e293b --apply applies it)
+  | cl-stack-code: plan 2f6df10eafd2e5b794dff43e07baa4bf: 1 file changed, not applied (cl-stack-code -p --resume 4e129eadb9fd119630ae24a54a89b58b --apply applies it)
 plan kind, status: (:COPY :OPEN)
 the area has no .git: T
 the base is a snapshot id in the plans store: sha256:dda02b63a46ebdb54f2b513b8bae2bf0aafdb26328a5553cdc9ba5f8986cf392
@@ -989,7 +989,7 @@ $ cl-stack-code --model mock -p --continue --apply
 exit code: 0
 stdout = the same diff: T
 stderr:
-  | cl-stack-code: plan 563c4ca089f3169165a247fb1b5d06ba: applied 1 file
+  | cl-stack-code: plan 2f6df10eafd2e5b794dff43e07baa4bf: applied 1 file
 sh test.sh in the folder:
   | ok   add 2 3
   | ok   mul 4 5
@@ -1015,7 +1015,7 @@ steps that ended as expected (g2 g3 g4 g5): (T T T T)
    8││
    9│Fixed add in calc.sh; sh test.sh passes in the plan area.│
   10││
-  11│● plan 6cbb2710: 1 file changed│
+  11│● plan 455cd992: 1 file changed│
   12│  calc.sh +1 -1│
   13│  1  # calc.sh: arithmetic helpers│
   14│  2  add() {│
@@ -1025,7 +1025,7 @@ steps that ended as expected (g2 g3 g4 g5): (T T T T)
   18│  5│
   19│  6  mul() {│
   20│────────────────────────────────────────────────────────────────────────────────────────────────────│
-  21│┌─Plan 6cbb2710────────────────────────────────────────────────────────────────────────────────────┐│
+  21│┌─Plan 455cd992────────────────────────────────────────────────────────────────────────────────────┐│
   22││ 1 file changed. Approve to apply them to the project.                                            ││
   23││                                                                                                  ││
   24││ > 1. Approve                                                                                     ││
@@ -1052,7 +1052,7 @@ calc.sh in the project (untouched): T
   13││
   14│Fixed add in calc.sh; sh test.sh passes in the plan area.│
   15││
-  16│● plan 6cbb2710: 1 file changed│
+  16│● plan 455cd992: 1 file changed│
   17│  calc.sh +1 -1│
   18│  1  # calc.sh: arithmetic helpers│
   19│  2  add() {│
@@ -1062,7 +1062,7 @@ calc.sh in the project (untouched): T
   23│  5│
   24│  6  mul() {│
   25││
-  26│plan 6cbb2710 applied: 1 file changed│
+  26│plan 455cd992 applied: 1 file changed│
   27│────────────────────────────────────────────────────────────────────────────────────────────────────│
   28│> Message, @file, /help│
   29│ tui-mock · plan · <tmp>/…/T/<run>/tui-plan-approve/          40 in · 20 out│
@@ -1091,7 +1091,7 @@ git status --porcelain: M calc.sh
   13││
   14│Fixed add in calc.sh; sh test.sh passes in the plan area.│
   15││
-  16│● plan 00c44db4: 1 file changed│
+  16│● plan c31a1f5f: 1 file changed│
   17│  calc.sh +1 -1│
   18│  1  # calc.sh: arithmetic helpers│
   19│  2  add() {│
@@ -1101,7 +1101,7 @@ git status --porcelain: M calc.sh
   23│  5│
   24│  6  mul() {│
   25││
-  26│plan 00c44db4 discarded│
+  26│plan c31a1f5f discarded│
   27│────────────────────────────────────────────────────────────────────────────────────────────────────│
   28│> Message, @file, /help│
   29│ tui-mock · plan · <tmp>/…/T/<run>/tui-plan-reject/           40 in · 20 out│
@@ -1126,7 +1126,7 @@ plans: ((:DISCARDED NIL))
   13││
   14│Fixed add in calc.sh; sh test.sh passes in the plan area.│
   15││
-  16│● plan 05731bc8: 1 file changed│
+  16│● plan f8820c9d: 1 file changed│
   17│  calc.sh +1 -1│
   18│  1  # calc.sh: arithmetic helpers│
   19│  2  add() {│
@@ -1136,7 +1136,7 @@ plans: ((:DISCARDED NIL))
   23│  5│
   24│  6  mul() {│
   25││
-  26│plan 05731bc8 stays open: send a message to keep planning, /plan to review it│
+  26│plan f8820c9d stays open: send a message to keep planning, /plan to review it│
   27│────────────────────────────────────────────────────────────────────────────────────────────────────│
   28│> Message, @file, /help│
   29│ tui-mock · plan · <tmp>/…/T/<run>/tui-plan-continue/         40 in · 20 out│
@@ -1151,7 +1151,7 @@ plans: ((:DISCARDED NIL))
    7││
    8│Comment updated; the fix from the first turn is still there.│
    9││
-  10│● plan 05731bc8: 1 file changed│
+  10│● plan f8820c9d: 1 file changed│
   11│  calc.sh +2 -2│
   12│  1 -# calc.sh: arithmetic helpers│
   13│  1 +# calc.sh: arithmetic helpers (tested by test.sh)│
@@ -1162,7 +1162,7 @@ plans: ((:DISCARDED NIL))
   18│  5│
   19│  6  mul() {│
   20│────────────────────────────────────────────────────────────────────────────────────────────────────│
-  21│┌─Plan 05731bc8────────────────────────────────────────────────────────────────────────────────────┐│
+  21│┌─Plan f8820c9d────────────────────────────────────────────────────────────────────────────────────┐│
   22││ 1 file changed. Approve to apply them to the project.                                            ││
   23││                                                                                                  ││
   24││ > 1. Approve                                                                                     ││
@@ -1193,7 +1193,7 @@ plans (one plan for both turns): (:APPLIED)
    6││
    7│Fixed add in calc.sh; sh test.sh passes in the plan area.│
    8││
-   9│● plan c5ae5b19: 1 file changed│
+   9│● plan 2ef9fb72: 1 file changed│
   10│  calc.sh +1 -1│
   11│  1  # calc.sh: arithmetic helpers│
   12│  2  add() {│
@@ -1203,9 +1203,9 @@ plans (one plan for both turns): (:APPLIED)
   16│  5│
   17│  6  mul() {│
   18││
-  19│error: the working copy changed since plan c5ae5b19 was opened: calc.sh│
+  19│error: the working copy changed since plan 2ef9fb72 was opened: calc.sh│
   20│────────────────────────────────────────────────────────────────────────────────────────────────────│
-  21│┌─Plan c5ae5b19: the working copy changed──────────────────────────────────────────────────────────┐│
+  21│┌─Plan 2ef9fb72: the working copy changed──────────────────────────────────────────────────────────┐│
   22││ Changed in both: calc.sh                                                                         ││
   23││                                                                                                  ││
   24││ > 1. Rebase onto the working copy                                                                ││
@@ -1229,7 +1229,7 @@ plans (one plan for both turns): (:APPLIED)
   11││
   12│Fixed add in calc.sh; sh test.sh passes in the plan area.│
   13││
-  14│● plan c5ae5b19: 1 file changed│
+  14│● plan 2ef9fb72: 1 file changed│
   15│  calc.sh +1 -1│
   16│  1  # calc.sh: arithmetic helpers│
   17│  2  add() {│
@@ -1239,16 +1239,16 @@ plans (one plan for both turns): (:APPLIED)
   21│  5│
   22│  6  mul() {│
   23││
-  24│error: the working copy changed since plan c5ae5b19 was opened: calc.sh│
+  24│error: the working copy changed since plan 2ef9fb72 was opened: calc.sh│
   25││
-  26│plan c5ae5b19 rebased onto the working copy│
+  26│plan 2ef9fb72 rebased onto the working copy│
   27│────────────────────────────────────────────────────────────────────────────────────────────────────│
   28│> Message, @file, /help│
   29│ tui-mock · plan · <tmp>/…/T/<run>/tui-plan-drift/            40 in · 20 out│
   ┌ screen: approved after the rebase
    0│Fixed add in calc.sh; sh test.sh passes in the plan area.│
    1││
-   2│● plan c5ae5b19: 1 file changed│
+   2│● plan 2ef9fb72: 1 file changed│
    3│  calc.sh +1 -1│
    4│  1  # calc.sh: arithmetic helpers│
    5│  2  add() {│
@@ -1258,11 +1258,11 @@ plans (one plan for both turns): (:APPLIED)
    9│  5│
   10│  6  mul() {│
   11││
-  12│error: the working copy changed since plan c5ae5b19 was opened: calc.sh│
+  12│error: the working copy changed since plan 2ef9fb72 was opened: calc.sh│
   13││
-  14│plan c5ae5b19 rebased onto the working copy│
+  14│plan 2ef9fb72 rebased onto the working copy│
   15││
-  16│● plan c5ae5b19: 1 file changed│
+  16│● plan 2ef9fb72: 1 file changed│
   17│  calc.sh +1 -1│
   18│  1  # calc.sh: arithmetic helpers│
   19│  2  add() {│
@@ -1272,7 +1272,7 @@ plans (one plan for both turns): (:APPLIED)
   23│  5│
   24│  6  mul() {│
   25││
-  26│plan c5ae5b19 applied: 1 file changed│
+  26│plan 2ef9fb72 applied: 1 file changed│
   27│────────────────────────────────────────────────────────────────────────────────────────────────────│
   28│> Message, @file, /help│
   29│ tui-mock · plan · <tmp>/…/T/<run>/tui-plan-drift/            40 in · 20 out│
@@ -1294,48 +1294,137 @@ scenarios that reached their last screen (h1 h2 h3 h4): (T T T T)
 ========================================================================
 == Demo i: plan mode on the LM Studio model: fix the failing test in the area
 ========================================================================
-model: LM Studio unsloth/Qwen3.8-Flash-Next-GGUF (real; output varies run to run; up to 3 attempts)
+model: LM Studio qwen3.5-2b (real; output varies run to run; up to 3 attempts)
 
 --- attempt 1
-$ cl-stack-code --model openai:unsloth/Qwen3.8-Flash-Next-GGUF -p --output-format stream-json --permission-mode plan --max-turns 16 --append-system-prompt 'Answer briefly. The working directory already holds the project: use relative paths such as calc.sh and test.sh, never absolute ones, and do not cd. Use the tools; do not guess file contents.' 'sh test.sh fails. Run sh test.sh with the bash tool, read calc.sh, fix the function that the failing test names with the edit tool (file_path calc.sh), then run sh test.sh again.'
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --permission-mode plan --max-turns 16 --append-system-prompt 'Answer briefly. The working directory already holds the project: use relative paths such as calc.sh and test.sh, never absolute ones, and do not cd. Use the tools; do not guess file contents.' 'sh test.sh fails. Run sh test.sh with the bash tool, read calc.sh, fix the function that the failing test names with the edit tool (file_path calc.sh), then run sh test.sh again.'
+exit code: 1
+stderr:
+  | cl-stack-code: plan 8ae3c1631358b4bd9a4f0b90a31a8121: no changes
+  | cl-stack-code: reached max turns (16)
+  tool_use bash {"command":"bash -c 'sh \"data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/test.sh\"'","description":"Running test.sh to see the failure"}
+    → done: sh: data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/test.sh: No such file or directory ⏎ [exit code 127]
+  tool_use ls {}
+    → done: .git ⏎ README.md ⏎ calc.sh ⏎ test.sh
+  tool_use bash {"command":"bash -c 'cd \"data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree\" && sh test.sh'"}
+    → done: bash: line 0: cd: data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree: No such file or directory ⏎ [exit code 1]
+  tool_use bash {"command":"bash \"data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/test.sh\"","description":"Running test.sh with full path"}
+    → done: bash: data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/test.sh: No such file or directory ⏎ [exit code 127]
+  tool_use bash {"command":"cd \"data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree\" && sh test.sh","description":"Running from project root"}
+    → done: /bin/sh: line 0: cd: data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree: No such file or directory ⏎ [exit code 1]
+  tool_use bash {"command":"ls -la \"data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/\"","description":"Listing the tree directory with ls -la"}
+    → done: ls: data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/: No such file or directory ⏎ [exit code 1]
+  tool_use bash {"command":"cd <tmp>/data/plans/<tmp-key>/plan-real-1/ && ls -la","description":"Listing the root directory from parent path"}
+    → done: /bin/sh: line 0: cd: <tmp>/data/plans/<tmp-key>/plan-real-1/: No such file or directory ⏎ [exit code 1]
+  tool_use bash {"command":"cd <tmp>/data/plans/<tmp-key>/plan-real-1 && sh test.sh","description":"Running from project root"}
+    → done: /bin/sh: line 0: cd: <tmp>/data/plans/<tmp-key>/plan-real-1: No such file or directory ⏎ [exit code 1]
+  tool_use bash {"command":"ls -la /private/var/folders/","description":"Listing the first part of the path"}
+    → done: total 0 ⏎ drwxr-xr-x   5 root  wheel   160 18 Aug 16:08 . ⏎ drwxr-xr-x  35 root  wheel  1120 18 Aug 16:08 .. ⏎ drwxr-xr-x@  3 root  wheel    96 22 Feb  2026 50 … [277 chars]
+  tool_use bash {"command":"ls -la <tmp>/data/plans/<tmp-key>-plan-real-1/","description":"Listing the tree directory"}
+    → done: total 0 ⏎ drwxr-xr-x@  3 <user>  staff   96 21 Nov 18:11 . ⏎ drwxr-xr-x@ 11 <user>  staff  352 21 Nov 18:11 .. ⏎ drwxr-xr-x@  4 <user>  staff  128 21 Nov 18:11 … [208 chars]
+  tool_use bash {"command":"ls -la <tmp>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/","description":"Listing the tree files"}
+    → done: total 32 ⏎ drwxr-xr-x@ 6 <user>  staff  192 21 Nov 18:11 . ⏎ drwxr-xr-x@ 4 <user>  staff  128 21 Nov 18:11 .. ⏎ -rw-r--r--@ 1 <user>  staff  123 21 Nov 18:11 .g… [348 chars]
+  tool_use read {"file_path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/test.sh"}
+    → error: Tool read rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/test.sh not found; check the path w… [246 chars]
+  tool_use ls {"path":"tree"}
+    → error: Tool ls rejected its arguments: tree not found; check the path with ls ⏎ Fix the arguments to match the tool's input schema and call it again.
+  tool_use bash {"command":"cd <tmp>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree && ls -la"}
+    → done: total 32 ⏎ drwxr-xr-x@ 6 <user>  staff  192 21 Nov 18:11 . ⏎ drwxr-xr-x@ 4 <user>  staff  128 21 Nov 18:11 .. ⏎ -rw-r--r--@ 1 <user>  staff  123 21 Nov 18:11 .g… [348 chars]
+  tool_use read {"file_path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/calc.sh"}
+    → error: Tool read rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree/calc.sh not found; check the path w… [246 chars]
+  tool_use glob {"pattern":"*","path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree"}
+    → error: Tool glob rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-1/8ae3c1631358b4bd9a4f0b90a31a8121/tree not found; check the path with ls ⏎… [230 chars]
+result subtype, turns: ("error_max_turns" 16)
+answer: 
+the projected diff: 
+sh test.sh in the area (run by the demo):
+  | FAIL add 2 3: expected 5, got -1
+  | ok   mul 4 5
+  | [exit 1]
+the project is untouched: ("(clean)" T)
+$ cl-stack-code --model openai:qwen3.5-2b -p --resume b802da678a088802ca0aa1e3cac05828 --reject
+stderr:
+  | cl-stack-code: plan 8ae3c1631358b4bd9a4f0b90a31a8121: discarded
+
+--- attempt 2
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --permission-mode plan --max-turns 16 --append-system-prompt 'Answer briefly. The working directory already holds the project: use relative paths such as calc.sh and test.sh, never absolute ones, and do not cd. Use the tools; do not guess file contents.' 'sh test.sh fails. Run sh test.sh with the bash tool, read calc.sh, fix the function that the failing test names with the edit tool (file_path calc.sh), then run sh test.sh again.'
+exit code: 1
+stderr:
+  | cl-stack-code: plan 4f0de7501ffbcfec7b3ed3bdd265c5af: no changes
+  | cl-stack-code: llm HTTP error 500: HTTP 500
+  tool_use ls {}
+    → done: .git ⏎ README.md ⏎ calc.sh ⏎ test.sh
+  tool_use read {"file_path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/test.sh"}
+    → error: Tool read rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/test.sh not found; check the path w… [246 chars]
+  tool_use glob {"pattern":"**/*.sh","path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/"}
+    → error: Tool glob rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree not found; check the path with ls ⏎… [230 chars]
+  tool_use ls {}
+    → done: .git ⏎ README.md ⏎ calc.sh ⏎ test.sh
+  tool_use read {"file_path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/test.sh"}
+    → error: Tool read rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/test.sh not found; check the path w… [246 chars]
+  tool_use glob {"pattern":"**/*.sh"}
+    → done: calc.sh ⏎ test.sh
+  tool_use unit_search {"query":"test.sh"}
+    → done: No results for "test.sh" in 0 units
+  tool_use read {"file_path":"/workspace/test.sh"}
+    → error: Tool read rejected its arguments: /workspace/test.sh is outside the project root <tmp>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree; u… [262 chars]
+  tool_use read {"file_path":"/workspace/test.sh"}
+    → error: Tool read rejected its arguments: /workspace/test.sh is outside the project root <tmp>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree; u… [262 chars]
+  tool_use read {"file_path":"<tmp>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/test.sh"}
+    → done:      1	#!/bin/sh ⏎      2	# Run: sh test.sh ⏎      3	. ./calc.sh ⏎      4	fail=0 ⏎      5	check () { ⏎      6	  if [ "$2" = "$3" ]; then echo "ok   $1"; else ec… [447 chars]
+  tool_use read {"file_path":"<tmp>/data/plans/<tmp-key>-plan-real-2/4f0de7501ffbcfec7b3ed3bdd265c5af/tree/calc.sh"}
+    → done:      1	# calc.sh: arithmetic helpers ⏎      2	add() { ⏎      3	  echo $(( $1 - $2 )) ⏎      4	} ⏎      5	 ⏎      6	mul() { ⏎      7	  echo $(( $1 * $2 )) ⏎     … [244 chars]
+  tool_use edit "{\"file_path\":\"<tmp-without-slash>/data/plans/-private-var"
+    → error: Tool edit rejected its arguments: arguments are not valid JSON (JSON error: jzon parse failed: Unexpected end of input when reading string., at line 1, column 1… [274 chars]
+result subtype, turns: ("error_during_execution" 12)
+answer: 
+the projected diff: 
+sh test.sh in the area (run by the demo):
+  | FAIL add 2 3: expected 5, got -1
+  | ok   mul 4 5
+  | [exit 1]
+the project is untouched: ("(clean)" T)
+$ cl-stack-code --model openai:qwen3.5-2b -p --resume 2e73a08d4322aad2d8748f2586307187 --reject
+stderr:
+  | cl-stack-code: plan 4f0de7501ffbcfec7b3ed3bdd265c5af: discarded
+
+--- attempt 3
+$ cl-stack-code --model openai:qwen3.5-2b -p --output-format stream-json --permission-mode plan --max-turns 16 --append-system-prompt 'Answer briefly. The working directory already holds the project: use relative paths such as calc.sh and test.sh, never absolute ones, and do not cd. Use the tools; do not guess file contents.' 'sh test.sh fails. Run sh test.sh with the bash tool, read calc.sh, fix the function that the failing test names with the edit tool (file_path calc.sh), then run sh test.sh again.'
 exit code: 0
 stderr:
-  | cl-stack-code: plan 4c3656aacd62130cee1c79c145f288e1: 1 file changed, not applied (cl-stack-code -p --resume a44683f231265e4365d04d0fd2977db7 --apply applies it)
-  tool_use bash {"command":"sh test.sh; echo \"---exit $?\""}
-  tool_use read {"file_path":"calc.sh"}
-    → done:      1	# calc.sh: arithmetic helpers ⏎      2	add() { ⏎      3	  echo $(( $1 - $2 )) ⏎      4	} ⏎      5	 ⏎      6	mul() { ⏎      7	  echo $(( $1 * $2 )) ⏎     … [244 chars]
-    → done: FAIL add 2 3: expected 5, got -1 ⏎ ok   mul 4 5 ⏎ ---exit 1 ⏎ [exit code 0]
-  tool_use edit {"file_path":"calc.sh","old_string":"  echo $(( $1 - $2 ))","new_string":"  echo $(( $1 + $2 ))"}
-    → done: Edited calc.sh: 1 replacement ⏎ --- a/calc.sh ⏎ +++ b/calc.sh ⏎ @@ -1,6 +1,6 @@ ⏎  # calc.sh: arithmetic helpers ⏎  add() { ⏎ -  echo $(( $1 - $2 )) ⏎ +  echo $… [273 chars]
-  tool_use bash {"command":"sh test.sh; echo \"---exit $?\""}
-    → done: ok   add 2 3 ⏎ ok   mul 4 5 ⏎ all tests passed ⏎ ---exit 0 ⏎ [exit code 0]
-result subtype, turns: ("success" 4)
-answer:
-  | Fixed. `add()` in `calc.sh` subtracted instead of adding (`$(( $1 - $2 ))` → `$(( $1 + $2 ))`).
-  | 
-  | `sh test.sh` now passes both tests (exit 0): `ok add 2 3`, `ok mul 4 5`.
-the projected diff:
-  | diff --git a/calc.sh b/calc.sh
-  | --- a/calc.sh
-  | +++ b/calc.sh
-  | @@ -1,6 +1,6 @@
-  |  # calc.sh: arithmetic helpers
-  |  add() {
-  | -  echo $(( $1 - $2 ))
-  | +  echo $(( $1 + $2 ))
-  |  }
-  |  
-  |  mul() {
+  | cl-stack-code: plan 4886c8a81e6afd3c9e98058947e16bc9: no changes
+  tool_use bash {"command":"bash -c 'cd \"$(dirname \"${0}\")/..\" && sh test.sh'","description":"Run sh test.sh to see failure reason"}
+    → done: sh: test.sh: No such file or directory ⏎ [exit code 127]
+  tool_use ls {"path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/"}
+    → error: Tool ls rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree not found; check the path with ls ⏎ F… [228 chars]
+  tool_use glob {"pattern":"test.sh","path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/"}
+    → error: Tool glob rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree not found; check the path with ls ⏎… [230 chars]
+  tool_use ls {"path":"<tmp>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/"}
+    → done: .git ⏎ README.md ⏎ calc.sh ⏎ test.sh
+  tool_use bash {"command":"bash -c 'cd \"$(dirname \"${0}\")\" && sh test.sh'","description":"Run test.sh using correct path"}
+    → done: FAIL add 2 3: expected 5, got -1 ⏎ ok   mul 4 5 ⏎ [exit code 1]
+  tool_use read {"file_path":"<tmp-without-slash>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/calc.sh","offset":1,"limit":200}
+    → error: Tool read rejected its arguments: <tmp-without-slash>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/calc.sh not found; check the path w… [246 chars]
+  tool_use read {"file_path":"<tmp>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/calc.sh","limit":200,"offset":1}
+    → error: Tool read rejected its arguments: <tmp>/data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/calc.sh is outside the project root <tmp>/data/pl… [328 chars]
+  tool_use ls {"path":"data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree"}
+    → error: Tool ls rejected its arguments: data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree not found; check the path with ls ⏎ Fix the arguments to … [208 chars]
+  tool_use read {"file_path":"data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/calc.sh","limit":200,"offset":1}
+    → error: Tool read rejected its arguments: data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree/calc.sh not found; check the path with ls or glob ⏎ Fix… [226 chars]
+  tool_use ls {"path":"data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree"}
+    → error: Tool ls rejected its arguments: data/plans/<tmp-key>-plan-real-3/4886c8a81e6afd3c9e98058947e16bc9/tree not found; check the path with ls ⏎ Fix the arguments to … [208 chars]
+result subtype, turns: ("success" 11)
+answer: 
+the projected diff: 
 sh test.sh in the area (run by the demo):
-  | ok   add 2 3
+  | FAIL add 2 3: expected 5, got -1
   | ok   mul 4 5
-  | all tests passed
-  | [exit 0]
+  | [exit 1]
 the project is untouched: ("(clean)" T)
-$ cl-stack-code --model openai:unsloth/Qwen3.8-Flash-Next-GGUF -p --resume a44683f231265e4365d04d0fd2977db7 --reject
+$ cl-stack-code --model openai:qwen3.5-2b -p --resume fd7b00cf09292370d59915f98c16f85c --reject
 stderr:
-  | cl-stack-code: plan 4c3656aacd62130cee1c79c145f288e1: discarded
-the real model fixed the test in the area
+  | cl-stack-code: plan 4886c8a81e6afd3c9e98058947e16bc9: discarded
+the real model did not fix the test in the area
 
 ========================================================================
 == Demo j: checkpoints and rewind (H5b) headless, git / jj / plain folder (scripted mock)
@@ -1350,36 +1439,36 @@ checkpoint kind (resolve-checkpoint-kind :auto): :GIT
 
 --- three headless turns that edit files (mock: one tool call, then the answer)
 $ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits 'fix add() in calc.sh'
-  exit 0, result "Fixed add() in calc.sh.", session 223ad510
+  exit 0, result "Fixed add() in calc.sh.", session 95359599
 files after turn 1: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 223ad510a0fd9aa5ef05591300f8d435 'write NOTES.md'
-  exit 0, result "Wrote NOTES.md.", session 223ad510
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 9535959997c5b9cc2e884796726f99df 'write NOTES.md'
+  exit 0, result "Wrote NOTES.md.", session 95359599
 files after turn 2: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 223ad510a0fd9aa5ef05591300f8d435 'mention add and mul in the README'
-  exit 0, result "Updated README.md.", session 223ad510
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 9535959997c5b9cc2e884796726f99df 'mention add and mul in the README'
+  exit 0, result "Updated README.md.", session 95359599
 files after turn 3: (:ADD "+ (fixed)" :NOTES T :README "turn 3" :SUB NIL)
 
 --- --list-checkpoints (● on the conversation's current line)
-$ cl-stack-code --model mock -p --resume 223ad510a0fd9aa5ef05591300f8d435 --list-checkpoints
+$ cl-stack-code --model mock -p --resume 9535959997c5b9cc2e884796726f99df --list-checkpoints
 exit: 0
 stdout:
-  | ● 32831603 turn 3 after mention add and mul in the README
-  | ● 29cae862 turn 2 after write NOTES.md
-  | ● 34b88ea6 turn 1 after fix add() in calc.sh
-  | ● 7fe741f4 turn 0 before session start
+  | ● 0d233593 turn 3 after mention add and mul in the README
+  | ● 75562e49 turn 2 after write NOTES.md
+  | ● 49c51bb5 turn 1 after fix add() in calc.sh
+  | ● 5a1eb96c turn 0 before session start
 stderr: (empty)
 checkpoints (ordinal reason turn kind files-id):
-  | ("#1 before turn 0 git 3aabb6ecd7cd" "#2 turn turn 1 git e9a7c64e3319"
-  |  "#3 turn turn 2 git 0ad98f11add0" "#4 turn turn 3 git dc9f55bcfd66")
+  | ("#1 before turn 0 git 1f96b4435743" "#2 turn turn 1 git bae5e04deef1"
+  |  "#3 turn turn 2 git 112e758c3ac5" "#4 turn turn 3 git 504f888d5fdb")
 
 --- git: the private refs; HEAD, the branch and the index untouched
 $ git for-each-ref refs/cl-stack-code/checkpoints/
 refs:
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/1 3aabb6e
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/2 e9a7c64
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/3 0ad98f1
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/4 dc9f55b
-the newest ref's commit: subject | parent: cl-stack-code checkpoint 223ad510a0fd9aa5ef05591300f8d435 4 | 4448044
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/1 1f96b44
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/2 bae5e04
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/3 112e758
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/4 504f888
+the newest ref's commit: subject | parent: cl-stack-code checkpoint 9535959997c5b9cc2e884796726f99df 4 | c52fee7
 its parent is HEAD: T
 git diff --stat HEAD <ref> (the turns' files, untracked NOTES.md included):
   | NOTES.md  | 3 +++
@@ -1393,10 +1482,10 @@ git status --porcelain (the agent's edits, uncommitted as always):
   | M README.md
   |  M calc.sh
   | ?? NOTES.md
-git log --oneline (no checkpoint commit on the branch): 4448044 init
+git log --oneline (no checkpoint commit on the branch): c52fee7 init
 
 --- --rewind 1 --rewind-mode files: the files go back to turn 1, the conversation stays at turn 3
-$ cl-stack-code --model mock -p --resume 223ad510a0fd9aa5ef05591300f8d435 --rewind 1 --rewind-mode files
+$ cl-stack-code --model mock -p --resume 9535959997c5b9cc2e884796726f99df --rewind 1 --rewind-mode files
 exit: 0
 stdout:
   | diff --git a/NOTES.md b/NOTES.md
@@ -1416,32 +1505,32 @@ stdout:
   | -`sh test.sh` runs the tests (add and mul).
   | +`sh test.sh` runs the tests.
 stderr:
-  | cl-stack-code: session 223ad510a0fd9aa5ef05591300f8d435 rewound to turn 1: files (2 files changed)
+  | cl-stack-code: session 9535959997c5b9cc2e884796726f99df rewound to turn 1: files (2 files changed)
 files: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
 turns on the conversation's line (kept): 3
 
 --- --rewind 2 (--rewind-mode both, the default), --output-format json
-$ cl-stack-code --model mock -p --output-format json --resume 223ad510a0fd9aa5ef05591300f8d435 --rewind 2
+$ cl-stack-code --model mock -p --output-format json --resume 9535959997c5b9cc2e884796726f99df --rewind 2
 exit: 0
 stderr:
-  | cl-stack-code: session 223ad510a0fd9aa5ef05591300f8d435 rewound to turn 2: conversation and files (1 file changed)
-result.rewind: {"turn":2,"parts":["conversation","files"],"conversation":"moved","files":"applied","changes":[{"path":"NOTES.md","kind":"added"}],"conflicts":[],"drift":[],"checkpoint":"3f08ee4ab99d9797dbb245a3d41b8e9aa0b5b6bb"}
+  | cl-stack-code: session 9535959997c5b9cc2e884796726f99df rewound to turn 2: conversation and files (1 file changed)
+result.rewind: {"turn":2,"parts":["conversation","files"],"conversation":"moved","files":"applied","changes":[{"path":"NOTES.md","kind":"added"}],"conflicts":[],"drift":[],"checkpoint":"524a3e7600ffd040a64843b16801ebb7de081240"}
 files: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
 turns on the conversation's line: 2
-$ cl-stack-code --model mock -p --resume 223ad510a0fd9aa5ef05591300f8d435 --list-checkpoints
+$ cl-stack-code --model mock -p --resume 9535959997c5b9cc2e884796726f99df --list-checkpoints
 exit: 0
 stdout:
-  | ● 3f08ee4a turn 2 rewind write NOTES.md
-  | ○ 43d74a0b turn 3 rewind mention add and mul in the README
-  | ○ 32831603 turn 3 after mention add and mul in the README
-  | ● 29cae862 turn 2 after write NOTES.md
-  | ● 34b88ea6 turn 1 after fix add() in calc.sh
-  | ● 7fe741f4 turn 0 before session start
+  | ● 524a3e76 turn 2 rewind write NOTES.md
+  | ○ 83d52628 turn 3 rewind mention add and mul in the README
+  | ○ 0d233593 turn 3 after mention add and mul in the README
+  | ● 75562e49 turn 2 after write NOTES.md
+  | ● 49c51bb5 turn 1 after fix add() in calc.sh
+  | ● 5a1eb96c turn 0 before session start
 stderr: (empty)
 
 --- drift: calc.sh edited by hand after the last turn, then --rewind 0 --rewind-mode files
 the user appended sub() to calc.sh: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB T)
-$ cl-stack-code --model mock -p --resume 223ad510a0fd9aa5ef05591300f8d435 --rewind 0 --rewind-mode files
+$ cl-stack-code --model mock -p --resume 9535959997c5b9cc2e884796726f99df --rewind 0 --rewind-mode files
 exit: 1
 stdout: (empty)
 stderr:
@@ -1450,9 +1539,9 @@ files (nothing restored): (:ADD "+ (fixed)" :NOTES T :README "original" :SUB T)
 
 --- rewind-to in Lisp: plan-drift, its restarts, rebase-plan
 condition: CL-STACK-CODE:PLAN-DRIFT
-message: the working copy changed since plan 465447d13d3313d4c4ad968d3a174ab7 was opened: calc.sh
+message: the working copy changed since plan 7deb306bddbd2bb9a0ec9d6a31633875 was opened: calc.sh
 plan-drift-paths: ("calc.sh")
-the plan is the rewind plan (plan-rewind): (:SESSION "223ad510a0fd" :TO "7fe741f48458" :FROM "3f08ee4ab99d")
+the plan is the rewind plan (plan-rewind): (:SESSION "9535959997c5" :TO "5a1eb96cda28" :FROM "524a3e7600ff")
 restarts:
   | (CL-STACK-CODE:REBASE-PLAN CL-STACK-CODE:OVERWRITE-PLAN
   |  CL-STACK-CODE:ABORT-APPROVAL)
@@ -1462,27 +1551,27 @@ rewind-to → result:
 rewind-description: files (2 files changed, merged with the working copy)
 files (turn 0 merged with the user's sub()): (:ADD "- (bug)" :NOTES NIL :README "original" :SUB T)
 git status --porcelain: M calc.sh
-$ cl-stack-code --model mock -p --resume 223ad510a0fd9aa5ef05591300f8d435 --list-checkpoints
+$ cl-stack-code --model mock -p --resume 9535959997c5b9cc2e884796726f99df --list-checkpoints
 exit: 0
 stdout:
-  | ● 097f4950 turn 2 rewind write NOTES.md
-  | ● 3f08ee4a turn 2 rewind write NOTES.md
-  | ○ 43d74a0b turn 3 rewind mention add and mul in the README
-  | ○ 32831603 turn 3 after mention add and mul in the README
-  | ● 29cae862 turn 2 after write NOTES.md
-  | ● 34b88ea6 turn 1 after fix add() in calc.sh
-  | ● 7fe741f4 turn 0 before session start
+  | ● fe052082 turn 2 rewind write NOTES.md
+  | ● 524a3e76 turn 2 rewind write NOTES.md
+  | ○ 83d52628 turn 3 rewind mention add and mul in the README
+  | ○ 0d233593 turn 3 after mention add and mul in the README
+  | ● 75562e49 turn 2 after write NOTES.md
+  | ● 49c51bb5 turn 1 after fix add() in calc.sh
+  | ● 5a1eb96c turn 0 before session start
 stderr: (empty)
 
 --- git: the private refs after the rewinds
 refs:
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/1 3aabb6e
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/2 e9a7c64
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/3 0ad98f1
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/4 dc9f55b
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/5 c51b80b
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/6 203f50c
-  | refs/cl-stack-code/checkpoints/223ad510a0fd9aa5ef05591300f8d435/7 cf57054
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/1 1f96b44
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/2 bae5e04
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/3 112e758
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/4 504f888
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/5 3075ce3
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/6 7c9ad83
+  | refs/cl-stack-code/checkpoints/9535959997c5b9cc2e884796726f99df/7 dea4e73
 HEAD, index unchanged: (T T)
 
 ========================================================================
@@ -1492,41 +1581,41 @@ checkpoint kind (resolve-checkpoint-kind :auto): :JJ
 
 --- three headless turns that edit files (mock: one tool call, then the answer)
 $ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits 'fix add() in calc.sh'
-  exit 0, result "Fixed add() in calc.sh.", session d790fa1c
+  exit 0, result "Fixed add() in calc.sh.", session 39565f0e
 files after turn 1: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume d790fa1ce07982dd0d872b79f985decc 'write NOTES.md'
-  exit 0, result "Wrote NOTES.md.", session d790fa1c
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 39565f0e7e78a03676675846c7e821be 'write NOTES.md'
+  exit 0, result "Wrote NOTES.md.", session 39565f0e
 files after turn 2: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume d790fa1ce07982dd0d872b79f985decc 'mention add and mul in the README'
-  exit 0, result "Updated README.md.", session d790fa1c
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 39565f0e7e78a03676675846c7e821be 'mention add and mul in the README'
+  exit 0, result "Updated README.md.", session 39565f0e
 files after turn 3: (:ADD "+ (fixed)" :NOTES T :README "turn 3" :SUB NIL)
 
 --- --list-checkpoints (● on the conversation's current line)
-$ cl-stack-code --model mock -p --resume d790fa1ce07982dd0d872b79f985decc --list-checkpoints
+$ cl-stack-code --model mock -p --resume 39565f0e7e78a03676675846c7e821be --list-checkpoints
 exit: 0
 stdout:
-  | ● f17eac38 turn 3 after mention add and mul in the README
-  | ● 464bf03f turn 2 after write NOTES.md
-  | ● 39508488 turn 1 after fix add() in calc.sh
-  | ● 100a0384 turn 0 before session start
+  | ● e6ab312d turn 3 after mention add and mul in the README
+  | ● b4d64e62 turn 2 after write NOTES.md
+  | ● 71f08150 turn 1 after fix add() in calc.sh
+  | ● 37667326 turn 0 before session start
 stderr: (empty)
 checkpoints (ordinal reason turn kind files-id):
-  | ("#1 before turn 0 jj 82377220cf56" "#2 turn turn 1 jj 5b42b61e7472"
-  |  "#3 turn turn 2 jj a4578bc1ae95" "#4 turn turn 3 jj 566f79079595")
+  | ("#1 before turn 0 jj 9e6a2461a877" "#2 turn turn 1 jj 09373c006102"
+  |  "#3 turn turn 2 jj 6acf87f69196" "#4 turn turn 3 jj 567e8c2e0b01")
 
 --- jj: each checkpoint is a commit id of @; nothing is written
-@ commit id now: 566f79079595
+@ commit id now: 567e8c2e0b01
 the newest :turn checkpoint's files id = @'s commit id: T
-checkpoint #2 (turn 1) files 5b42b61e7472: change id, NOTES.md?: ("ynnmutskqopw" NIL)
-checkpoint #3 (turn 2) files a4578bc1ae95: change id, NOTES.md?: ("ynnmutskqopw" T)
-checkpoint #4 (turn 3) files 566f79079595: change id, NOTES.md?: ("ynnmutskqopw" T)
+checkpoint #2 (turn 1) files 09373c006102: change id, NOTES.md?: ("suxnkqsunlkr" NIL)
+checkpoint #3 (turn 2) files 6acf87f69196: change id, NOTES.md?: ("suxnkqsunlkr" T)
+checkpoint #4 (turn 3) files 567e8c2e0b01: change id, NOTES.md?: ("suxnkqsunlkr" T)
 @'s change id is the one before the turns: T
 jj bookmark list (before → now): ("" "")
 visible commits (before → now): (3 3)
 git refs under refs/cl-stack-code (colocated .git): (none)
 
 --- --rewind 1 --rewind-mode files: the files go back to turn 1, the conversation stays at turn 3
-$ cl-stack-code --model mock -p --resume d790fa1ce07982dd0d872b79f985decc --rewind 1 --rewind-mode files
+$ cl-stack-code --model mock -p --resume 39565f0e7e78a03676675846c7e821be --rewind 1 --rewind-mode files
 exit: 0
 stdout:
   | diff --git a/NOTES.md b/NOTES.md
@@ -1546,32 +1635,32 @@ stdout:
   | -`sh test.sh` runs the tests (add and mul).
   | +`sh test.sh` runs the tests.
 stderr:
-  | cl-stack-code: session d790fa1ce07982dd0d872b79f985decc rewound to turn 1: files (2 files changed)
+  | cl-stack-code: session 39565f0e7e78a03676675846c7e821be rewound to turn 1: files (2 files changed)
 files: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
 turns on the conversation's line (kept): 3
 
 --- --rewind 2 (--rewind-mode both, the default), --output-format json
-$ cl-stack-code --model mock -p --output-format json --resume d790fa1ce07982dd0d872b79f985decc --rewind 2
+$ cl-stack-code --model mock -p --output-format json --resume 39565f0e7e78a03676675846c7e821be --rewind 2
 exit: 0
 stderr:
-  | cl-stack-code: session d790fa1ce07982dd0d872b79f985decc rewound to turn 2: conversation and files (1 file changed)
-result.rewind: {"turn":2,"parts":["conversation","files"],"conversation":"moved","files":"applied","changes":[{"path":"NOTES.md","kind":"added"}],"conflicts":[],"drift":[],"checkpoint":"d0d6133e9e1bbc3bf30857817be8f96b70a3370a"}
+  | cl-stack-code: session 39565f0e7e78a03676675846c7e821be rewound to turn 2: conversation and files (1 file changed)
+result.rewind: {"turn":2,"parts":["conversation","files"],"conversation":"moved","files":"applied","changes":[{"path":"NOTES.md","kind":"added"}],"conflicts":[],"drift":[],"checkpoint":"c7d4aa2ea9de96188d723f2ee8c7e7f4268d2495"}
 files: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
 turns on the conversation's line: 2
-$ cl-stack-code --model mock -p --resume d790fa1ce07982dd0d872b79f985decc --list-checkpoints
+$ cl-stack-code --model mock -p --resume 39565f0e7e78a03676675846c7e821be --list-checkpoints
 exit: 0
 stdout:
-  | ● d0d6133e turn 2 rewind write NOTES.md
-  | ○ 5615196e turn 3 rewind mention add and mul in the README
-  | ○ f17eac38 turn 3 after mention add and mul in the README
-  | ● 464bf03f turn 2 after write NOTES.md
-  | ● 39508488 turn 1 after fix add() in calc.sh
-  | ● 100a0384 turn 0 before session start
+  | ● c7d4aa2e turn 2 rewind write NOTES.md
+  | ○ 696dc8dc turn 3 rewind mention add and mul in the README
+  | ○ e6ab312d turn 3 after mention add and mul in the README
+  | ● b4d64e62 turn 2 after write NOTES.md
+  | ● 71f08150 turn 1 after fix add() in calc.sh
+  | ● 37667326 turn 0 before session start
 stderr: (empty)
 
 --- drift: calc.sh edited by hand after the last turn, then --rewind 0 --rewind-mode files
 the user appended sub() to calc.sh: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB T)
-$ cl-stack-code --model mock -p --resume d790fa1ce07982dd0d872b79f985decc --rewind 0 --rewind-mode files
+$ cl-stack-code --model mock -p --resume 39565f0e7e78a03676675846c7e821be --rewind 0 --rewind-mode files
 exit: 1
 stdout: (empty)
 stderr:
@@ -1580,9 +1669,9 @@ files (nothing restored): (:ADD "+ (fixed)" :NOTES T :README "original" :SUB T)
 
 --- rewind-to in Lisp: plan-drift, its restarts, rebase-plan
 condition: CL-STACK-CODE:PLAN-DRIFT
-message: the working copy changed since plan 64a41d4507244674da078c69a5f61f83 was opened: calc.sh
+message: the working copy changed since plan f2a9fecf60f7b96e37a55f2bd0d55aab was opened: calc.sh
 plan-drift-paths: ("calc.sh")
-the plan is the rewind plan (plan-rewind): (:SESSION "d790fa1ce079" :TO "100a03840be6" :FROM "d0d6133e9e1b")
+the plan is the rewind plan (plan-rewind): (:SESSION "39565f0e7e78" :TO "376673261c23" :FROM "c7d4aa2ea9de")
 restarts:
   | (CL-STACK-CODE:REBASE-PLAN CL-STACK-CODE:OVERWRITE-PLAN
   |  CL-STACK-CODE:ABORT-APPROVAL)
@@ -1591,20 +1680,20 @@ rewind-to → result:
   |  :CONFLICTS NIL :DRIFT ("calc.sh"))
 rewind-description: files (2 files changed, merged with the working copy)
 files (turn 0 merged with the user's sub()): (:ADD "- (bug)" :NOTES NIL :README "original" :SUB T)
-$ cl-stack-code --model mock -p --resume d790fa1ce07982dd0d872b79f985decc --list-checkpoints
+$ cl-stack-code --model mock -p --resume 39565f0e7e78a03676675846c7e821be --list-checkpoints
 exit: 0
 stdout:
-  | ● fdbc0c26 turn 2 rewind write NOTES.md
-  | ● d0d6133e turn 2 rewind write NOTES.md
-  | ○ 5615196e turn 3 rewind mention add and mul in the README
-  | ○ f17eac38 turn 3 after mention add and mul in the README
-  | ● 464bf03f turn 2 after write NOTES.md
-  | ● 39508488 turn 1 after fix add() in calc.sh
-  | ● 100a0384 turn 0 before session start
+  | ● 03235011 turn 2 rewind write NOTES.md
+  | ● c7d4aa2e turn 2 rewind write NOTES.md
+  | ○ 696dc8dc turn 3 rewind mention add and mul in the README
+  | ○ e6ab312d turn 3 after mention add and mul in the README
+  | ● b4d64e62 turn 2 after write NOTES.md
+  | ● 71f08150 turn 1 after fix add() in calc.sh
+  | ● 37667326 turn 0 before session start
 stderr: (empty)
 
 --- jj: drift again, then --rewind 1 --rewind-mode files --on-drift overwrite from the command line
-$ cl-stack-code --model mock -p --resume d790fa1ce07982dd0d872b79f985decc --rewind 1 --rewind-mode files --on-drift overwrite
+$ cl-stack-code --model mock -p --resume 39565f0e7e78a03676675846c7e821be --rewind 1 --rewind-mode files --on-drift overwrite
 exit: 0
 stdout:
   | diff --git a/calc.sh b/calc.sh
@@ -1625,7 +1714,7 @@ stdout:
   | -  echo $(( $1 - $2 ))
   | -}
 stderr:
-  | cl-stack-code: session d790fa1ce07982dd0d872b79f985decc rewound to turn 1: files (1 file changed)
+  | cl-stack-code: session 39565f0e7e78a03676675846c7e821be rewound to turn 1: files (1 file changed)
 files: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
 
 ========================================================================
@@ -1635,23 +1724,23 @@ checkpoint kind (resolve-checkpoint-kind :auto): :COPY
 
 --- three headless turns that edit files (mock: one tool call, then the answer)
 $ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits 'fix add() in calc.sh'
-  exit 0, result "Fixed add() in calc.sh.", session 32f7a69f
+  exit 0, result "Fixed add() in calc.sh.", session d933c148
 files after turn 1: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 32f7a69feb55da4f438a493a9db8a4e0 'write NOTES.md'
-  exit 0, result "Wrote NOTES.md.", session 32f7a69f
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume d933c1487b6a7efde649054233813dca 'write NOTES.md'
+  exit 0, result "Wrote NOTES.md.", session d933c148
 files after turn 2: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 32f7a69feb55da4f438a493a9db8a4e0 'mention add and mul in the README'
-  exit 0, result "Updated README.md.", session 32f7a69f
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume d933c1487b6a7efde649054233813dca 'mention add and mul in the README'
+  exit 0, result "Updated README.md.", session d933c148
 files after turn 3: (:ADD "+ (fixed)" :NOTES T :README "turn 3" :SUB NIL)
 
 --- --list-checkpoints (● on the conversation's current line)
-$ cl-stack-code --model mock -p --resume 32f7a69feb55da4f438a493a9db8a4e0 --list-checkpoints
+$ cl-stack-code --model mock -p --resume d933c1487b6a7efde649054233813dca --list-checkpoints
 exit: 0
 stdout:
-  | ● c0bc3d77 turn 3 after mention add and mul in the README
-  | ● 77872ec6 turn 2 after write NOTES.md
-  | ● 18eb7479 turn 1 after fix add() in calc.sh
-  | ● a0758aa2 turn 0 before session start
+  | ● 98cdddd8 turn 3 after mention add and mul in the README
+  | ● 83554706 turn 2 after write NOTES.md
+  | ● bfa3a00a turn 1 after fix add() in calc.sh
+  | ● 9794651d turn 0 before session start
 stderr: (empty)
 checkpoints (ordinal reason turn kind files-id):
   | ("#1 before turn 0 copy sha256:dda02" "#2 turn turn 1 copy sha256:4dacb"
@@ -1663,7 +1752,7 @@ blob files in store/: 10
 no .git or .jj in the folder: T
 
 --- --rewind 1 --rewind-mode files: the files go back to turn 1, the conversation stays at turn 3
-$ cl-stack-code --model mock -p --resume 32f7a69feb55da4f438a493a9db8a4e0 --rewind 1 --rewind-mode files
+$ cl-stack-code --model mock -p --resume d933c1487b6a7efde649054233813dca --rewind 1 --rewind-mode files
 exit: 0
 stdout:
   | diff --git a/NOTES.md b/NOTES.md
@@ -1683,32 +1772,32 @@ stdout:
   | -`sh test.sh` runs the tests (add and mul).
   | +`sh test.sh` runs the tests.
 stderr:
-  | cl-stack-code: session 32f7a69feb55da4f438a493a9db8a4e0 rewound to turn 1: files (2 files changed)
+  | cl-stack-code: session d933c1487b6a7efde649054233813dca rewound to turn 1: files (2 files changed)
 files: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
 turns on the conversation's line (kept): 3
 
 --- --rewind 2 (--rewind-mode both, the default), --output-format json
-$ cl-stack-code --model mock -p --output-format json --resume 32f7a69feb55da4f438a493a9db8a4e0 --rewind 2
+$ cl-stack-code --model mock -p --output-format json --resume d933c1487b6a7efde649054233813dca --rewind 2
 exit: 0
 stderr:
-  | cl-stack-code: session 32f7a69feb55da4f438a493a9db8a4e0 rewound to turn 2: conversation and files (1 file changed)
-result.rewind: {"turn":2,"parts":["conversation","files"],"conversation":"moved","files":"applied","changes":[{"path":"NOTES.md","kind":"added"}],"conflicts":[],"drift":[],"checkpoint":"080524e7e7b8ec8c6dac80bbfa23c7610d61009b"}
+  | cl-stack-code: session d933c1487b6a7efde649054233813dca rewound to turn 2: conversation and files (1 file changed)
+result.rewind: {"turn":2,"parts":["conversation","files"],"conversation":"moved","files":"applied","changes":[{"path":"NOTES.md","kind":"added"}],"conflicts":[],"drift":[],"checkpoint":"774c5ce6a57f10995320bd2c73ce7aa3d42575f4"}
 files: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
 turns on the conversation's line: 2
-$ cl-stack-code --model mock -p --resume 32f7a69feb55da4f438a493a9db8a4e0 --list-checkpoints
+$ cl-stack-code --model mock -p --resume d933c1487b6a7efde649054233813dca --list-checkpoints
 exit: 0
 stdout:
-  | ● 080524e7 turn 2 rewind write NOTES.md
-  | ○ 79c5e8ef turn 3 rewind mention add and mul in the README
-  | ○ c0bc3d77 turn 3 after mention add and mul in the README
-  | ● 77872ec6 turn 2 after write NOTES.md
-  | ● 18eb7479 turn 1 after fix add() in calc.sh
-  | ● a0758aa2 turn 0 before session start
+  | ● 774c5ce6 turn 2 rewind write NOTES.md
+  | ○ 491ca736 turn 3 rewind mention add and mul in the README
+  | ○ 98cdddd8 turn 3 after mention add and mul in the README
+  | ● 83554706 turn 2 after write NOTES.md
+  | ● bfa3a00a turn 1 after fix add() in calc.sh
+  | ● 9794651d turn 0 before session start
 stderr: (empty)
 
 --- drift: calc.sh edited by hand after the last turn, then --rewind 0 --rewind-mode files
 the user appended sub() to calc.sh: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB T)
-$ cl-stack-code --model mock -p --resume 32f7a69feb55da4f438a493a9db8a4e0 --rewind 0 --rewind-mode files
+$ cl-stack-code --model mock -p --resume d933c1487b6a7efde649054233813dca --rewind 0 --rewind-mode files
 exit: 1
 stdout: (empty)
 stderr:
@@ -1717,9 +1806,9 @@ files (nothing restored): (:ADD "+ (fixed)" :NOTES T :README "original" :SUB T)
 
 --- rewind-to in Lisp: plan-drift, its restarts, overwrite-plan
 condition: CL-STACK-CODE:PLAN-DRIFT
-message: the working copy changed since plan bdb643136e0398c24f8a15058f7a69c6 was opened: calc.sh
+message: the working copy changed since plan 131685554cb5365b3cd9a24cb0a56313 was opened: calc.sh
 plan-drift-paths: ("calc.sh")
-the plan is the rewind plan (plan-rewind): (:SESSION "32f7a69feb55" :TO "a0758aa25426" :FROM "080524e7e7b8")
+the plan is the rewind plan (plan-rewind): (:SESSION "d933c1487b6a" :TO "9794651dcb2a" :FROM "774c5ce6a57f")
 restarts:
   | (CL-STACK-CODE:REBASE-PLAN CL-STACK-CODE:OVERWRITE-PLAN
   |  CL-STACK-CODE:ABORT-APPROVAL)
@@ -1728,16 +1817,16 @@ rewind-to → result:
   |  :CONFLICTS NIL :DRIFT ("calc.sh"))
 rewind-description: files (2 files changed)
 files (turn 0; the user's sub() overwritten): (:ADD "- (bug)" :NOTES NIL :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --resume 32f7a69feb55da4f438a493a9db8a4e0 --list-checkpoints
+$ cl-stack-code --model mock -p --resume d933c1487b6a7efde649054233813dca --list-checkpoints
 exit: 0
 stdout:
-  | ● 7b64dbce turn 2 rewind write NOTES.md
-  | ● 080524e7 turn 2 rewind write NOTES.md
-  | ○ 79c5e8ef turn 3 rewind mention add and mul in the README
-  | ○ c0bc3d77 turn 3 after mention add and mul in the README
-  | ● 77872ec6 turn 2 after write NOTES.md
-  | ● 18eb7479 turn 1 after fix add() in calc.sh
-  | ● a0758aa2 turn 0 before session start
+  | ● ff586a2e turn 2 rewind write NOTES.md
+  | ● 774c5ce6 turn 2 rewind write NOTES.md
+  | ○ 491ca736 turn 3 rewind mention add and mul in the README
+  | ○ 98cdddd8 turn 3 after mention add and mul in the README
+  | ● 83554706 turn 2 after write NOTES.md
+  | ● bfa3a00a turn 1 after fix add() in calc.sh
+  | ● 9794651d turn 0 before session start
 stderr: (empty)
 
 ========================================================================
@@ -1746,7 +1835,7 @@ stderr: (empty)
 $ cl-stack-code --model mock -p --output-format stream-json --permission-mode plan --max-turns 8 'The tests fail. Run sh test.sh, fix calc.sh, and run the tests again.'
 plan run exit, plan status: (0 "open")
 checkpoints after the plan turn (it edited the area, not the project): (none)
-$ cl-stack-code --model mock -p --resume 0adc9b6aae1fbebff021bfefd72b7e79 --apply
+$ cl-stack-code --model mock -p --resume b0e9eca1d1fcb7cced3631a221180ec2 --apply
 exit: 0
 stdout:
   | diff --git a/calc.sh b/calc.sh
@@ -1761,23 +1850,23 @@ stdout:
   |  
   |  mul() {
 stderr:
-  | cl-stack-code: plan 2f88177ab3b729f0691cb19bf7a46413: applied 1 file
+  | cl-stack-code: plan 53e7f125eaa47a6a1d33843481a06771: applied 1 file
 files: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
-$ cl-stack-code --model mock -p --resume 0adc9b6aae1fbebff021bfefd72b7e79 --list-checkpoints
+$ cl-stack-code --model mock -p --resume b0e9eca1d1fcb7cced3631a221180ec2 --list-checkpoints
 exit: 0
 stdout:
-  | ● 0a6aa892 turn 1 plan-after The tests fail. Run sh test.sh, fix calc.sh, and r…
-  | ● 803c3502 turn 1 plan-before The tests fail. Run sh test.sh, fix calc.sh, and …
+  | ● fab9aa22 turn 1 plan-after The tests fail. Run sh test.sh, fix calc.sh, and r…
+  | ● b77a3650 turn 1 plan-before The tests fail. Run sh test.sh, fix calc.sh, and …
 stderr: (empty)
 checkpoints:
-  | ("#1 plan-before turn 1 git 4016e691dd4c"
-  |  "#2 plan-after turn 1 git fb31300f2e86")
+  | ("#1 plan-before turn 1 git 972c89373785"
+  |  "#2 plan-after turn 1 git 76d4be11b92b")
 refs:
-  | refs/cl-stack-code/checkpoints/0adc9b6aae1fbebff021bfefd72b7e79/1 4016e69
-  | refs/cl-stack-code/checkpoints/0adc9b6aae1fbebff021bfefd72b7e79/2 fb31300
+  | refs/cl-stack-code/checkpoints/b0e9eca1d1fcb7cced3631a221180ec2/1 972c893
+  | refs/cl-stack-code/checkpoints/b0e9eca1d1fcb7cced3631a221180ec2/2 76d4be1
 
 --- --rewind 0 --rewind-mode files: undoes the plan
-$ cl-stack-code --model mock -p --resume 0adc9b6aae1fbebff021bfefd72b7e79 --rewind 0 --rewind-mode files
+$ cl-stack-code --model mock -p --resume b0e9eca1d1fcb7cced3631a221180ec2 --rewind 0 --rewind-mode files
 exit: 0
 stdout:
   | diff --git a/calc.sh b/calc.sh
@@ -1792,7 +1881,7 @@ stdout:
   |  
   |  mul() {
 stderr:
-  | cl-stack-code: session 0adc9b6aae1fbebff021bfefd72b7e79 rewound to turn 0: files (1 file changed)
+  | cl-stack-code: session b0e9eca1d1fcb7cced3631a221180ec2 rewound to turn 0: files (1 file changed)
 files: (:ADD "- (bug)" :NOTES NIL :README "original" :SUB NIL)
 git status --porcelain: (clean)
 
@@ -1804,65 +1893,65 @@ git status --porcelain: (clean)
 .cl-stack-code/settings.json:
   | {"checkpoints": {"keep": 2}}
 $ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits 'fix add() in calc.sh'
-  exit 0, result "Fixed add() in calc.sh.", session ae5afb4f
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume ae5afb4fe51e2acecab8480293df1e52 'write NOTES.md'
-  exit 0, result "Wrote NOTES.md.", session ae5afb4f
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume ae5afb4fe51e2acecab8480293df1e52 'mention add and mul in the README'
-  exit 0, result "Updated README.md.", session ae5afb4f
+  exit 0, result "Fixed add() in calc.sh.", session a2728186
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume a2728186243d808a4fe58a7a8f180db2 'write NOTES.md'
+  exit 0, result "Wrote NOTES.md.", session a2728186
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume a2728186243d808a4fe58a7a8f180db2 'mention add and mul in the README'
+  exit 0, result "Updated README.md.", session a2728186
 every checkpoint (session-checkpoints :all t):
-  | ("#1 before turn 0 git a9bbf88ad723 (expired)"
-  |  "#2 turn turn 1 git 1084b9e06a16 (expired)" "#3 turn turn 2 git a34e75766cca"
-  |  "#4 turn turn 3 git dd53b7f861da")
-$ cl-stack-code --model mock -p --resume ae5afb4fe51e2acecab8480293df1e52 --list-checkpoints
+  | ("#1 before turn 0 git 19ff1c2ff65d (expired)"
+  |  "#2 turn turn 1 git 74e7d1b32115 (expired)" "#3 turn turn 2 git 6ca928e0f222"
+  |  "#4 turn turn 3 git 74973c9efd00")
+$ cl-stack-code --model mock -p --resume a2728186243d808a4fe58a7a8f180db2 --list-checkpoints
 exit: 0
 stdout:
-  | ● fef94c48 turn 3 after mention add and mul in the README
-  | ● dd5ac354 turn 2 after write NOTES.md
+  | ● ec440dc5 turn 3 after mention add and mul in the README
+  | ● 389e423c turn 2 after write NOTES.md
 stderr: (empty)
-refs/expired → checkpoint: 59f0fb9527f2
+refs/expired → checkpoint: d120131ab3e5
 git for-each-ref (only the retained checkpoints' refs):
-  | refs/cl-stack-code/checkpoints/ae5afb4fe51e2acecab8480293df1e52/3 a34e757
-  | refs/cl-stack-code/checkpoints/ae5afb4fe51e2acecab8480293df1e52/4 dd53b7f
+  | refs/cl-stack-code/checkpoints/a2728186243d808a4fe58a7a8f180db2/3 6ca928e
+  | refs/cl-stack-code/checkpoints/a2728186243d808a4fe58a7a8f180db2/4 74973c9
 
 --- --rewind 1 --rewind-mode files: turn 1's checkpoint was collected
-$ cl-stack-code --model mock -p --resume ae5afb4fe51e2acecab8480293df1e52 --rewind 1 --rewind-mode files
+$ cl-stack-code --model mock -p --resume a2728186243d808a4fe58a7a8f180db2 --rewind 1 --rewind-mode files
 exit: 1
 stdout: (empty)
 stderr:
-  | cl-stack-code: checkpoint 59f0fb95 for turn 1 was garbage-collected
+  | cl-stack-code: checkpoint d120131a for turn 1 was garbage-collected
 files (unchanged): (:ADD "+ (fixed)" :NOTES T :README "turn 3" :SUB NIL)
 
 --- retention on a copy project: checkpoints.keep 2, three turns
 .cl-stack-code/settings.json:
   | {"checkpoints": {"keep": 2}}
 $ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits 'fix add() in calc.sh'
-  exit 0, result "Fixed add() in calc.sh.", session a898fa75
+  exit 0, result "Fixed add() in calc.sh.", session 17a3f876
 blob files in store/ after turn 1: 7
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume a898fa756bbb47648e40ef394e355555 'write NOTES.md'
-  exit 0, result "Wrote NOTES.md.", session a898fa75
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 17a3f876a314853824606ae468c5c156 'write NOTES.md'
+  exit 0, result "Wrote NOTES.md.", session 17a3f876
 blob files in store/ after turn 2: 7
-$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume a898fa756bbb47648e40ef394e355555 'mention add and mul in the README'
-  exit 0, result "Updated README.md.", session a898fa75
+$ cl-stack-code --model mock -p --output-format json --permission-mode acceptEdits --resume 17a3f876a314853824606ae468c5c156 'mention add and mul in the README'
+  exit 0, result "Updated README.md.", session 17a3f876
 blob files in store/ after turn 3: 8
 every checkpoint (session-checkpoints :all t):
   | ("#1 before turn 0 copy sha256:863d0 (expired)"
   |  "#2 turn turn 1 copy sha256:48046 (expired)"
   |  "#3 turn turn 2 copy sha256:e3c20" "#4 turn turn 3 copy sha256:af8ec")
-$ cl-stack-code --model mock -p --resume a898fa756bbb47648e40ef394e355555 --list-checkpoints
+$ cl-stack-code --model mock -p --resume 17a3f876a314853824606ae468c5c156 --list-checkpoints
 exit: 0
 stdout:
-  | ● 61d8b6ee turn 3 after mention add and mul in the README
-  | ● 8724f771 turn 2 after write NOTES.md
+  | ● 8dbe180d turn 3 after mention add and mul in the README
+  | ● b3a38737 turn 2 after write NOTES.md
 stderr: (empty)
-refs/expired → checkpoint: 1c8deff53b35
+refs/expired → checkpoint: cb04b56c3351
 the original calc.sh's blob is still in store/ (only expired checkpoints used it): NIL
 
 --- --rewind 1 --rewind-mode files: turn 1's checkpoint was collected
-$ cl-stack-code --model mock -p --resume a898fa756bbb47648e40ef394e355555 --rewind 1 --rewind-mode files
+$ cl-stack-code --model mock -p --resume 17a3f876a314853824606ae468c5c156 --rewind 1 --rewind-mode files
 exit: 1
 stdout: (empty)
 stderr:
-  | cl-stack-code: checkpoint 1c8deff5 for turn 1 was garbage-collected
+  | cl-stack-code: checkpoint cb04b56c for turn 1 was garbage-collected
 files (unchanged): (:ADD "+ (fixed)" :NOTES T :README "turn 3" :SUB NIL)
 
 ========================================================================
@@ -1890,9 +1979,9 @@ files after two turns: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
   17││
   18│Wrote NOTES.md.│
   19││
-  20│● 65e02859 turn 2 after write NOTES.md│
-  21│● 26f001b4 turn 1 after fix add() in calc.sh│
-  22│● b987e88f turn 0 before session start│
+  20│● d584918f turn 2 after write NOTES.md│
+  21│● 83a9643c turn 1 after fix add() in calc.sh│
+  22│● 30c3cccd turn 0 before session start│
   23│────────────────────────────────────────────────────────────────────────────────────────────────────│
   24│> Message, @file, /help│
   25│ tui-mock · acceptEdits · <tmp>/…/T/<run>/tui-rewind/         40 in · 20 out│
@@ -1914,12 +2003,12 @@ files after two turns: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
   14││
   15│Wrote NOTES.md.│
   16││
-  17│● 65e02859 turn 2 after write NOTES.md│
-  18│● 26f001b4 turn 1 after fix add() in calc.sh│
-  19│● b987e88f turn 0 before session start│
+  17│● d584918f turn 2 after write NOTES.md│
+  18│● 83a9643c turn 1 after fix add() in calc.sh│
+  19│● 30c3cccd turn 0 before session start│
   20││
-  21│● 75d365eb fix add() in calc.sh ◆│
-  22│● 545440df write NOTES.md ◆  (head)│
+  21│● 6616fd17 fix add() in calc.sh ◆│
+  22│● 0a8461a9 write NOTES.md ◆  (head)│
   23│────────────────────────────────────────────────────────────────────────────────────────────────────│
   24│> Message, @file, /help│
   25│ tui-mock · acceptEdits · <tmp>/…/T/<run>/tui-rewind/         40 in · 20 out│
@@ -1934,12 +2023,12 @@ files after two turns: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
    7││
    8│Wrote NOTES.md.│
    9││
-  10│● 65e02859 turn 2 after write NOTES.md│
-  11│● 26f001b4 turn 1 after fix add() in calc.sh│
-  12│● b987e88f turn 0 before session start│
+  10│● d584918f turn 2 after write NOTES.md│
+  11│● 83a9643c turn 1 after fix add() in calc.sh│
+  12│● 30c3cccd turn 0 before session start│
   13││
-  14│● 75d365eb fix add() in calc.sh ◆│
-  15│● 545440df write NOTES.md ◆  (head)│
+  14│● 6616fd17 fix add() in calc.sh ◆│
+  15│● 0a8461a9 write NOTES.md ◆  (head)│
   16│────────────────────────────────────────────────────────────────────────────────────────────────────│
   17│┌─Rewind to turn 1─────────────────────────────────────────────────────────────────────────────────┐│
   18││ Files to restore: NOTES.md                                                                       ││
@@ -1980,10 +2069,10 @@ files after two turns: (:ADD "+ (fixed)" :NOTES T :README "original" :SUB NIL)
 files after the rewind: (:ADD "+ (fixed)" :NOTES NIL :README "original" :SUB NIL)
 git status --porcelain: M calc.sh
 refs:
-  | refs/cl-stack-code/checkpoints/09add9abbfc88a638653ed4bc125af39/1 43d575f
-  | refs/cl-stack-code/checkpoints/09add9abbfc88a638653ed4bc125af39/2 63c4d77
-  | refs/cl-stack-code/checkpoints/09add9abbfc88a638653ed4bc125af39/3 9b7a54c
-  | refs/cl-stack-code/checkpoints/09add9abbfc88a638653ed4bc125af39/4 a8eafb7
+  | refs/cl-stack-code/checkpoints/11e9843e4cf08c5ca56e71bc04d0a755/1 5a2e4d7
+  | refs/cl-stack-code/checkpoints/11e9843e4cf08c5ca56e71bc04d0a755/2 6286c5e
+  | refs/cl-stack-code/checkpoints/11e9843e4cf08c5ca56e71bc04d0a755/3 3bf9d69
+  | refs/cl-stack-code/checkpoints/11e9843e4cf08c5ca56e71bc04d0a755/4 9d08802
 
 ========================================================================
 == Demo n: -p --lisp-image spawn --output-format stream-json: image events in a headless run
@@ -1997,7 +2086,7 @@ event types in order:
 
 --- the system init event: lisp_image, and the lisp tools after the file and shell tools
 lisp_image: {"name":"image","kind":"spawn","backend":"swank","host":null,"port":null,"observe":false}
-tools: 68
+tools: 73
 first lisp tool, after bash: (7 29)
 tools (from bash on):
   | ("bash" "job_output" "job_input" "job_kill" "job_list" "source-outline"
@@ -2014,31 +2103,32 @@ tools (from bash on):
   |  "debug-invoke-restart" "debug-step" "inspect-history"
   |  "debug-return-from-frame" "debug-restart-frame" "inspect" "inspect-part"
   |  "inspect-action" "inspect-back" "inspect-condition" "inspect-frame-var"
-  |  "output-read" "job-list" "job-status" "job-wait" "job-cancel")
+  |  "output-read" "job-list" "job-status" "job-wait" "job-cancel" "unit_list"
+  |  "unit_search" "unit_read" "unit_tail" "unit_control")
 
 --- tool_use / tool_result lines
-  {"type":"tool_use","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":1,"id":"call-1-1","name":"repl-eval","input":{"code":"(progn (sb-thread:make-thread (lambda () (restart-case (error \"bg boom: the worker lost its queue\") (retry-later () :report \"Retry later\" 7))) :name \"bg-worker\") (sle… [318 chars]
-  {"type":"tool_result","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":1,"id":"call-1-1","name":"repl-eval","status":"done","is_error":false,"content":"=> :STARTED\n(result id 1)\n"}
-  {"type":"tool_use","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":2,"id":"call-2-1","name":"debug-state","input":{}}
-  {"type":"tool_result","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":2,"id":"call-2-1","name":"debug-state","status":"done","is_error":false,"content":"DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]\nRestarts:\n  0: [RETRY-LATER] Retry later\n  1: … [606 chars]
-  {"type":"tool_use","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":3,"id":"call-3-1","name":"debug-invoke-restart","input":{"restart":1}}
-  {"type":"tool_result","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":3,"id":"call-3-1","name":"debug-invoke-restart","status":"denied","is_error":true,"content":"Tool debug-invoke-restart was not run: approval is not available (no one can be asked)\nFeedback: cl-stack-code is running headles… [549 chars]
-  {"type":"tool_use","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":4,"id":"call-4-1","name":"debug-invoke-restart","input":{"restart":0}}
-  {"type":"tool_result","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":4,"id":"call-4-1","name":"debug-invoke-restart","status":"done","is_error":false,"content":"Invoked restart 0 [RETRY-LATER] in thread 10243; no tool call was waiting on that thread, so its values are not shown.\n"}
-  {"type":"tool_use","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":5,"id":"call-5-1","name":"repl-eval","input":{"code":"(progn (sleep 2) :report-done)","timeout":1}}
-  {"type":"tool_result","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":5,"id":"call-5-1","name":"repl-eval","status":"done","is_error":false,"content":"Still running as job j3 (1 s); do not start another copy while it is running; the result is reported when done (or call job-status / job-wait)… [305 chars]
-  {"type":"tool_use","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":6,"id":"call-6-1","name":"repl-eval","input":{"code":"(progn (sleep 2.5) :waited)"}}
-  {"type":"tool_result","session_id":"aa8fcd312ff13d3db47dc1a0df433a48","step":6,"id":"call-6-1","name":"repl-eval","status":"done","is_error":false,"content":"=> :WAITED\n(result id 3)\n"}
+  {"type":"tool_use","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":1,"id":"call-1-1","name":"repl-eval","input":{"code":"(progn (sb-thread:make-thread (lambda () (restart-case (error \"bg boom: the worker lost its queue\") (retry-later () :report \"Retry later\" 7))) :name \"bg-worker\") (sle… [318 chars]
+  {"type":"tool_result","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":1,"id":"call-1-1","name":"repl-eval","status":"done","is_error":false,"content":"=> :STARTED\n(result id 1)\n"}
+  {"type":"tool_use","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":2,"id":"call-2-1","name":"debug-state","input":{}}
+  {"type":"tool_result","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":2,"id":"call-2-1","name":"debug-state","status":"done","is_error":false,"content":"DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]\nRestarts:\n  0: [RETRY-LATER] Retry later\n  1: … [605 chars]
+  {"type":"tool_use","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":3,"id":"call-3-1","name":"debug-invoke-restart","input":{"restart":1}}
+  {"type":"tool_result","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":3,"id":"call-3-1","name":"debug-invoke-restart","status":"denied","is_error":true,"content":"Tool debug-invoke-restart was not run: approval is not available (no one can be asked)\nFeedback: cl-stack-code is running headles… [549 chars]
+  {"type":"tool_use","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":4,"id":"call-4-1","name":"debug-invoke-restart","input":{"restart":0}}
+  {"type":"tool_result","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":4,"id":"call-4-1","name":"debug-invoke-restart","status":"done","is_error":false,"content":"Invoked restart 0 [RETRY-LATER] in thread 9987; no tool call was waiting on that thread, so its values are not shown.\n"}
+  {"type":"tool_use","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":5,"id":"call-5-1","name":"repl-eval","input":{"code":"(progn (sleep 2) :report-done)","timeout":1}}
+  {"type":"tool_result","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":5,"id":"call-5-1","name":"repl-eval","status":"done","is_error":false,"content":"Still running as job j3 (1 s); do not start another copy while it is running; the result is reported when done (or call job-status / job-wait)… [305 chars]
+  {"type":"tool_use","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":6,"id":"call-6-1","name":"repl-eval","input":{"code":"(progn (sleep 2.5) :waited)"}}
+  {"type":"tool_result","session_id":"a0c7c1c2c51808ef16a6dc719280c69f","step":6,"id":"call-6-1","name":"repl-eval","status":"done","is_error":false,"content":"=> :WAITED\n(result id 3)\n"}
 
 --- image_event lines (one per queued event, written on the loop thread)
-  {type: image_event, kind: debugger, connection: image, thread: 10243, level: 1, job: NULL}
+  {type: image_event, kind: debugger, connection: image, thread: 9987, level: 1, job: NULL}
     text:
-  | <lisp-image-event kind="debugger" connection="image" thread="10243" level="1">
-  | image entered the debugger outside a tool call (thread 10243, level 1).
+  | <lisp-image-event kind="debugger" connection="image" thread="9987" level="1">
+  | image entered the debugger outside a tool call (thread 9987, level 1).
   | DEBUGGER level 1: bg boom: the worker lost its queue [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=10243 "bg-worker" RUNNING {7006D30373}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=9987 "bg-worker" RUNNING {7006DA01F3}>)
   | Backtrace:
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -2066,7 +2156,7 @@ restart 1 (abort), no rule:
   | Feedback: cl-stack-code is running headless (-p) and cannot ask for appro… [375 chars]")
 restart 0 (retry-later), allowed by the rule:
   | ("done"
-  |  "Invoked restart 0 [RETRY-LATER] in thread 10243; no tool call was waiting on that thread, so its values are not shown.
+  |  "Invoked restart 0 [RETRY-LATER] in thread 9987; no tool call was waiting on that thread, so its values are not shown.
   | ")
 permission_denials: (("debug-invoke-restart" "headless"))
 result subtype: success
@@ -2167,7 +2257,7 @@ last tool result:
    5││
    6│Started the worker.│
    7││
-   8│λ image entered the debugger (thread 9987, level 1): late boom: the cache│
+   8│λ image entered the debugger (thread 8707, level 1): late boom: the cache│
    9│refresh failed│
   10││
   11││
@@ -2177,7 +2267,7 @@ last tool result:
   15││
   16││
   17││
-  18│λ image is in the debugger: late boom: the cache refresh failed (thread 9987)│
+  18│λ image is in the debugger: late boom: the cache refresh failed (thread 8707)│
   19│────────────────────────────────────────────────────────────────────────────────│
   20│> Message, @file, /help│
   21│ tui-mock · default · λ image (debugger) · …/image-tui-notice/   20 in · 10 out│
@@ -2192,7 +2282,7 @@ busy: NIL
    5││
    6│Started the worker.│
    7││
-   8│λ image entered the debugger (thread 9987, level 1): late boom: the cache│
+   8│λ image entered the debugger (thread 8707, level 1): late boom: the cache│
    9│refresh failed│
   10││
   11│> what happened?│
@@ -2202,7 +2292,7 @@ busy: NIL
   15││
   16││
   17││
-  18│λ image is in the debugger: late boom: the cache refresh failed (thread 9987)│
+  18│λ image is in the debugger: late boom: the cache refresh failed (thread 8707)│
   19│────────────────────────────────────────────────────────────────────────────────│
   20│> Message, @file, /help│
   21│ tui-mock · default · λ image (debugger) · …/image-tui-notice/   30 in · 15 out│
@@ -2231,7 +2321,7 @@ debug-invoke-restart offered: NIL
   | DEBUGGER level 1: prod boom: payment gateway timed out [   [Condition of type SIMPLE-ERROR]]
   | Restarts:
   |   0: [RETRY-LATER] Retry later
-  |   1: [ABORT] abort thread (#<THREAD tid=9731 "prod-worker" RUNNING {7006D4F8D3}>)
+  |   1: [ABORT] abort thread (#<THREAD tid=9731 "prod-worker" RUNNING {7006D9F8D3}>)
   | Backtrace:
   |   0: ((LAMBDA ()))
   |   1: ((FLET SB-UNIX::BODY :IN SB-THREAD::RUN))
@@ -2243,12 +2333,12 @@ debug-invoke-restart offered: NIL
   | </lisp-image-event>
 
 --- tool_use / tool_result lines
-  {"type":"tool_use","session_id":"58701869e15c025da042bd7f58ab82dc","step":1,"id":"call-1-1","name":"debug-state","input":{}}
-  {"type":"tool_result","session_id":"58701869e15c025da042bd7f58ab82dc","step":1,"id":"call-1-1","name":"debug-state","status":"done","is_error":false,"content":"DEBUGGER level 1: prod boom: payment gateway timed out [   [Condition of type SIMPLE-ERROR]]\nRestarts:\n  0: [RETRY-LATER] Retry later\n  1: [ABORT] abort thread (#<THREAD tid=9731 \"prod-worker\" RUNNING {7006D4F8D3}>)\nBacktrace (top 4; … [609 chars]
-  {"type":"tool_use","session_id":"58701869e15c025da042bd7f58ab82dc","step":2,"id":"call-2-1","name":"debug-invoke-restart","input":{"restart":0}}
-  {"type":"tool_result","session_id":"58701869e15c025da042bd7f58ab82dc","step":2,"id":"call-2-1","name":"debug-invoke-restart","status":"error","is_error":true,"content":"Unknown tool \"debug-invoke-restart\". Call only the tools you were given: read, write, edit, multi_edit, glob, grep, ls, bash, job_output, job_input, job_kill, job_list, source-outline, source-read, source-check, source-find-defin… [793 chars]
-  {"type":"tool_use","session_id":"58701869e15c025da042bd7f58ab82dc","step":3,"id":"call-3-1","name":"repl-eval","input":{"code":"(defparameter *poked* t)"}}
-  {"type":"tool_result","session_id":"58701869e15c025da042bd7f58ab82dc","step":3,"id":"call-3-1","name":"repl-eval","status":"denied","is_error":true,"content":"Tool repl-eval was not run: permission denied for lisp:defines cl-user:*poked*\nFeedback: This source is in observe mode: it runs only read tools and code that scans to lisp:pure or lisp:reads (plus the source's observe-allow globs). Inspect… [538 chars]
+  {"type":"tool_use","session_id":"ed1e3a3d3ce5487e280edacffb30149c","step":1,"id":"call-1-1","name":"debug-state","input":{}}
+  {"type":"tool_result","session_id":"ed1e3a3d3ce5487e280edacffb30149c","step":1,"id":"call-1-1","name":"debug-state","status":"done","is_error":false,"content":"DEBUGGER level 1: prod boom: payment gateway timed out [   [Condition of type SIMPLE-ERROR]]\nRestarts:\n  0: [RETRY-LATER] Retry later\n  1: [ABORT] abort thread (#<THREAD tid=9731 \"prod-worker\" RUNNING {7006D9F8D3}>)\nBacktrace (top 4; … [609 chars]
+  {"type":"tool_use","session_id":"ed1e3a3d3ce5487e280edacffb30149c","step":2,"id":"call-2-1","name":"debug-invoke-restart","input":{"restart":0}}
+  {"type":"tool_result","session_id":"ed1e3a3d3ce5487e280edacffb30149c","step":2,"id":"call-2-1","name":"debug-invoke-restart","status":"error","is_error":true,"content":"Unknown tool \"debug-invoke-restart\". Call only the tools you were given: read, write, edit, multi_edit, glob, grep, ls, bash, job_output, job_input, job_kill, job_list, source-outline, source-read, source-check, source-find-defin… [793 chars]
+  {"type":"tool_use","session_id":"ed1e3a3d3ce5487e280edacffb30149c","step":3,"id":"call-3-1","name":"repl-eval","input":{"code":"(defparameter *poked* t)"}}
+  {"type":"tool_result","session_id":"ed1e3a3d3ce5487e280edacffb30149c","step":3,"id":"call-3-1","name":"repl-eval","status":"denied","is_error":true,"content":"Tool repl-eval was not run: permission denied for lisp:defines cl-user:*poked*\nFeedback: This source is in observe mode: it runs only read tools and code that scans to lisp:pure or lisp:reads (plus the source's observe-allow globs). Inspect… [538 chars]
 result text: prod-worker is in the debugger: the payment gateway timed out. I am an observer, so I cannot restart it: I would choose 0, retry-later, since the gateway may answer again.
 
 --- the owner's view
@@ -2263,26 +2353,26 @@ result text: prod-worker is in the debugger: the payment gateway timed out. I am
 --- q1: make-client, client-new-session: the init event (-p's stream-json system object)
   (code:make-client :cwd PROJECT :settings (code:make-settings :model "mock") :providers … :on-event … :on-approval …)
 the first event is the init object: T
-  {"type":"system","session_id":"9e8048458c5586ae48492c08fcaf122e","subtype":"init","version":"0.7.0","cwd":"<tmp>/sdk/","project_root":"<tmp>/sdk/","model":"mock","permission_mode":"default","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_kill","job_list"],"instructions":["<tmp>/sdk/AGENTS.md"]}
+  {"type":"system","session_id":"de063535a63b3e87018756298fce8cce","subtype":"init","version":"0.8.0","cwd":"<tmp>/sdk/","project_root":"<tmp>/sdk/","model":"mock","permission_mode":"default","tools":["read","write","edit","multi_edit","glob","grep","ls","bash","job_output","job_input","job_kill","job_list","unit_list","unit_search","unit_read","unit_tail","unit_control"],"instructions":["<tmp>/sdk/AGENTS.md"]}
 on disk before the first turn: NIL
 
 --- q2: client-query: a read and an answer; the turn's events
 event types: ("assistant" "tool_use" "tool_result" "text_delta×5" "assistant" "result")
-  {"type":"assistant","session_id":"9e8048458c5586ae48492c08fcaf122e","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":10,"output_tokens":5,"cache_read_tokens":0,"cache_write_tokens":0}}
-  {"type":"tool_use","session_id":"9e8048458c5586ae48492c08fcaf122e","step":1,"id":"call-1-1","name":"read","input":{"file_path":"a.txt"}}
-  {"type":"tool_result","session_id":"9e8048458c5586ae48492c08fcaf122e","step":1,"id":"call-1-1","name":"read","status":"done","is_error":false,"content":"     1\talpha\nhash: sha256:b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060"}
-  {"type":"assistant","session_id":"9e8048458c5586ae48492c08fcaf122e","step":2,"text":"a.txt holds one line: `alpha`.","finish_reason":"stop","usage":{"input_tokens":10,"output_tokens":5,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"assistant","session_id":"de063535a63b3e87018756298fce8cce","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":10,"output_tokens":5,"cache_read_tokens":0,"cache_write_tokens":0}}
+  {"type":"tool_use","session_id":"de063535a63b3e87018756298fce8cce","step":1,"id":"call-1-1","name":"read","input":{"file_path":"a.txt"}}
+  {"type":"tool_result","session_id":"de063535a63b3e87018756298fce8cce","step":1,"id":"call-1-1","name":"read","status":"done","is_error":false,"content":"     1\talpha\nhash: sha256:b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060"}
+  {"type":"assistant","session_id":"de063535a63b3e87018756298fce8cce","step":2,"text":"a.txt holds one line: `alpha`.","finish_reason":"stop","usage":{"input_tokens":10,"output_tokens":5,"cache_read_tokens":0,"cache_write_tokens":0}}
     (5 text_delta events before it for step 2)
-  {"type":"result","subtype":"success","is_error":false,"result":"a.txt holds one line: `alpha`.","error":null,"num_turns":2,"duration_ms":79,"usage":{"input_tokens":20,"output_tokens":10,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"9e8048458c5586ae48492c08fcaf122e"}
+  {"type":"result","subtype":"success","is_error":false,"result":"a.txt holds one line: `alpha`.","error":null,"num_turns":2,"duration_ms":78,"usage":{"input_tokens":20,"output_tokens":10,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"de063535a63b3e87018756298fce8cce"}
 result subtype / text: ("success" "a.txt holds one line: `alpha`.")
 
 --- q3: the default mode asks for write and edit; on-approval answers :once, then (:reject feedback)
-  {"type":"approval_request","session_id":"9e8048458c5586ae48492c08fcaf122e","step":1,"id":"call-3-1","name":"write","input":{"file_path":"c.txt","content":"gamma\n"},"summary":"write c.txt","preview":"--- /dev/null\n+++ b/c.txt\n@@ -0,0 +1 @@\n+gamma\n"}
-  {"type":"approval_resolved","session_id":"9e8048458c5586ae48492c08fcaf122e","id":"call-3-1","decision":"once"}
-  {"type":"tool_result","session_id":"9e8048458c5586ae48492c08fcaf122e","step":1,"id":"call-3-1","name":"write","status":"done","is_error":false,"content":"Wrote c.txt (6 bytes)\nhash: sha256:ae9a6306a205417afddd14316cc1d0d5e04a98f1be10865dce643925ee070ce2"}
-  {"type":"approval_request","session_id":"9e8048458c5586ae48492c08fcaf122e","step":2,"id":"call-4-1","name":"edit","input":{"file_path":"a.txt","old_string":"alpha","new_string":"ALPHA"},"summary":"edit a.txt","preview":"--- a/a.txt\n+++ b/a.txt\n@@ -1 +1 @@\n-alpha\n+ALPHA\n"}
-  {"type":"approval_resolved","session_id":"9e8048458c5586ae48492c08fcaf122e","id":"call-4-1","decision":"reject"}
-  {"type":"tool_result","session_id":"9e8048458c5586ae48492c08fcaf122e","step":2,"id":"call-4-1","name":"edit","status":"denied","is_error":true,"content":"Tool edit was not run: the user rejected the request\nFeedback: keep a.txt lowercase\nDo not repeat the same call. Follow the feedback above and continue."}
+  {"type":"approval_request","session_id":"de063535a63b3e87018756298fce8cce","step":1,"id":"call-3-1","name":"write","input":{"file_path":"c.txt","content":"gamma\n"},"summary":"write c.txt","preview":"--- /dev/null\n+++ b/c.txt\n@@ -0,0 +1 @@\n+gamma\n"}
+  {"type":"approval_resolved","session_id":"de063535a63b3e87018756298fce8cce","id":"call-3-1","decision":"once"}
+  {"type":"tool_result","session_id":"de063535a63b3e87018756298fce8cce","step":1,"id":"call-3-1","name":"write","status":"done","is_error":false,"content":"Wrote c.txt (6 bytes)\nhash: sha256:ae9a6306a205417afddd14316cc1d0d5e04a98f1be10865dce643925ee070ce2"}
+  {"type":"approval_request","session_id":"de063535a63b3e87018756298fce8cce","step":2,"id":"call-4-1","name":"edit","input":{"file_path":"a.txt","old_string":"alpha","new_string":"ALPHA"},"summary":"edit a.txt","preview":"--- a/a.txt\n+++ b/a.txt\n@@ -1 +1 @@\n-alpha\n+ALPHA\n"}
+  {"type":"approval_resolved","session_id":"de063535a63b3e87018756298fce8cce","id":"call-4-1","decision":"reject"}
+  {"type":"tool_result","session_id":"de063535a63b3e87018756298fce8cce","step":2,"id":"call-4-1","name":"edit","status":"denied","is_error":true,"content":"Tool edit was not run: the user rejected the request\nFeedback: keep a.txt lowercase\nDo not repeat the same call. Follow the feedback above and continue."}
   {"type":"result","subtype":"success","is_error":false,"result":"Wrote c.txt; left a.txt as it is.","error":null,"num_turns":3,"duration_ms":111,"usage":{"input_tokens":30,"output_tokens":15,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[{"id":"call-4-1","name":"edit","input":{"file_path":"a.txt","o… [431 chars]
 c.txt:
   | gamma
@@ -2296,19 +2386,19 @@ client-busy-p: T
 event types:
   | ("assistant" "tool_use" "tool_result" "steering" "text_delta×7" "assistant"
   |  "result")
-  {"type":"steering","session_id":"9e8048458c5586ae48492c08fcaf122e","subtype":"taken","texts":["also check b.txt"]}
+  {"type":"steering","session_id":"de063535a63b3e87018756298fce8cce","subtype":"taken","texts":["also check b.txt"]}
 the generate after ls has the steering text: T
 result text: Listed the files and checked b.txt too.
 
 --- q5: client-interrupt while the generate waits; a steer that is never taken is dropped
 (client-interrupt s): T
 last two events: ("steering" "result")
-  {"type":"steering","session_id":"9e8048458c5586ae48492c08fcaf122e","subtype":"dropped","texts":["and this one is too late"]}
+  {"type":"steering","session_id":"de063535a63b3e87018756298fce8cce","subtype":"dropped","texts":["and this one is too late"]}
 result subtype / error: ("error_during_execution" "interrupted")
 (client-interrupt s) when idle: NIL
 
 --- q6: client-list-sessions, close, resume by a 6-character prefix, fork at turn 1
-  {"session_id":"9e8048458c5586ae48492c08fcaf122e","turns":4,"prompt":"what is in a.txt?","head":"12ca478d307b0ff6a6dfbcd8900f00c9621b9efc","updated_at":1795269027,"open":true}
+  {"session_id":"de063535a63b3e87018756298fce8cce","turns":4,"prompt":"what is in a.txt?","head":"b5469994a5dd4047154d2d2170f43fa02aeb6c9b","updated_at":1795284917,"open":true}
 (client-close-session s): T
 a call on the closed session signals: CL-STACK-CODE:SESSION-NOT-OPEN
 resumed id = the id: T
@@ -2317,7 +2407,7 @@ fork init: turns, forked_from = the id: (1 T)
 fork result: In the fork: only the first turn is behind me.
 the fork's request: user turns: ("what is in a.txt?" "where are we?")
 client-sessions: 2
-sessions on disk (id prefix, turns, prompt): (("6f4f4179" 2 "what is in a.txt?") ("9e804845" 4 "what is in a.txt?"))
+sessions on disk (id prefix, turns, prompt): (("ef7c1b0e" 2 "what is in a.txt?") ("de063535" 4 "what is in a.txt?"))
 
 --- q7: close-client
 client-closed-p: T
@@ -2325,12 +2415,23 @@ client-new-session afterwards signals: CL-STACK-CODE:CLIENT-CLOSED
 events seen by the client's on-event: 64
 
 --- q8: one turn on the LM Studio model (the same SDK, the built-in openai provider)
-init model: openai:unsloth/Qwen3.8-Flash-Next-GGUF
-event types: ("assistant" "tool_use" "tool_result" "text_delta×33" "assistant" "result")
-  {"type":"tool_use","session_id":"56e41098346bd553a34af1ff00dc6ddd","step":1,"id":"xkK2CwO3dOst0G8Yy7GwLiitfDs80Nmk","name":"read","input":{"file_path":"a.txt"}}
-  {"type":"tool_result","session_id":"56e41098346bd553a34af1ff00dc6ddd","step":1,"id":"xkK2CwO3dOst0G8Yy7GwLiitfDs80Nmk","name":"read","status":"done","is_error":false,"content":"     1\talpha\nhash: sha256:b6a98d9ce9a2d91… [271 chars]
+init model: openai:qwen3.5-2b
+event types:
+  | ("assistant" "tool_use" "tool_result" "assistant" "tool_use" "tool_result"
+  |  "assistant" "tool_use" "tool_result" "assistant" "tool_use" "tool_result"
+  |  "assistant" "tool_use" "tool_result" "text_delta×19" "assistant" "result")
+  {"type":"tool_use","session_id":"f066044d17e54d38a4b97964ca4e256f","step":1,"id":"YpSOXAq7ejcyNFbPHkC4kgXJaiZX8VQF","name":"read","input":{"file_path":"<tmp-without-slash>/sdk/a.txt","offset":1,"limit":50}}
+  {"type":"tool_result","session_id":"f066044d17e54d38a4b97964ca4e256f","step":1,"id":"YpSOXAq7ejcyNFbPHkC4kgXJaiZX8VQF","name":"read","status":"error","is_error":true,"content":"Tool read rejected its arguments: <tmp-with… [355 chars]
+  {"type":"tool_use","session_id":"f066044d17e54d38a4b97964ca4e256f","step":2,"id":"Cwki0mStwUuNrbs29FQZRyy4wP3StDKZ","name":"ls","input":{"path":"<tmp-without-slash>/sdk/"}}
+  {"type":"tool_result","session_id":"f066044d17e54d38a4b97964ca4e256f","step":2,"id":"Cwki0mStwUuNrbs29FQZRyy4wP3StDKZ","name":"ls","status":"error","is_error":true,"content":"Tool ls rejected its arguments: <tmp-without-… [337 chars]
+  {"type":"tool_use","session_id":"f066044d17e54d38a4b97964ca4e256f","step":3,"id":"GniN2C4o13pI8jhx4pHF1InXzdoWZnUT","name":"ls","input":{"path":"/"}}
+  {"type":"tool_result","session_id":"f066044d17e54d38a4b97964ca4e256f","step":3,"id":"GniN2C4o13pI8jhx4pHF1InXzdoWZnUT","name":"ls","status":"error","is_error":true,"content":"Tool ls rejected its arguments: / is outside … [352 chars]
+  {"type":"tool_use","session_id":"f066044d17e54d38a4b97964ca4e256f","step":4,"id":"iGiOYhwnQjEbR5KOtkofT1RsLPX6OgFg","name":"ls","input":{"path":""}}
+  {"type":"tool_result","session_id":"f066044d17e54d38a4b97964ca4e256f","step":4,"id":"iGiOYhwnQjEbR5KOtkofT1RsLPX6OgFg","name":"ls","status":"error","is_error":true,"content":"Tool ls rejected its arguments: the path is e… [339 chars]
+  {"type":"tool_use","session_id":"f066044d17e54d38a4b97964ca4e256f","step":5,"id":"3mVHuuNcyip0KoqQKzr7D6vZd9MSCYkQ","name":"read","input":{"file_path":"a.txt"}}
+  {"type":"tool_result","session_id":"f066044d17e54d38a4b97964ca4e256f","step":5,"id":"3mVHuuNcyip0KoqQKzr7D6vZd9MSCYkQ","name":"read","status":"done","is_error":false,"content":"     1\talpha\nhash: sha256:b6a98d9ce9a2d91… [271 chars]
 result subtype: success
-result text: a.txt contains a single line with the word "alpha" (23 bytes total including the newline) — no other content, and nothing was written or edited.
+result text: a.txt contains just two lines: "alpha" and its SHA256 hash digest.
 
 ========================================================================
 == Demo r: serve-rpc on rpc-backend-stdio 0.2.0 in-memory pipes; the raw JSON-RPC lines both ways
@@ -2338,20 +2439,21 @@ result text: a.txt contains a single line with the word "alpha" (23 bytes total 
   each side's output is a broadcast stream: the pipe and a string stream that records the lines
 
 --- r1: initialize, session/new, an error response
-initialize → name, version, protocol: ("cl-stack-code" "0.7.0" 1)
+initialize → name, version, protocol: ("cl-stack-code" "0.8.0" 1)
 methods:
   | ("initialize" "session/new" "session/resume" "session/list" "session/fork"
   |  "session/close" "turn/start" "turn/steer" "turn/interrupt" "approval/respond"
   |  "plan/approve" "plan/reject" "checkpoint/list" "rewind" "settings/get"
-  |  "tools/list")
+  |  "tools/list" "units/list" "units/subscribe" "units/unsubscribe" "units/read"
+  |  "units/search" "units/control")
 turn/steer while idle → code, message, data:
   | (-32004
-  |  "session 66fb65a391c26e3b34f3c44327f3b452 has no turn running (start one with turn/start)"
-  |  "{\"condition\":\"turn-not-running\",\"session_id\":\"66fb65a391c26e3b34f3c44327f3b452\"}")
+  |  "session 89b4b212db0137af5b4df371a71f0c95 has no turn running (start one with turn/start)"
+  |  "{\"condition\":\"turn-not-running\",\"session_id\":\"89b4b212db0137af5b4df371a71f0c95\"}")
 no/such → code, message: (-32601 "Method not found: no/such")
 
 --- r2: turn/start; the write asks; approval/respond once
-turn/start: {"session_id":"66fb65a391c26e3b34f3c44327f3b452"}
+turn/start: {"session_id":"89b4b212db0137af5b4df371a71f0c95"}
 approval_request id, name, summary: ("call-1-1" "write" "write b.txt")
 approval/respond: {"resolved":["call-1-1"]}
 result subtype / text: ("success" "Wrote b.txt.")
@@ -2360,7 +2462,7 @@ b.txt:
 notification types:
   | ("system" "assistant" "tool_use" "approval_request" "approval_resolved"
   |  "tool_result" "text_delta×2" "assistant" "result")
-tools/list count: 12
+tools/list count: 17
 checkpoint/list (ordinal, reason, files_kind): ((2 "turn" "copy") (1 "before" "copy"))
 session/close: {"closed":true}
 
@@ -2369,32 +2471,32 @@ serve-rpc returned (EOF): 0
   client → server (9 lines):
     {"jsonrpc":"2.0","method":"initialize","params":{},"id":1}
     {"jsonrpc":"2.0","method":"session/new","params":{},"id":2}
-    {"jsonrpc":"2.0","method":"turn/steer","params":{"session_id":"66fb65a391c26e3b34f3c44327f3b452","text":"hi"},"id":3}
+    {"jsonrpc":"2.0","method":"turn/steer","params":{"session_id":"89b4b212db0137af5b4df371a71f0c95","text":"hi"},"id":3}
     {"jsonrpc":"2.0","method":"no/such","params":{},"id":4}
-    {"jsonrpc":"2.0","method":"turn/start","params":{"session_id":"66fb65a391c26e3b34f3c44327f3b452","prompt":"write b.txt"},"id":5}
-    {"jsonrpc":"2.0","method":"approval/respond","params":{"session_id":"66fb65a391c26e3b34f3c44327f3b452","id":"call-1-1","decision":"once"},"id":6}
-    {"jsonrpc":"2.0","method":"tools/list","params":{"session_id":"66fb65a391c26e3b34f3c44327f3b452"},"id":7}
-    {"jsonrpc":"2.0","method":"checkpoint/list","params":{"session_id":"66fb65a391c26e3b34f3c44327f3b452"},"id":8}
-    {"jsonrpc":"2.0","method":"session/close","params":{"session_id":"66fb65a391c26e3b34f3c44327f3b452"},"id":9}
+    {"jsonrpc":"2.0","method":"turn/start","params":{"session_id":"89b4b212db0137af5b4df371a71f0c95","prompt":"write b.txt"},"id":5}
+    {"jsonrpc":"2.0","method":"approval/respond","params":{"session_id":"89b4b212db0137af5b4df371a71f0c95","id":"call-1-1","decision":"once"},"id":6}
+    {"jsonrpc":"2.0","method":"tools/list","params":{"session_id":"89b4b212db0137af5b4df371a71f0c95"},"id":7}
+    {"jsonrpc":"2.0","method":"checkpoint/list","params":{"session_id":"89b4b212db0137af5b4df371a71f0c95"},"id":8}
+    {"jsonrpc":"2.0","method":"session/close","params":{"session_id":"89b4b212db0137af5b4df371a71f0c95"},"id":9}
   server → client (19 lines):
-    {"jsonrpc":"2.0","result":{"name":"cl-stack-code","version":"0.7.0","protocol":1,"methods":["initialize","session/new","session/resume","session/list","session/fork","session/close","turn/start","turn/steer","turn/interr… [506 chars]
-    {"jsonrpc":"2.0","method":"event","params":{"type":"system","session_id":"66fb65a391c26e3b34f3c44327f3b452","subtype":"init","version":"0.7.0","cwd":"<tmp>/rpc-wire/","project_root":"<tmp>/rpc-wire/","model":"mock","perm… [380 chars]
-    {"jsonrpc":"2.0","result":{"type":"system","session_id":"66fb65a391c26e3b34f3c44327f3b452","subtype":"init","version":"0.7.0","cwd":"<tmp>/rpc-wire/","project_root":"<tmp>/rpc-wire/","model":"mock","permission_mode":"def… [370 chars]
-    {"jsonrpc":"2.0","error":{"code":-32004,"message":"session 66fb65a391c26e3b34f3c44327f3b452 has no turn running (start one with turn/start)","data":{"condition":"turn-not-running","session_id":"66fb65a391c26e3b34f3c44327… [237 chars]
+    {"jsonrpc":"2.0","result":{"name":"cl-stack-code","version":"0.8.0","protocol":1,"methods":["initialize","session/new","session/resume","session/list","session/fork","session/close","turn/start","turn/steer","turn/interr… [608 chars]
+    {"jsonrpc":"2.0","method":"event","params":{"type":"system","session_id":"89b4b212db0137af5b4df371a71f0c95","subtype":"init","version":"0.8.0","cwd":"<tmp>/rpc-wire/","project_root":"<tmp>/rpc-wire/","model":"mock","perm… [445 chars]
+    {"jsonrpc":"2.0","result":{"type":"system","session_id":"89b4b212db0137af5b4df371a71f0c95","subtype":"init","version":"0.8.0","cwd":"<tmp>/rpc-wire/","project_root":"<tmp>/rpc-wire/","model":"mock","permission_mode":"def… [435 chars]
+    {"jsonrpc":"2.0","error":{"code":-32004,"message":"session 89b4b212db0137af5b4df371a71f0c95 has no turn running (start one with turn/start)","data":{"condition":"turn-not-running","session_id":"89b4b212db0137af5b4df371a7… [237 chars]
     {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method not found: no/such"},"id":4}
-    {"jsonrpc":"2.0","result":{"session_id":"66fb65a391c26e3b34f3c44327f3b452"},"id":5}
-    {"jsonrpc":"2.0","method":"event","params":{"type":"assistant","session_id":"66fb65a391c26e3b34f3c44327f3b452","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":10,"output_tokens":5,"cache_read_tokens… [249 chars]
-    {"jsonrpc":"2.0","method":"event","params":{"type":"tool_use","session_id":"66fb65a391c26e3b34f3c44327f3b452","step":1,"id":"call-1-1","name":"write","input":{"file_path":"b.txt","content":"beta\n"}}}
-    {"jsonrpc":"2.0","method":"event","params":{"type":"approval_request","session_id":"66fb65a391c26e3b34f3c44327f3b452","step":1,"id":"call-1-1","name":"write","input":{"file_path":"b.txt","content":"beta\n"},"summary":"wr… [295 chars]
-    {"jsonrpc":"2.0","method":"event","params":{"type":"approval_resolved","session_id":"66fb65a391c26e3b34f3c44327f3b452","id":"call-1-1","decision":"once"}}
+    {"jsonrpc":"2.0","result":{"session_id":"89b4b212db0137af5b4df371a71f0c95"},"id":5}
+    {"jsonrpc":"2.0","method":"event","params":{"type":"assistant","session_id":"89b4b212db0137af5b4df371a71f0c95","step":1,"text":"","finish_reason":"tool_use","usage":{"input_tokens":10,"output_tokens":5,"cache_read_tokens… [249 chars]
+    {"jsonrpc":"2.0","method":"event","params":{"type":"tool_use","session_id":"89b4b212db0137af5b4df371a71f0c95","step":1,"id":"call-1-1","name":"write","input":{"file_path":"b.txt","content":"beta\n"}}}
+    {"jsonrpc":"2.0","method":"event","params":{"type":"approval_request","session_id":"89b4b212db0137af5b4df371a71f0c95","step":1,"id":"call-1-1","name":"write","input":{"file_path":"b.txt","content":"beta\n"},"summary":"wr… [295 chars]
+    {"jsonrpc":"2.0","method":"event","params":{"type":"approval_resolved","session_id":"89b4b212db0137af5b4df371a71f0c95","id":"call-1-1","decision":"once"}}
     {"jsonrpc":"2.0","result":{"resolved":["call-1-1"]},"id":6}
-    {"jsonrpc":"2.0","method":"event","params":{"type":"tool_result","session_id":"66fb65a391c26e3b34f3c44327f3b452","step":1,"id":"call-1-1","name":"write","status":"done","is_error":false,"content":"Wrote b.txt (5 bytes)\n… [300 chars]
-    {"jsonrpc":"2.0","method":"event","params":{"type":"text_delta","session_id":"66fb65a391c26e3b34f3c44327f3b452","step":2,"text":"Wrote "}}
+    {"jsonrpc":"2.0","method":"event","params":{"type":"tool_result","session_id":"89b4b212db0137af5b4df371a71f0c95","step":1,"id":"call-1-1","name":"write","status":"done","is_error":false,"content":"Wrote b.txt (5 bytes)\n… [300 chars]
+    {"jsonrpc":"2.0","method":"event","params":{"type":"text_delta","session_id":"89b4b212db0137af5b4df371a71f0c95","step":2,"text":"Wrote "}}
       … 1 more text_delta notifications
-    {"jsonrpc":"2.0","method":"event","params":{"type":"assistant","session_id":"66fb65a391c26e3b34f3c44327f3b452","step":2,"text":"Wrote b.txt.","finish_reason":"stop","usage":{"input_tokens":10,"output_tokens":5,"cache_rea… [257 chars]
+    {"jsonrpc":"2.0","method":"event","params":{"type":"assistant","session_id":"89b4b212db0137af5b4df371a71f0c95","step":2,"text":"Wrote b.txt.","finish_reason":"stop","usage":{"input_tokens":10,"output_tokens":5,"cache_rea… [257 chars]
     {"jsonrpc":"2.0","method":"event","params":{"type":"result","subtype":"success","is_error":false,"result":"Wrote b.txt.","error":null,"num_turns":2,"duration_ms":65,"usage":{"input_tokens":20,"output_tokens":10,"cache_re… [330 chars]
-    {"jsonrpc":"2.0","result":{"tools":[{"name":"read","description":"Read a UTF-8 text file. Output: one line per file line as a 6-column line number, TAB, the text; then any truncation notice; then a final line \"hash: sha… [9192 chars]
-    {"jsonrpc":"2.0","result":{"checkpoints":[{"id":"ebcd6761d242478c93aeeb4e9df863d8e90cf759","ordinal":2,"reason":"turn","turn":1,"files_kind":"copy","message":"write b.txt","recorded_at":1795269059,"expired":false},{"id":… [399 chars]
+    {"jsonrpc":"2.0","result":{"tools":[{"name":"read","description":"Read a UTF-8 text file. Output: one line per file line as a 6-column line number, TAB, the text; then any truncation notice; then a final line \"hash: sha… [14822 chars]
+    {"jsonrpc":"2.0","result":{"checkpoints":[{"id":"19f4b717b643963f0b9e3fe5c29837ba43e018e9","ordinal":2,"reason":"turn","turn":1,"files_kind":"copy","message":"write b.txt","recorded_at":1795284935,"expired":false},{"id":… [399 chars]
     {"jsonrpc":"2.0","result":{"closed":true},"id":9}
 
 ========================================================================
@@ -2402,24 +2504,714 @@ serve-rpc returned (EOF): 0
 ========================================================================
 $ sbcl --non-interactive --no-userinit --eval <load harness-demos-code> --eval '(run-cli (list "--rpc" "--cwd" PROJECT "--model" "mock") …)'
   (argv: 15 strings; the child runs run-cli --rpc on its own stdin and stdout)
-initialize → name, version (the child may compile first): ("cl-stack-code" "0.7.0")
-  (initialize answered after 1.0 s)
+initialize → name, version (the child may compile first): ("cl-stack-code" "0.8.0")
+  (initialize answered after 1.2 s)
 a child process: T
 turn/start → session_id is the session: T
 events (on-event, reader thread):
   | ("system" "assistant" "tool_use" "tool_result" "text_delta×3" "assistant"
   |  "result")
-  {"type":"tool_use","session_id":"323e6273082987b32cd66e559cdc9520","step":1,"id":"call-1-1","name":"read","input":{"file_path":"a.txt"}}
-  {"type":"tool_result","session_id":"323e6273082987b32cd66e559cdc9520","step":1,"id":"call-1-1","name":"read","status":"done","is_error":false,"content":"     1\talpha\nhash: sha256:b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060"}
-  {"type":"result","subtype":"success","is_error":false,"result":"It says alpha.","error":null,"num_turns":2,"duration_ms":123,"usage":{"input_tokens":20,"output_tokens":10,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"323e6273082987b32cd66e559cdc9520"}
+  {"type":"tool_use","session_id":"1c17a9a77cfdbd576a4ee9fdc718b9fb","step":1,"id":"call-1-1","name":"read","input":{"file_path":"a.txt"}}
+  {"type":"tool_result","session_id":"1c17a9a77cfdbd576a4ee9fdc718b9fb","step":1,"id":"call-1-1","name":"read","status":"done","is_error":false,"content":"     1\talpha\nhash: sha256:b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060"}
+  {"type":"result","subtype":"success","is_error":false,"result":"It says alpha.","error":null,"num_turns":2,"duration_ms":135,"usage":{"input_tokens":20,"output_tokens":10,"cache_read_tokens":0,"cache_write_tokens":0},"permission_denials":[],"session_id":"1c17a9a77cfdbd576a4ee9fdc718b9fb"}
 on-event saw: 9
 close-rpc-client: stdin closed, the child's exit code: 0
 close-rpc-client again (idempotent): 0
 the child committed the turn: sessions on disk: 1
 
 ========================================================================
+== Demo t: the session's units (cl-stack-code 0.8.0, H8d): the process panel, follow and search, unit control, --rpc units/*, the crash sweep
+========================================================================
+
+--- t1: the agent starts two background jobs and a dev server; the status line counts them; Ctrl-P opens the panel
+  (the demo adds a subagent thread in scope reviewer/, as the H8a fixture does: a unit with no pid)
+  ┌ screen: the transcript; the status line says 4 running
+   0│> start the build jobs and the dev server│
+   1││
+   2│● bash echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   3│  ⎿ Started job shell-job-1: echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   4│    … +1 lines│
+   5││
+   6│● bash echo 'job-b: watching src/ for changes'; sleep 300│
+   7│  ⎿ Started job shell-job-2: echo 'job-b: watching src/ for changes'; sleep 300│
+   8│    … +1 lines│
+   9││
+  10│● bash echo 'serving on 127.0.0.1:8765'; echo 'GET /health 200'; for i in 1 2 3 4 5 6 7 8 9 10 11 12; do echo "GET /sta…│
+  11│  ⎿ Started job shell-job-3: echo 'serving on 127.0.0.1:8765'; echo 'GET /health 200'; for i in 1 2 3 4 5 6 7 8 9 10 11…│
+  12│    … +1 lines│
+  13││
+  14│Started two jobs and the dev server.│
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│> Message, @file, /help│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-panel/                    4 running · 40 in · 20 out│
+status-line-text right: 4 running · 40 in · 20 out 
+state-units-running: 4
+  ┌ screen: Ctrl-P: the owner tree (shell/ = the agent's bash, reviewer/ = the subagent scope)
+   0│Units · 4 running · 4 total│
+   1│  UNIT                 STATE     KIND         PID     UP  CPU%    RSS  LAST│
+   2│  shell/│
+   3│>   shell-job-1        running   shell-job  <pid>   <up> <cpu>  <rss>  job-a: waiting for the build lock│
+   4│    shell-job-2        running   shell-job  <pid>   <up> <cpu>  <rss>  job-b: watching src/ for changes│
+   5│    shell-job-3        running   shell-job  <pid>   <up> <cpu>  <rss>  GET /api/missing 404│
+   6│  reviewer/│
+   7│    subagent-1         running   subagent       -   <up>     -      -  reviewer: 2 comments so far│
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│  ↑↓ select · Enter follow · s stop · r restart · i input · e close input · Esc close│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-panel/                    4 running · 40 in · 20 out│
+shell-job-1's PID / UP / CPU% / RSS hold values (masked above): (T T T T)
+subagent-1 (a thread): PID / CPU% / RSS: ("-" "-" "-")
+the selected row (shell-job-1) is one inverse run; shell-job-2's row has none: (T NIL)
+panel rows = unit-objects (id status kind owner):
+  | (("shell-job-1" "running" "shell-job" "shell")
+  |  ("shell-job-2" "running" "shell-job" "shell")
+  |  ("shell-job-3" "running" "shell-job" "shell")
+  |  ("subagent-1" "running" "subagent" "reviewer"))
+
+--- t2: select the dev server, Enter follows its log; a new line arrives; / search, n, N
+  ┌ screen: Enter: the log view, following
+   0│Log shell-job-3 (running) · following│
+   1│     2  serving on 127.0.0.1:8765│
+   2│     3  GET /health 200│
+   3│     4  GET /static/app.js?v=1 304│
+   4│     5  GET /static/app.js?v=2 304│
+   5│     6  GET /static/app.js?v=3 304│
+   6│     7  GET /static/app.js?v=4 304│
+   7│     8  GET /static/app.js?v=5 304│
+   8│     9  GET /static/app.js?v=6 304│
+   9│    10  GET /static/app.js?v=7 304│
+  10│    11  GET /static/app.js?v=8 304│
+  11│    12  GET /static/app.js?v=9 304│
+  12│    13  GET /static/app.js?v=10 304│
+  13│    14  GET /static/app.js?v=11 304│
+  14│    15  GET /static/app.js?v=12 304│
+  15│    16  GET /api/units 200│
+  16│    17  GET /api/missing 404│
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│  ↑↓ PgUp PgDn scroll · End follow · / search · n N next hit · s r i e · Esc back│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-panel/                    4 running · 40 in · 20 out│
+  ┌ screen: following: the server's new line shows without a key
+   0│Log shell-job-3 (running) · following│
+   1│     2  serving on 127.0.0.1:8765│
+   2│     3  GET /health 200│
+   3│     4  GET /static/app.js?v=1 304│
+   4│     5  GET /static/app.js?v=2 304│
+   5│     6  GET /static/app.js?v=3 304│
+   6│     7  GET /static/app.js?v=4 304│
+   7│     8  GET /static/app.js?v=5 304│
+   8│     9  GET /static/app.js?v=6 304│
+   9│    10  GET /static/app.js?v=7 304│
+  10│    11  GET /static/app.js?v=8 304│
+  11│    12  GET /static/app.js?v=9 304│
+  12│    13  GET /static/app.js?v=10 304│
+  13│    14  GET /static/app.js?v=11 304│
+  14│    15  GET /static/app.js?v=12 304│
+  15│    16  GET /api/units 200│
+  16│    17  GET /api/missing 404│
+  17│    18  GET /health 200 again│
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│  ↑↓ PgUp PgDn scroll · End follow · / search · n N next hit · s r i e · Esc back│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-panel/                    4 running · 40 in · 20 out│
+  ┌ screen: / health Enter: hit lines marked >, every occurrence of the term inverse
+   0│Log shell-job-3 (running) · lines 2-18 · search "health": 1 of 2│
+   1│     2  serving on 127.0.0.1:8765│
+   2│>    3  GET /health 200│
+   3│     4  GET /static/app.js?v=1 304│
+   4│     5  GET /static/app.js?v=2 304│
+   5│     6  GET /static/app.js?v=3 304│
+   6│     7  GET /static/app.js?v=4 304│
+   7│     8  GET /static/app.js?v=5 304│
+   8│     9  GET /static/app.js?v=6 304│
+   9│    10  GET /static/app.js?v=7 304│
+  10│    11  GET /static/app.js?v=8 304│
+  11│    12  GET /static/app.js?v=9 304│
+  12│    13  GET /static/app.js?v=10 304│
+  13│    14  GET /static/app.js?v=11 304│
+  14│    15  GET /static/app.js?v=12 304│
+  15│    16  GET /api/units 200│
+  16│    17  GET /api/missing 404│
+  17│>   18  GET /health 200 again│
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│  ↑↓ PgUp PgDn scroll · End follow · / search · n N next hit · s r i e · Esc back│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-panel/                    4 running · 40 in · 20 out│
+  row  2 > inverse runs: ("health")
+  row 17 > inverse runs: ("health")
+unit-panel-hits (one per 16-line block of the index): 2
+after n, title: Log shell-job-3 (running) · lines 2-18 · search "health": 2 of 2
+after N, title: Log shell-job-3 (running) · lines 2-18 · search "health": 1 of 2
+N again wraps to the last hit, title: Log shell-job-3 (running) · lines 2-18 · search "health": 2 of 2
+Esc clears the search, title: Log shell-job-3 (running) · lines 2-18
+Esc again: the list: :LIST
+Ctrl-P closes it; the transcript is back: T
+
+--- t3 default rules (unit_control asks)
+  ┌ screen: s: the confirm dialog (Yes selected)
+   0│Units · 2 running · 2 total│
+   1│  UNIT                 STATE     KIND         PID     UP  CPU%    RSS  LAST│
+   2│  shell/│
+   3│>   shell-job-1        running   shell-job  <pid>   <up>     -  <rss>  job-a: waiting for the build lock│
+   4│    shell-job-2        running   shell-job  <pid>   <up>     -  <rss>  job-b: watching src/ for changes│
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  20│┌─Unit control─────────────────────────────────────────────────────────────────────────────────────────────────────────┐│
+  21││ stop shell-job-1 (shell-job, running): /bin/sh -c echo 'job-a: fetching deps'; echo 'job-a: waiting for the build    ││
+  22││ lock'; sleep 300                                                                                                     ││
+  23││                                                                                                                      ││
+  24││ > 1. Yes                                                                                                             ││
+  25││   2. No                                                                                                              ││
+  26││                                                                                                                      ││
+  27││                                                                                                                      ││
+  28│└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-default/          2 running · 30 in · 15 out│
+  ┌ screen: Yes: stopped; the help row has unit_control's text
+   0│Units · 1 running · 2 total│
+   1│  UNIT                 STATE     KIND         PID     UP  CPU%    RSS  LAST│
+   2│  shell/│
+   3│>   shell-job-1        killed    shell-job  <pid>      -     -  <rss>  job-a: waiting for the build lock│
+   4│    shell-job-2        running   shell-job  <pid>   <up>     -  <rss>  job-b: watching src/ for changes│
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│Stopped shell-job-1: killed│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-default/          1 running · 30 in · 15 out│
+shell-job-1 state: :KILLED
+  ┌ screen: the agent's unit_control asks: the approval dialog
+   0│> start two jobs│
+   1││
+   2│● bash echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   3│  ⎿ Started job shell-job-1: echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   4│    … +1 lines│
+   5││
+   6│● bash echo 'job-b: watching src/ for changes'; sleep 300│
+   7│  ⎿ Started job shell-job-2: echo 'job-b: watching src/ for changes'; sleep 300│
+   8│    … +1 lines│
+   9││
+  10│Started two jobs.│
+  11││
+  12│unit_control: Stopped shell-job-1: killed│
+  13││
+  14│> stop shell-job-2 too│
+  15││
+  16│● unit_control {"unit":"shell-job-2","action":"stop"}│
+  17││
+  18││
+  19││
+  20│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  21│┌─Permission───────────────────────────────────────────────────────────────────────────────────────────────────────────┐│
+  22││ unit_control {"unit":"shell-job-2","action":"stop"}                                                                  ││
+  23││                                                                                                                      ││
+  24││ > 1. Allow once                                                                                                      ││
+  25││   2. Always allow                                                                                                    ││
+  26││   3. Reject                                                                                                          ││
+  27││   4. Reject all                                                                                                      ││
+  28│└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-default/          1 running · 40 in · 20 out│
+  ┌ screen: the transcript after the agent's call
+   0│> start two jobs│
+   1││
+   2│● bash echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   3│  ⎿ Started job shell-job-1: echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   4│    … +1 lines│
+   5││
+   6│● bash echo 'job-b: watching src/ for changes'; sleep 300│
+   7│  ⎿ Started job shell-job-2: echo 'job-b: watching src/ for changes'; sleep 300│
+   8│    … +1 lines│
+   9││
+  10│Started two jobs.│
+  11││
+  12│unit_control: Stopped shell-job-1: killed│
+  13││
+  14│> stop shell-job-2 too│
+  15││
+  16│● unit_control {"unit":"shell-job-2","action":"stop"}│
+  17│  ⎿ Stopped shell-job-2: killed│
+  18││
+  19│Done.│
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│> Message, @file, /help│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-default/                      50 in · 25 out│
+the tool result the model got: [tool_result] Stopped shell-job-2: killed
+shell-job-2 state: :KILLED
+(panel agent): (:ASK :ASK)
+
+--- t3 allow rule: --allowed-tools 'unit_control(stop:shell-job-*)'
+  ┌ screen: s: stopped at once, no dialog
+   0│Units · 1 running · 2 total│
+   1│  UNIT                 STATE     KIND         PID     UP  CPU%    RSS  LAST│
+   2│  shell/│
+   3│>   shell-job-1        killed    shell-job  <pid>      -     -  <rss>  job-a: waiting for the build lock│
+   4│    shell-job-2        running   shell-job  <pid>   <up>     -  <rss>  job-b: watching src/ for changes│
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│Stopped shell-job-1: killed│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-allow/            1 running · 30 in · 15 out│
+shell-job-1 state: :KILLED
+  ┌ screen: the transcript after the agent's call
+   0│> start two jobs│
+   1││
+   2│● bash echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   3│  ⎿ Started job shell-job-1: echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   4│    … +1 lines│
+   5││
+   6│● bash echo 'job-b: watching src/ for changes'; sleep 300│
+   7│  ⎿ Started job shell-job-2: echo 'job-b: watching src/ for changes'; sleep 300│
+   8│    … +1 lines│
+   9││
+  10│Started two jobs.│
+  11││
+  12│unit_control: Stopped shell-job-1: killed│
+  13││
+  14│> stop shell-job-2 too│
+  15││
+  16│● unit_control {"unit":"shell-job-2","action":"stop"}│
+  17│  ⎿ Stopped shell-job-2: killed│
+  18││
+  19│Done.│
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│> Message, @file, /help│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-allow/                        50 in · 25 out│
+the tool result the model got: [tool_result] Stopped shell-job-2: killed
+shell-job-2 state: :KILLED
+(panel agent): (:ALLOW :ALLOW)
+
+--- t3 deny rule: --disallowed-tools 'unit_control(stop:shell-job-*)'
+  ┌ screen: s: refused, the rule named on the help row; no dialog
+   0│Units · 2 running · 2 total│
+   1│  UNIT                 STATE     KIND         PID     UP  CPU%    RSS  LAST│
+   2│  shell/│
+   3│>   shell-job-1        running   shell-job  <pid>   <up>     -  <rss>  job-a: waiting for the build lock│
+   4│    shell-job-2        running   shell-job  <pid>   <up>     -  <rss>  job-b: watching src/ for changes│
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│stop shell-job-1 denied by unit_control(stop:shell-job-*)│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-deny/             2 running · 30 in · 15 out│
+shell-job-1 state: :RUNNING
+  ┌ screen: the transcript after the agent's call
+   0│> start two jobs│
+   1││
+   2│● bash echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   3│  ⎿ Started job shell-job-1: echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   4│    … +1 lines│
+   5││
+   6│● bash echo 'job-b: watching src/ for changes'; sleep 300│
+   7│  ⎿ Started job shell-job-2: echo 'job-b: watching src/ for changes'; sleep 300│
+   8│    … +1 lines│
+   9││
+  10│Started two jobs.│
+  11││
+  12│error: stop shell-job-1 denied by unit_control(stop:shell-job-*)│
+  13││
+  14│> stop shell-job-2 too│
+  15││
+  16│● unit_control {"unit":"shell-job-2","action":"stop"}│
+  17│  ⎿ Tool unit_control was not run: permission denied for stop:shell-job-2│
+  18│    … +1 lines│
+  19││
+  20│Done.│
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│> Message, @file, /help│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-control-deny/             2 running · 50 in · 25 out│
+the tool result the model got:
+  | [tool_result error] Tool unit_control was not run: permission denied for stop:shell-job-2
+  | Do not repeat the same call. Continue another way, or ask the user for permission.
+shell-job-2 state: :RUNNING
+(panel agent): (:DENY :DENY)
+
+--- t3: permission parity, the panel's s and the agent's unit_control under the same rules
+  default rules (unit_control asks)      panel ASK    agent ASK    same
+  allow unit_control(stop:shell-job-*)   panel ALLOW  agent ALLOW  same
+  deny unit_control(stop:shell-job-*)    panel DENY   agent DENY   same
+
+--- t4: a background build fails: the notice in the transcript, then the panel and its log
+  ┌ screen: the failure notice; the status line count dropped to 1
+   0│> run the build in the background│
+   1││
+   2│● bash echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   3│  ⎿ Started job shell-job-1: echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300│
+   4│    … +1 lines│
+   5││
+   6│● bash echo 'build: compiling greet.c'; sleep 1; echo 'greet.c:3: error: undefined symbol greet' >&2; exit 3│
+   7│  ⎿ Started job shell-job-2: echo 'build: compiling greet.c'; sleep 1; echo 'greet.c:3: error: undefined symbol greet' …│
+   8│    … +1 lines│
+   9││
+  10│Started the watcher and the build.│
+  11││
+  12│unit shell-job-2 (shell-job) failed with exit code 3; /ps to inspect│
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│> Message, @file, /help│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-fail/                     1 running · 30 in · 15 out│
+  ┌ screen: /ps: shell-job-2 failed 3, the stderr line as its last line
+   0│Units · 1 running · 2 total│
+   1│  UNIT                 STATE     KIND         PID     UP  CPU%    RSS  LAST│
+   2│  shell/│
+   3│    shell-job-1        running   shell-job  <pid>   <up>     -  <rss>  job-a: waiting for the build lock│
+   4│>   shell-job-2        failed 3  shell-job  <pid>      -     -      -  greet.c:3: error: undefined symbol greet│
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│  ↑↓ select · Enter follow · s stop · r restart · i input · e close input · Esc close│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-fail/                     1 running · 30 in · 15 out│
+  ┌ screen: its log
+   0│Log shell-job-2 (failed 3) · following│
+   1│     2  build: compiling greet.c│
+   2│     3  greet.c:3: error: undefined symbol greet│
+   3││
+   4││
+   5││
+   6││
+   7││
+   8││
+   9││
+  10││
+  11││
+  12││
+  13││
+  14││
+  15││
+  16││
+  17││
+  18││
+  19││
+  20││
+  21││
+  22││
+  23││
+  24││
+  25││
+  26││
+  27│────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+  28│  ↑↓ PgUp PgDn scroll · End follow · / search · n N next hit · s r i e · Esc back│
+  29│ tui-mock · default · <tmp>/…/T/<run>/units-fail/                     1 running · 30 in · 15 out│
+the stderr line's foreground (palette colour 1, red): #S(TERMINAL-PROTOCOL:RGB :R 204 :G 102 :B 102)
+
+--- t5: --rpc units/* (serve-rpc on in-memory pipes; bash allowed, unit_control(restart:*) denied)
+initialize: the units/* methods:
+  | ("units/list" "units/subscribe" "units/unsubscribe" "units/read" "units/search"
+  |  "units/control")
+initialize: "unit" is an event type: T
+turn result: Started two units; the check failed.
+
+--- t5a: units/list (the panel's rows: unit-objects)
+  shell-job-1  shell-job running   shell  pid <pid>  last "job-a: waiting for the build lock"
+  shell-job-2  shell-job running   shell  pid <pid>  last "GET /api/missing 404"
+  shell-job-3  shell-job failed 3  shell  pid <pid>  last NIL
+seq, running: (7 2)
+keys of one unit:
+  | ("id" "kind" "state" "status" "owner" "owner_path" "depth" "labels" "command"
+  |  "pid" "started" "uptime_s" "exit_code" "signal" "restarts" "lines" "last_line"
+  |  "cpu_percent" "cpu_time_s" "rss_bytes")
+units/list state failed: ("shell-job-3")
+units/list resources true: shell-job-1 rss_bytes integer, cpu_time_s number: (T T)
+
+--- t5b: units/subscribe since 0: the replay, then live events, each seq once
+units/subscribe → subscription, seq, complete: ("sub-1" 7 T)
+  replay seq   1 state shell-job-1  null → starting
+  replay seq   2 state shell-job-1  starting → running
+  replay seq   3 state shell-job-2  null → starting
+  replay seq   4 state shell-job-2  starting → running
+  replay seq   5 state shell-job-3  null → starting
+  replay seq   6 state shell-job-3  starting → running
+  replay seq   7 state shell-job-3  running → failed {"exit_code":3,"signal":false}
+
+--- t5c: units/control: an ask is -32017, the client confirms with confirmed: true
+units/control stop shell-job-1: -32017 stop shell-job-1 needs confirmation: call again with confirmed true {"condition":"unit-control-needs-confirmation","unit":"shell-job-1","action":"stop","resource":"stop:shell-job-1"}
+shell-job-1 after the -32017: running
+units/control stop shell-job-1 confirmed: true → result, unit.status: ("Stopped shell-job-1: killed" "killed")
+  live   seq   8 state shell-job-1  running → killed {"exit_code":143,"signal":"term"}
+seqs received: (1 2 3 4 5 6 7 8)
+1..N with no gap and no duplicate: T
+
+--- t5d: units/read and units/search
+units/read shell-job-2 limit 4 → status, next_line, last_line, ended: ("running" 6 17 NIL)
+    2 stdout serving on 127.0.0.1:8765
+    3 stdout GET /health 200
+    4 stdout GET /static/app.js?v=1 304
+    5 stdout GET /static/app.js?v=2 304
+units/read tail 1: ("GET /api/missing 404")
+units/search health → total: 1
+  shell-job-2:1:3 line 3 "GET /health 200"
+units/search "" kinds [exit] → total (end records of finished units): 2
+
+--- t5e: errors carry the condition name in data
+units/read shell-job-9: -32015 no unit "shell-job-9" in this session: see units/list {"condition":"unit-not-found","unit":"shell-job-9"}
+units/control restart shell-job-2 confirmed (deny rule): -32016 restart shell-job-2 denied by unit_control(restart:*) {"condition":"unit-control-denied","unit":"shell-job-2","action":"restart","rule":"unit_control(restart:*)"}
+units/control input to shell-job-3 (finished): -32019 shell-job-3 is not running (failed 3); restart it first with action restart {"condition":"unit-control-failed","unit":"shell-job-3","action":"input"}
+units/unsubscribe sub-1: {"unsubscribed":true}
+units/unsubscribe sub-1 again: -32018 no units subscription "sub-1" in this session {"condition":"subscription-not-found","subscription":"sub-1"}
+units/list state zzz: -32602 state must be live, finished or one of starting, running, exited, killed, failed: not zzz {"condition":"code-usage-error"}
+units/control kill: -32602 units/control: action must be one of "stop", "restart", "input", "close_input"
+
+--- t5f: the wire (units/* only; JSON masked)
+  client → server (19 units/* requests):
+    {"jsonrpc":"2.0","method":"units/read","params":{"session_id":"<session_id>","unit":"shell-job-2","tail":1},"id":4}
+    {"jsonrpc":"2.0","method":"units/list","params":{"session_id":"<session_id>"},"id":5}
+    {"jsonrpc":"2.0","method":"units/list","params":{"session_id":"<session_id>","state":"failed"},"id":6}
+    {"jsonrpc":"2.0","method":"units/list","params":{"session_id":"<session_id>","resources":true},"id":7}
+    {"jsonrpc":"2.0","method":"units/subscribe","params":{"session_id":"<session_id>","since":0},"id":8}
+    {"jsonrpc":"2.0","method":"units/control","params":{"session_id":"<session_id>","unit":"shell-job-1","action":"stop"},"id":9}
+    {"jsonrpc":"2.0","method":"units/list","params":{"session_id":"<session_id>"},"id":10}
+    {"jsonrpc":"2.0","method":"units/control","params":{"session_id":"<session_id>","unit":"shell-job-1","action":"stop","confirmed":true},"id":11}
+    {"jsonrpc":"2.0","method":"units/read","params":{"session_id":"<session_id>","unit":"shell-job-2","limit":4},"id":12}
+    {"jsonrpc":"2.0","method":"units/read","params":{"session_id":"<session_id>","unit":"shell-job-2","tail":1},"id":13}
+    {"jsonrpc":"2.0","method":"units/search","params":{"session_id":"<session_id>","query":"health"},"id":14}
+    {"jsonrpc":"2.0","method":"units/search","params":{"session_id":"<session_id>","query":"","kinds":["exit"]},"id":15}
+    {"jsonrpc":"2.0","method":"units/read","params":{"session_id":"<session_id>","unit":"shell-job-9"},"id":16}
+    {"jsonrpc":"2.0","method":"units/control","params":{"session_id":"<session_id>","unit":"shell-job-2","action":"restart","confirmed":true},"id":17}
+    {"jsonrpc":"2.0","method":"units/control","params":{"session_id":"<session_id>","unit":"shell-job-3","action":"input","input":"x","confirmed":true},"id":18}
+    {"jsonrpc":"2.0","method":"units/unsubscribe","params":{"session_id":"<session_id>","subscription":"sub-1"},"id":19}
+    {"jsonrpc":"2.0","method":"units/unsubscribe","params":{"session_id":"<session_id>","subscription":"sub-1"},"id":20}
+    {"jsonrpc":"2.0","method":"units/list","params":{"session_id":"<session_id>","state":"zzz"},"id":21}
+    {"jsonrpc":"2.0","method":"units/control","params":{"session_id":"<session_id>","unit":"shell-job-2","action":"kill"},"id":22}
+  server → client (the responses to those, and the first 3 unit notifications):
+    {"jsonrpc":"2.0","result":{"unit":"shell-job-2","status":"running","records":[{"line":17,"time":"<time>","stream":"stdout","text":"GET /api/missing 404","continued":false}],"gaps":[],"next_line":18,"last_line":17,"ended":false,"memory":null},"id":4}
+    {"jsonrpc":"2.0","result":{"units":[{"id":"shell-job-1","kind":"shell-job","state":"running","status":"running","owner":"shell","owner_path":["shell"],"depth":1,"labels":{"tool":"bash"},"command":["/bin/sh","-c","echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300"],"pid… [1565 chars]
+    {"jsonrpc":"2.0","result":{"units":[{"id":"shell-job-3","kind":"shell-job","state":"failed","status":"failed 3","owner":"shell","owner_path":["shell"],"depth":1,"labels":{"tool":"bash"},"command":["/bin/sh","-c","exit 3"],"pid":"<pid>","started":"<started>","uptime_s":null,"exit_code":3,"signal":nul… [426 chars]
+    {"jsonrpc":"2.0","result":{"units":[{"id":"shell-job-1","kind":"shell-job","state":"running","status":"running","owner":"shell","owner_path":["shell"],"depth":1,"labels":{"tool":"bash"},"command":["/bin/sh","-c","echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300"],"pid… [1603 chars]
+    {"jsonrpc":"2.0","result":{"subscription":"sub-1","seq":7,"complete":true},"id":8}
+    {"jsonrpc":"2.0","method":"event","params":{"type":"unit","session_id":"<session_id>","subscription":"sub-1","seq":1,"time":"<time>","unit_id":"shell-job-1","kind":"shell-job","event":"state","from":null,"to":"starting","detail":{}}}
+    {"jsonrpc":"2.0","method":"event","params":{"type":"unit","session_id":"<session_id>","subscription":"sub-1","seq":2,"time":"<time>","unit_id":"shell-job-1","kind":"shell-job","event":"state","from":"starting","to":"running","detail":{}}}
+    {"jsonrpc":"2.0","method":"event","params":{"type":"unit","session_id":"<session_id>","subscription":"sub-1","seq":3,"time":"<time>","unit_id":"shell-job-2","kind":"shell-job","event":"state","from":null,"to":"starting","detail":{}}}
+    {"jsonrpc":"2.0","error":{"code":-32017,"message":"stop shell-job-1 needs confirmation: call again with confirmed true","data":{"condition":"unit-control-needs-confirmation","unit":"shell-job-1","action":"stop","resource":"stop:shell-job-1"}},"id":9}
+    {"jsonrpc":"2.0","result":{"units":[{"id":"shell-job-1","kind":"shell-job","state":"running","status":"running","owner":"shell","owner_path":["shell"],"depth":1,"labels":{"tool":"bash"},"command":["/bin/sh","-c","echo 'job-a: fetching deps'; echo 'job-a: waiting for the build lock'; sleep 300"],"pid… [1566 chars]
+    {"jsonrpc":"2.0","result":{"result":"Stopped shell-job-1: killed","unit":{"id":"shell-job-1","kind":"shell-job","state":"killed","status":"killed","owner":"shell","owner_path":["shell"],"depth":1,"labels":{"tool":"bash"},"command":["/bin/sh","-c","echo 'job-a: fetching deps'; echo 'job-a: waiting fo… [550 chars]
+    {"jsonrpc":"2.0","result":{"unit":"shell-job-2","status":"running","records":[{"line":2,"time":"<time>","stream":"stdout","text":"serving on 127.0.0.1:8765","continued":false},{"line":3,"time":"<time>","stream":"stdout","text":"GET /health 200","continued":false},{"line":4,"time":"<time>","stream":"… [539 chars]
+    {"jsonrpc":"2.0","result":{"unit":"shell-job-2","status":"running","records":[{"line":17,"time":"<time>","stream":"stdout","text":"GET /api/missing 404","continued":false}],"gaps":[],"next_line":18,"last_line":17,"ended":false,"memory":null},"id":13}
+    {"jsonrpc":"2.0","result":{"hits":[{"ref":"shell-job-2:1:3","unit":"shell-job-2","segment":1,"line":3,"stream":"stdout","time":"<time>","kinds":[],"score":0.5887464889909306,"text":"GET /health 200","extent":null,"excerpt":[{"line":2,"time":"<time>","stream":"stdout","text":"serving on 127.0.0.1:876… [640 chars]
+    {"jsonrpc":"2.0","result":{"hits":[{"ref":"shell-job-1:1:4","unit":"shell-job-1","segment":1,"line":4,"stream":null,"time":"<time>","kinds":["exit"],"score":null,"text":"[end of output]","extent":null,"excerpt":[{"line":2,"time":"<time>","stream":"stdout","text":"job-a: fetching deps","continued":fa… [633 chars]
+    {"jsonrpc":"2.0","error":{"code":-32015,"message":"no unit \"shell-job-9\" in this session: see units/list","data":{"condition":"unit-not-found","unit":"shell-job-9"}},"id":16}
+    {"jsonrpc":"2.0","error":{"code":-32016,"message":"restart shell-job-2 denied by unit_control(restart:*)","data":{"condition":"unit-control-denied","unit":"shell-job-2","action":"restart","rule":"unit_control(restart:*)"}},"id":17}
+    {"jsonrpc":"2.0","error":{"code":-32019,"message":"shell-job-3 is not running (failed 3); restart it first with action restart","data":{"condition":"unit-control-failed","unit":"shell-job-3","action":"input"}},"id":18}
+    {"jsonrpc":"2.0","result":{"unsubscribed":true},"id":19}
+    {"jsonrpc":"2.0","error":{"code":-32018,"message":"no units subscription \"sub-1\" in this session","data":{"condition":"subscription-not-found","subscription":"sub-1"}},"id":20}
+    {"jsonrpc":"2.0","error":{"code":-32602,"message":"state must be live, finished or one of starting, running, exited, killed, failed: not zzz","data":{"condition":"code-usage-error"}},"id":21}
+    {"jsonrpc":"2.0","error":{"code":-32602,"message":"units/control: action must be one of \"stop\", \"restart\", \"input\", \"close_input\""},"id":22}
+    … 8 unit notifications in all
+serve-rpc returned (EOF): 0
+
+--- t6: a cl-stack-code --rpc child starts two jobs and is SIGKILLed; the next session in the project sweeps them
+  project .cl-stack-code/settings.json: {"permissions": {"allow": ["bash"]}}
+
+--- t6a: before the crash
+  shell-job-1  shell-job running   shell  pid <pid>  last "job-a: waiting for the build lock"
+  shell-job-2  shell-job running   shell  pid <pid>  last "job-b: watching src/ for changes"
+unit files in <data>/units/<project key>/units/ (one per process unit): ("<supervisor>--shell-job-1.unit" "<supervisor>--shell-job-2.unit")
+a unit file's keys:
+  | (:FORMAT :SUPERVISOR-ID :SUPERVISOR-PID :SUPERVISOR-OS-START :UNIT-ID :KIND
+  |  :PID :PGID :OS-START :COMMAND :CWD :INSPECTOR)
+the unit file's supervisor pid is the child, not this image: T
+units alive: (("shell-job-1" T) ("shell-job-2" T))
+
+--- t6b: SIGKILL the child (taskkill /F on Windows): no exit hook, no shutdown
+child alive: NIL
+units alive (orphans): (("shell-job-1" T) ("shell-job-2" T))
+unit files left behind: 2
+
+--- t6c: the next start in the same project: a new SDK session (make-code-supervisor sweeps first)
+  sweep: shell-job-1  :KILLED  killed 2 pids (the sh and its sleep)
+  sweep: shell-job-2  :KILLED  killed 2 pids (the sh and its sleep)
+the new session's own units: NIL
+
+--- t6d: after the sweep
+units alive: (("shell-job-1" NIL) ("shell-job-2" NIL))
+unit files left: 0
+
+--- t: steps that reached their last screen or check
+  t1-t2  yes
+  t3     yes
+  t4     yes
+  t5     yes
+  t6     yes
+
+========================================================================
 == Summary
 ========================================================================
-model that ran: LM Studio unsloth/Qwen3.8-Flash-Next-GGUF
-demos run: demo-text, demo-stream-json, demo-headless-denial, demo-settings, demo-instructions, demo-interactive, demo-plan-headless, demo-plan-interactive, demo-plan-real-model, demo-checkpoints, demo-checkpoints-plan, demo-checkpoints-retention, demo-checkpoints-interactive, demo-image-headless, demo-image-interactive, demo-image-observe, demo-sdk, demo-rpc-wire, demo-rpc-process
+model that ran: LM Studio qwen3.5-2b
+demos run: demo-text, demo-stream-json, demo-headless-denial, demo-settings, demo-instructions, demo-interactive, demo-plan-headless, demo-plan-interactive, demo-plan-real-model, demo-checkpoints, demo-checkpoints-plan, demo-checkpoints-retention, demo-checkpoints-interactive, demo-image-headless, demo-image-interactive, demo-image-observe, demo-sdk, demo-rpc-wire, demo-rpc-process, demo-units
 demos that raised an error: none
