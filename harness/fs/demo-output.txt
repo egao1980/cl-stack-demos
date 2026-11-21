@@ -1,27 +1,5 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable names
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/grovel-cache/grovel.cffi-tmpAAURSO2.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/ffi-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.011
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/backend-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.057
-; compiling file "~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit.lisp" (written 18 NOV 2026 02:47:22 PM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64~/.cl-repository-client/event-backend-libuv-0.2.2/src/submit-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.002
-; cl-repo: ensure deps for local harness-demos-fs → process-backend-uiop
-; cl-repo: found process-backend-uiop:0.3.1 in https://ghcr.io (CL-REPO)
-Pulling egao1980/cl-systems/process-backend-uiop:0.3.1 from https://ghcr.io...
-  Recorded file manifest (12 files)
-Installed process-backend-uiop 0.3.1 to ~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/
-This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
 SBCL is free software, provided as is, with absolutely no warranty.
@@ -29,132 +7,6 @@ It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
 WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-; compiling file "~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/package.lisp" (written 20 NOV 2026 08:40:35 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/package-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/backend.lisp" (written 20 NOV 2026 08:40:35 AM):
-
-; file: ~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/backend.lisp
-; in: DEFUN %CHECK-GROUP-REQUEST
-;     (PROCESS-BACKEND-UIOP::%GROUP-ERROR PROCESS-BACKEND-UIOP::COMMAND
-;      (FORMAT NIL ":process-group t is not supported by this backend on ~a"
-;              (LISP-IMPLEMENTATION-TYPE)))
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/process-backend-uiop/0.3.1/src/backend-tmpAAURSO1.fasl
-; compilation finished in 0:00:00.038
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/package.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/package-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/conditions.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/conditions-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/git.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/git-tmpJAIDFZTC.fasl
-; compilation finished in 0:00:00.049
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/parse.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/parse-tmp8V3J6PE9.fasl
-; compilation finished in 0:00:00.013
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/store.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/store-tmp9V47YWQF.fasl
-; compilation finished in 0:00:00.087
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/working-copy.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/working-copy-tmp9BN22RMA.fasl
-; compilation finished in 0:00:00.010
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/filesystem.lisp" (written 20 NOV 2026 08:26:23 AM):
-
-; file: ~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/filesystem.lisp
-; in: DEFUN %FS-LOAD
-;     'NIL
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-git/0.2.0/src/filesystem-tmp1CXFJSK9.fasl
-; compilation finished in 0:00:00.050
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/package.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/package-tmpX4BRKI0R.fasl
-; compilation finished in 0:00:00.000
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/conditions.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/conditions-tmpQ371UGST.fasl
-; compilation finished in 0:00:00.001
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/jj.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/jj-tmp2OWI3Q7U.fasl
-; compilation finished in 0:00:00.026
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/parse.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/parse-tmp9KKTJMYV.fasl
-; compilation finished in 0:00:00.009
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/store.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; file: ~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/store.lisp
-; in: DEFUN %UTF8-DECODE-STRICT
-;     (RETURN NIL)
-; 
-; note: deleting unreachable code
-
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/store-tmpJU0JWO19.fasl
-; compilation finished in 0:00:00.145
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/working-copy.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/working-copy-tmpZX2WN8N4.fasl
-; compilation finished in 0:00:00.010
-; compiling file "~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/filesystem.lisp" (written 20 NOV 2026 08:26:45 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/revision-backend-jj/0.2.0/src/filesystem-tmpOU81XRV0.fasl
-; compilation finished in 0:00:00.054
-; compiling file "<repo>/harness/fs/src/package.lisp" (written 20 NOV 2026 08:22:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/package-tmpY2ML9CFA.fasl
-; compilation finished in 0:00:00.000
-; compiling file "<repo>/harness/fs/src/support.lisp" (written 20 NOV 2026 08:22:23 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/support-tmpX2JYJDQE.fasl
-; compilation finished in 0:00:00.007
-; compiling file "<repo>/harness/fs/src/pathlib-demo.lisp" (written 20 NOV 2026 08:31:33 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/pathlib-demo-tmpOPCILR65.fasl
-; compilation finished in 0:00:00.007
-; compiling file "<repo>/harness/fs/src/process-demo.lisp" (written 20 NOV 2026 08:40:26 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/process-demo-tmpRV9F8A9A.fasl
-; compilation finished in 0:00:00.005
-; compiling file "<repo>/harness/fs/src/git-demo.lisp" (written 20 NOV 2026 08:30:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/git-demo-tmpK2ZAJT4I.fasl
-; compilation finished in 0:00:00.009
-; compiling file "<repo>/harness/fs/src/jj-demo.lisp" (written 20 NOV 2026 08:30:50 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/jj-demo-tmpUX5S4ADN.fasl
-; compilation finished in 0:00:00.007
-; compiling file "<repo>/harness/fs/src/pathlib-06-demo.lisp" (written 20 NOV 2026 08:31:33 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/pathlib-06-demo-tmp10401X32.fasl
-; compilation finished in 0:00:00.005
-; compiling file "<repo>/harness/fs/src/tree-kill-demo.lisp" (written 20 NOV 2026 08:40:26 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/tree-kill-demo-tmpZ7CBRM0G.fasl
-; compilation finished in 0:00:00.004
-; compiling file "<repo>/harness/fs/src/run.lisp" (written 20 NOV 2026 08:30:41 AM):
-
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<repo>/harness/fs/src/run-tmp9OZEQ0G2.fasl
-; compilation finished in 0:00:00.005
-; 
-; compilation unit finished
-;   printed 3 notes
 
 ========================================================================
 == Demo 1: cl-stack-pathlib 0.6.1 (H2a reads/writes/ignore/grep, R4a snapshots/areas)
@@ -291,7 +143,7 @@ line 2 from /bin/sh
 ========================================================================
 == Demo 2: process-protocol 0.4.0 / process-backend-uiop 0.3.1
 ========================================================================
-   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005EBCFC3}>
+   *process-backend*: #<PROCESS-BACKEND-UIOP:UIOP-PROCESS-BACKEND {8005FD0923}>
 
 -- binary stdout captured as exact octets: printf '\0\377\376'
    exit-code: 0
@@ -337,13 +189,13 @@ line 2 from /bin/sh
    restarts offered: (CONTINUE)
    child alive while signalled: T
    → CONTINUE
-   signalled PROCESS-TIMEOUT-ERROR after 2.1s: process timed out after 1 s: sleep 30
+   signalled PROCESS-TIMEOUT-ERROR after 2.0s: process timed out after 1 s: sleep 30
    restarts offered: (CONTINUE)
    child alive while signalled: T
    unwound with: PROCESS-PROTOCOL:PROCESS-TIMEOUT-ERROR
      timeout slot: 1
      command slot: ("sleep" "30")
-   elapsed seconds: 2.1
+   elapsed seconds: 2.0
    child alive-p after unwinding: NIL
    child exit-code: 137
 
@@ -359,7 +211,7 @@ line 2 from /bin/sh
    built repo with git CLI: (:C1 "f81f7f06bc60" :C2 "dbb632cf794c" :C3 "aa4fac9b0d34" :F1 "cc05228f3efa")
 
 -- make-git-store
-   git-version: "2.54.0"
+   git-version: "2.56.0"
    git-store-path: "<tmp>"
    git-store-bare-p: NIL
    content-primary: :STATE
@@ -462,8 +314,8 @@ D tree:/README.md
 R tree:/bin/run.sh tree:/bin/start.sh
 M tree:/src/app.lisp
 A tree:/notes/todo.txt
-   captured 2e7d342d877a "agent checkpoint" parents=("a88a07a10047") recorded=1795164044 valid=1795164044
-   refs/agent/checkpoint: "2e7d342d877a"
+   captured 28c4d58a2f57 "agent checkpoint" parents=("a88a07a10047") recorded=1795253292 valid=1795253292
+   refs/agent/checkpoint: "28c4d58a2f57"
    files in capture: "bin/start.sh
 notes/todo.txt
 src/app.lisp
@@ -508,51 +360,52 @@ src/app.lisp
 ========================================================================
 == Demo 4: revision-backend-jj 0.2.0
 ========================================================================
-   built repo with jj CLI: (:BASE "spyqswymxymv" :SECOND "xlxpwqkokwon" :LEFT "lqpqllkylwtu" :RIGHT
-                            "toyuowpxtwvk" :MERGE "wzunnmxqsolm")
+   built repo with jj CLI: (:BASE "urkmxvzovvyl" :SECOND "kkwrskuvuuww" :LEFT "ttxozlxxqtyy" :RIGHT
+                            "quwsywwolnrr" :MERGE "vxnrxwrpvlwu")
 
 -- make-jj-store
    jj-version: "0.47.1"
    jj-store-workspace: "default"
    jj-store-colocated-p: T
    jj-capabilities: (:PRIMARY :STATE :MERGES T :CHILDREN-INDEX T :VALID-TIME T :REF-CAS NIL :ATOMIC-MULTI-REF
-                     NIL :GC NIL :SIGNED NIL :TRANSACTIONAL-APPLY NIL :PROJECTION NIL :CONFLICTED-REVISIONS T)
+                     NIL :GC NIL :SIGNED NIL :TRANSACTIONAL-APPLY NIL :PROJECTION NIL :CONFLICTED-REVISIONS T
+                     :TAG-REWRITE NIL)
 
 -- revisions: change ids (revision-id) vs commit ids (provenance :commit-id)
-     main: change spyqswymxymv commit 9ce590ba9246 "base" parents=NIL recorded=1700000000
-     main: change xlxpwqkokwon commit a06eb5ce0c53 "second" parents=("spyqswymxymv") recorded=1700000100
-   jj log (CLI) for comparison: "xlxpwqkokwon a06eb5ce0c53 second
-spyqswymxymv 9ce590ba9246 base"
+     main: change urkmxvzovvyl commit 47dbfe1813db "base" parents=NIL recorded=1700000000
+     main: change kkwrskuvuuww commit 7b566291239b "second" parents=("urkmxvzovvyl") recorded=1700000100
+   jj log (CLI) for comparison: "kkwrskuvuuww 7b566291239b second
+urkmxvzovvyl 47dbfe1813db base"
 
 -- commit-revision from a tree value onto main (fixed clock)
-   new revision change rpqulusrxmsu commit 0e2394bfcbfd "third: from a tree value" parents=("xlxpwqkokwon") recorded=1700000300
-   provenance: (:COMMIT-ID "0e2394bfcbfd18ab7003b1641710922fa96d5e87" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
+   new revision change lyszmstppxuy commit 10e5cf75e749 "third: from a tree value" parents=("kkwrskuvuuww") recorded=1700000300
+   provenance: (:COMMIT-ID "10e5cf75e749b108ba4fc0adcb89634013040427" :AUTHOR-NAME "Demo User" :AUTHOR-EMAIL
                 "demo@example.invalid" :COMMITTER-NAME "Demo User" :COMMITTER-EMAIL "demo@example.invalid"
                 :CONFLICT NIL :EMPTY NIL)
 
 -- refs: bookmark + tag, list-refs
-   MOVABLE  main → rpqulusrxmsu
-   TAG      v1 → spyqswymxymv
+   MOVABLE  main → lyszmstppxuy
+   TAG      v1 → urkmxvzovvyl
    merge-base left right: "base"
    heads: ("" "merge left+right (conflict left in)" "third: from a tree value")
 
 -- rewrite a mutable change with jj describe: same change id, new commit id
-   before change xlxpwqkokwon commit a06eb5ce0c53 "second" parents=("spyqswymxymv") recorded=1700000100
-   after  change xlxpwqkokwon commit 8474c906c0dd "second (reworded)" parents=("spyqswymxymv") recorded=1700000400
+   before change kkwrskuvuuww commit 7b566291239b "second" parents=("urkmxvzovvyl") recorded=1700000100
+   after  change kkwrskuvuuww commit 247d6d70d4b6 "second (reworded)" parents=("urkmxvzovvyl") recorded=1700000400
    same change id: T
    commit id changed: T
    old commit id still resolves (hidden commit): "second"
 
 -- operation log and rev-as-of :recorded
-   op a58d0e0b3913 end 1700000405000 "describe commit a06eb5ce0c530fa2131c3ca8b4a85a77bc7b7ee1"
-   op 227d6b29a49e end 1795164048008 "set tag v1 to commit 9ce590ba9246b011d2dbda4ba7eae4826fe35755"
-   op 33f431e3fc38 end 1795164047699 "point bookmark main to commit 0e2394bfcbfd18ab7003b1641710922fa96d5e87"
-   op 7706881b3528 end 1795164047475 "forget workspace rbjj-g58s02fatskq"
-   op bb6638c5c65a end 1795164047353 "commit 803d226f8362e2ba654d8f61e79a242cb618e58d"
-   op b79c996c8662 end 1795164047315 "snapshot working copy"
-   op before describe: "227d6b29a49e"
+   op 86929bc46fe4 end 1700000405000 "describe commit 7b566291239b715516df29fe8797b0ba9a446672"
+   op fd7389b179de end 1795253294974 "set tag v1 to commit 47dbfe1813db884ea22c6305251f7583c7c59e1d"
+   op 570c0c0572ed end 1795253294693 "point bookmark main to commit 10e5cf75e749b108ba4fc0adcb89634013040427"
+   op 43e8e1614c48 end 1795253294496 "forget workspace rbjj-9cyeajszs37i"
+   op b5adccb01b56 end 1795253294384 "commit 9951634491f9fef3ce40d655572e93770a6e627d"
+   op bf1f635003a6 end 1795253294346 "snapshot working copy"
+   op before describe: "fd7389b179de"
    rev-as-of t0+350 :recorded on main: "second"
-   rev-as-of t0+120 :recorded on main change xlxpwqkokwon commit a06eb5ce0c53 "second" parents=("spyqswymxymv") recorded=1700000100
+   rev-as-of t0+120 :recorded on main change kkwrskuvuuww commit 7b566291239b "second" parents=("urkmxvzovvyl") recorded=1700000100
    rev-as-of t0+50 :valid on main: "base"
 
 -- state-diff base → third at :summary and :content (unified)
@@ -580,16 +433,16 @@ diff --git a/src/lib.lisp b/src/lib.lisp
 +(defun lib () 3)
 
 -- a committed conflict: merge(left, right) with a.txt unresolved
-   merge change wzunnmxqsolm commit 2c36cc4c6515 "merge left+right (conflict left in)" parents=("lqpqllkylwtu"
-                                                                                                "toyuowpxtwvk") recorded=1700000250
+   merge change vxnrxwrpvlwu commit 93d1823d679d "merge left+right (conflict left in)" parents=("ttxozlxxqtyy"
+                                                                                                "quwsywwolnrr") recorded=1700000250
    provenance :conflict: T
    revision-conflicts: (("a.txt" . 2))
    read-text /a.txt @merge (materialized conflict): "<<<<<<< conflict 1 of 1
-%%%%%%% diff from: spyqswym 9ce590ba \"base\"
-\\\\\\\\\\\\\\        to: lqpqllky 713163a0 \"left\"
+%%%%%%% diff from: urkmxvzo 47dbfe18 \"base\"
+\\\\\\\\\\\\\\        to: ttxozlxx 90abe22e \"left\"
 -one
 +left
-+++++++ toyuowpx 8d30b616 \"right\"
++++++++ quwsywwo 80cd2c3d \"right\"
 right
 >>>>>>> conflict 1 of 1 ends
 "
@@ -601,22 +454,22 @@ diff --git a/a.txt b/a.txt
 @@ -1 +1,8 @@
 -left
 +<<<<<<< conflict 1 of 1
-+%%%%%%% diff from: spyqswym 9ce590ba "base"
-+\\\\\\\        to: lqpqllky 713163a0 "left"
++%%%%%%% diff from: urkmxvzo 47dbfe18 "base"
++\\\\\\\        to: ttxozlxx 90abe22e "left"
 +-one
 ++left
-++++++++ toyuowpx 8d30b616 "right"
+++++++++ quwsywwo 80cd2c3d "right"
 +right
 +>>>>>>> conflict 1 of 1 ends
 
 -- CAS: move-ref main with a stale :expected → ref-conflict
-   main now: "rpqulusrxmsu"
-   caller believes main is: "spyqswymxymv"
+   main now: "lyszmstppxuy"
+   caller believes main is: "urkmxvzovvyl"
    signalled: REVISION-PROTOCOL:REF-CONFLICT
-     report: "ref \"main\" moved: expected \"spyqswymxymvmsmvmmtvkksmnmxvusqm\", found \"rpqulusrxmsuxsvvqkrpynrtzporsory\""
+     report: "ref \"main\" moved: expected \"urkmxvzovvylxtnpuyxtvyqonnzututw\", found \"lyszmstppxuyowwnmyzxkvyknzquwxmn\""
      restarts offered: (REVISION-PROTOCOL:USE-CURRENT REVISION-PROTOCOL:RETRY)
    choosing USE-CURRENT
-   move-ref returned: "rpqulusrxmsu"
+   move-ref returned: "lyszmstppxuy"
    main unchanged: T
 
 ========================================================================
@@ -646,13 +499,9 @@ diff --git a/a.txt b/a.txt
 
 -- probes follow the final symlink (stat(2)); symlink-p and :follow-symlinks nil are lstat(2)
    target.txt (:EXISTS T :FILE T :DIR NIL :LINK NIL :SIZE 5 :STAT :FILE :LSTAT :FILE)
-   dir        (:EXISTS T :FILE NIL :DIR T :LINK NIL :SIZE 64 :STAT :DIRECTORY :LSTAT :DIRECTORY)
-                MEMORY DIFFERS: (:EXISTS T :FILE NIL :DIR T :LINK NIL :SIZE "PATH-NOT-FOUND" :STAT :DIRECTORY
-                                 :LSTAT :DIRECTORY)
+   dir        (:EXISTS T :FILE NIL :DIR T :LINK NIL :SIZE 0 :STAT :DIRECTORY :LSTAT :DIRECTORY)
    to-file    (:EXISTS T :FILE T :DIR NIL :LINK T :SIZE 5 :STAT :FILE :LSTAT :SYMLINK)
-   to-dir     (:EXISTS T :FILE NIL :DIR T :LINK T :SIZE 64 :STAT :DIRECTORY :LSTAT :SYMLINK)
-                MEMORY DIFFERS: (:EXISTS T :FILE NIL :DIR T :LINK T :SIZE "PATH-NOT-FOUND" :STAT :DIRECTORY
-                                 :LSTAT :SYMLINK)
+   to-dir     (:EXISTS T :FILE NIL :DIR T :LINK T :SIZE 0 :STAT :DIRECTORY :LSTAT :SYMLINK)
    dangling   (:EXISTS NIL :FILE NIL :DIR NIL :LINK T :SIZE "PATH-NOT-FOUND" :STAT "PATH-NOT-FOUND" :LSTAT
                :SYMLINK)
    loop-a     (:EXISTS NIL :FILE NIL :DIR NIL :LINK T :SIZE "SYMLINK-LOOP" :STAT "SYMLINK-LOOP" :LSTAT
@@ -690,7 +539,7 @@ diff --git a/a.txt b/a.txt
 
 -- run :process-group t :timeout 1 → unwinding kills the whole tree
    signalled: PROCESS-PROTOCOL:PROCESS-TIMEOUT-ERROR
-   elapsed seconds: 1.0
+   elapsed seconds: 1.1
    marker written by the grandchild 2 s later (expected NIL): NIL
 
 -- kill :tree t on a handle launched without :process-group → process-group-error
@@ -703,4 +552,180 @@ diff --git a/a.txt b/a.txt
    grandchild alive (only the child was killed): T
 
 ========================================================================
-Demos run: 6, failed: none
+== Demo 7: cl-stack-pathlib 0.9.0 change journals (R4b) on fs-backend-darwin / fs-backend-linux 0.1.0
+========================================================================
+
+-- the mechanism registry: what :auto picks on this OS
+   OS: :MACOS
+   registered ranking, best first (watch-mechanisms): (:FSEVENTS :INOTIFY :POLL)
+   available for a local temp directory: (:FSEVENTS :POLL)
+   available on a memory filesystem: (:POLL)
+   fs-watch :auto → journal-mechanism: :FSEVENTS
+   journal-open-p: T
+   journal-open-p after journal-close: NIL
+   journal-close again (idempotent): NIL
+   journal-drain after close: CL-STACK-PATHLIB:JOURNAL-ERROR
+   fs-watch :mechanism :INOTIFY here (unavailable): CL-STACK-PATHLIB:UNSUPPORTED-OPERATION
+
+-- fs-watch a tree, edit it (pathlib, CL rename, a child process), journal-drain
+   journal-mechanism: :FSEVENTS
+   edits: create new.txt; modify a/one.txt; rename a/two.txt → b/two.txt;
+          delete keep.txt; mkdir c/d/ with c/d/x.txt; a child sh (process-protocol)
+          writes child.txt and makes e/ with e/f.txt
+   drained paths: ("a/one.txt" "a/two.txt" "b/two.txt" "c" "c/d" "c/d/x.txt" "child.txt" "e" "e/f.txt"
+                   "keep.txt" "new.txt")
+   complete-p: T
+   drain wall time, ms: 53.8
+   a/untouched.txt reported (expected NIL): NIL
+   second drain with no edits in between (paths complete-p): (NIL T)
+
+-- an area with :journal :auto over 2000 files: fs-area-changes vs :rescan t
+   drain floor: an idle journal-drain on this mechanism, ms (min of 3): 51.8
+   area-journal mechanism: :FSEVENTS
+   first call (absorbs the copy's own events): 0 changes; full rescan 72.9 ms, journal 52.8 ms; EQUAL: T
+   round 1 (5 edits, cumulative): 6 changes; full rescan 68.6 ms, journal 60.8 ms; EQUAL: T
+   round 2 (5 edits, cumulative): 12 changes; full rescan 67.4 ms, journal 59.5 ms; EQUAL: T
+   round 3 (5 edits, cumulative): 18 changes; full rescan 65.6 ms, journal 58.6 ms; EQUAL: T
+   no edits since the last call: 18 changes; full rescan 71.3 ms, journal 52.9 ms; EQUAL: T
+   rounds 1-3 total: full rescan 201.6 ms, journal 178.9 ms (1.1x)
+   journal minus 3 drain floors (the narrowed re-examination itself): 23.5 ms vs 201.6 ms
+   final changes:
+   ADDED      d00/moved-1.txt  sha256:f8746c06
+   ADDED      d00/moved-2.txt  sha256:250ffc6e
+   ADDED      d00/moved-3.txt  sha256:d543b88c
+   MODIFIED   d01/f007.txt  sha256:61c5b84c -> sha256:456d7b1a
+   MODIFIED   d02/f007.txt  sha256:f0d805b0 -> sha256:5f75f165
+   MODIFIED   d03/f007.txt  sha256:5e7a358e -> sha256:d767ef7c
+   REMOVED    d06/f050.txt  sha256:00d71cad
+   REMOVED    d07/f050.txt  sha256:b5cb7f98
+   REMOVED    d08/f050.txt  sha256:c5a2344e
+   ADDED      d11/new-1.txt  sha256:11507a0e
+   ADDED      d12/new-2.txt  sha256:11507a0e
+   ADDED      d13/new-3.txt  sha256:11507a0e
+   REMOVED    d16/f060.txt  sha256:f8746c06
+   REMOVED    d17/f060.txt  sha256:250ffc6e
+   REMOVED    d18/f060.txt  sha256:d543b88c
+   MODIFIED   d19/f010.txt  sha256:b3b6cd22 -> sha256:6b631f50
+   MODIFIED   d19/f020.txt  sha256:47b0905d -> sha256:0fd2748a
+   MODIFIED   d19/f030.txt  sha256:68e9e9ee -> sha256:5e34d8a5
+   journal closed with the area: T
+
+-- incomplete drains (complete-p NIL) → a full rescan, the same answer
+   fs-watch :mechanism :poll, after an edit: (paths complete-p): (NIL NIL)
+   area-journal mechanism: :POLL
+   :poll area: 2 changes; full rescan 0.2 ms, journal 0.2 ms; EQUAL: T
+   MODIFIED   sub/y.txt  sha256:3bb2abb6 -> sha256:4e0c8b58
+   ADDED      w.txt  sha256:50e721e4
+   inject an overflow into the :FSEVENTS journal: T
+   after the injected overflow: 2 changes; full rescan 0.3 ms, journal 52.6 ms; EQUAL: T
+   ADDED      sub/v.txt  sha256:4c94485e
+   MODIFIED   x.txt  sha256:73cb3858 -> sha256:34484d4d
+   next call (complete again): 3 changes; full rescan 0.5 ms, journal 53.3 ms; EQUAL: T
+   a raw drain on a fresh journal after an injected overflow: ((NIL NIL) (NIL T))
+
+-- cl-stack-pathlib/journal-suite: run-journal-suite :FSEVENTS
+   steps run: 19
+   steps: (:NO-EDITS :CREATE :MODIFY-SAME-SIZE :MODIFY-SIZE :REVERT :DELETE :RENAME-IN-DIRECTORY
+           :RENAME-ACROSS-DIRECTORIES :DIRECTORY-CREATE :DIRECTORY-DELETE :DIRECTORY-RENAME :IGNORED
+           :SYMLINK-CREATE :SYMLINK-RETARGET :MODE-CHANGE :CASE-ONLY-RENAME :BURST :BURST-DELETE
+           :CHILD-PROCESS)
+   failures: NIL
+   elapsed seconds: 1.6
+   suite passed for :FSEVENTS: 19/19 steps keep the law
+
+-- verdict
+   law breaks (journal ≠ full rescan): NIL
+
+========================================================================
+Demos run: 7, failed: none
+
+
+########################################################################
+## Linux (ci-base container, Linux 7.2.12-orbstack-00394-gbecdd6130068 x86_64; SBCL 2.6.7.roswell): Demo 7 only, (harness-demos-fs::demo-journal)
+########################################################################
+========================================================================
+== Demo 7: cl-stack-pathlib 0.9.0 change journals (R4b) on fs-backend-darwin / fs-backend-linux 0.1.0
+========================================================================
+
+-- the mechanism registry: what :auto picks on this OS
+   OS: :LINUX
+   registered ranking, best first (watch-mechanisms): (:FSEVENTS :INOTIFY :POLL)
+   available for a local temp directory: (:INOTIFY :POLL)
+   available on a memory filesystem: (:POLL)
+   fs-watch :auto → journal-mechanism: :INOTIFY
+   journal-open-p: T
+   journal-open-p after journal-close: NIL
+   journal-close again (idempotent): NIL
+   journal-drain after close: CL-STACK-PATHLIB:JOURNAL-ERROR
+   fs-watch :mechanism :FSEVENTS here (unavailable): CL-STACK-PATHLIB:UNSUPPORTED-OPERATION
+
+-- fs-watch a tree, edit it (pathlib, CL rename, a child process), journal-drain
+   journal-mechanism: :INOTIFY
+   edits: create new.txt; modify a/one.txt; rename a/two.txt → b/two.txt;
+          delete keep.txt; mkdir c/d/ with c/d/x.txt; a child sh (process-protocol)
+          writes child.txt and makes e/ with e/f.txt
+   drained paths: ("a/one.txt" "a/two.txt" "b/two.txt" "c" "child.txt" "e"
+                   "keep.txt" "new.txt")
+   complete-p: T
+   drain wall time, ms: 1.0
+   a/untouched.txt reported (expected NIL): NIL
+   second drain with no edits in between (paths complete-p): (NIL T)
+
+-- an area with :journal :auto over 2000 files: fs-area-changes vs :rescan t
+   drain floor: an idle journal-drain on this mechanism, ms (min of 3): 0.0
+   area-journal mechanism: :INOTIFY
+   first call (absorbs the copy's own events): 0 changes; full rescan 60.0 ms, journal 2.0 ms; EQUAL: T
+   round 1 (5 edits, cumulative): 6 changes; full rescan 60.0 ms, journal 5.0 ms; EQUAL: T
+   round 2 (5 edits, cumulative): 12 changes; full rescan 56.0 ms, journal 4.0 ms; EQUAL: T
+   round 3 (5 edits, cumulative): 18 changes; full rescan 56.0 ms, journal 4.0 ms; EQUAL: T
+   no edits since the last call: 18 changes; full rescan 106.0 ms, journal 1.0 ms; EQUAL: T
+   rounds 1-3 total: full rescan 172.0 ms, journal 13.0 ms (13.2x)
+   journal minus 3 drain floors (the narrowed re-examination itself): 13.0 ms vs 172.0 ms
+   final changes:
+   ADDED      d00/moved-1.txt  sha256:f8746c06
+   ADDED      d00/moved-2.txt  sha256:250ffc6e
+   ADDED      d00/moved-3.txt  sha256:d543b88c
+   MODIFIED   d01/f007.txt  sha256:61c5b84c -> sha256:456d7b1a
+   MODIFIED   d02/f007.txt  sha256:f0d805b0 -> sha256:5f75f165
+   MODIFIED   d03/f007.txt  sha256:5e7a358e -> sha256:d767ef7c
+   REMOVED    d06/f050.txt  sha256:00d71cad
+   REMOVED    d07/f050.txt  sha256:b5cb7f98
+   REMOVED    d08/f050.txt  sha256:c5a2344e
+   ADDED      d11/new-1.txt  sha256:11507a0e
+   ADDED      d12/new-2.txt  sha256:11507a0e
+   ADDED      d13/new-3.txt  sha256:11507a0e
+   REMOVED    d16/f060.txt  sha256:f8746c06
+   REMOVED    d17/f060.txt  sha256:250ffc6e
+   REMOVED    d18/f060.txt  sha256:d543b88c
+   MODIFIED   d19/f010.txt  sha256:b3b6cd22 -> sha256:6b631f50
+   MODIFIED   d19/f020.txt  sha256:47b0905d -> sha256:0fd2748a
+   MODIFIED   d19/f030.txt  sha256:68e9e9ee -> sha256:5e34d8a5
+   journal closed with the area: T
+
+-- incomplete drains (complete-p NIL) → a full rescan, the same answer
+   fs-watch :mechanism :poll, after an edit: (paths complete-p): (NIL NIL)
+   area-journal mechanism: :POLL
+   :poll area: 2 changes; full rescan 0.0 ms, journal 0.0 ms; EQUAL: T
+   MODIFIED   sub/y.txt  sha256:3bb2abb6 -> sha256:4e0c8b58
+   ADDED      w.txt  sha256:50e721e4
+   inject an overflow into the :INOTIFY journal: T
+   after the injected overflow: 2 changes; full rescan 0.0 ms, journal 1.0 ms; EQUAL: T
+   ADDED      sub/v.txt  sha256:4c94485e
+   MODIFIED   x.txt  sha256:73cb3858 -> sha256:34484d4d
+   next call (complete again): 3 changes; full rescan 0.0 ms, journal 0.0 ms; EQUAL: T
+   a raw drain on a fresh journal after an injected overflow: ((NIL NIL)
+                                                               (NIL T))
+
+-- cl-stack-pathlib/journal-suite: run-journal-suite :INOTIFY
+   steps run: 19
+   steps: (:NO-EDITS :CREATE :MODIFY-SAME-SIZE :MODIFY-SIZE :REVERT :DELETE
+           :RENAME-IN-DIRECTORY :RENAME-ACROSS-DIRECTORIES :DIRECTORY-CREATE
+           :DIRECTORY-DELETE :DIRECTORY-RENAME :IGNORED :SYMLINK-CREATE
+           :SYMLINK-RETARGET :MODE-CHANGE :CASE-ONLY-RENAME :BURST
+           :BURST-DELETE :CHILD-PROCESS)
+   failures: NIL
+   elapsed seconds: 0.4
+   suite passed for :INOTIFY: 19/19 steps keep the law
+
+-- verdict
+   law breaks (journal ≠ full rescan): NIL
