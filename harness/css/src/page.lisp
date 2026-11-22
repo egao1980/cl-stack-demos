@@ -23,10 +23,10 @@ text nodes only; PRE and inline elements are left alone).")
                    (append (loop for k in kids collect (text (string #\Newline)) collect k)
                            (when kids (list (text (string #\Newline)))))
                    kids)))
-    ;; html-protocol stores attributes newest first and writes them reversed.
+    ;; html-protocol 0.1.1 writes attributes in the order given.
     (html:make-html-element
      name
-     :attributes (reverse (loop for (k v) on attributes by #'cddr collect (cons k v)))
+     :attributes (loop for (k v) on attributes by #'cddr collect (cons k v))
      :children kids)))
 
 (defun splice-children (list)
@@ -63,7 +63,28 @@ the stylesheet (svg rect / svg text), so it follows the theme."
   :dark  '((\"bg\" . \"#14161a\") (\"fg\" . \"#e4e6e9\") (\"accent\" . \"#7ab0ff\"))
   :toggle-attribute \"data-theme\")")
 
-(defun page-tree (&key (style "") (sizes '(:full-rules 0 :full-pretty 0 :full-mini 0
+(defparameter *model-text*
+  (list "Every rule on this page was built with "
+        (el "code" nil "make-rule") " and " (el "code" nil "make-declaration")
+        ", not written as text. Selectors are parsed into compounds, declaration values are
+validated and normalised, and the serializer writes either a readable or a minified form.")
+  "Children of the first paragraph (strings and elements).")
+
+(defparameter *theme-text*
+  (list "Colours live in one theme. The rules only say "
+        (el "code" nil "var(--fg)") "; the theme maps it to a light or a dark value through "
+        (el "code" nil "prefers-color-scheme") ".")
+  "Children of the theme paragraph.")
+
+(defun page-tree (&key (style "")
+                    (title "Stylesheets as data — css-protocol 0.1.0")
+                    (heading "Stylesheets as data")
+                    (lede "A classless page whose stylesheet is a CLOS model, pruned to the rules it uses.")
+                    (snippet *theme-snippet*)
+                    (model-text *model-text*)
+                    (theme-text *theme-text*)
+                    (footer "Built with html-protocol 0.1.0 and css-protocol 0.1.0 · cl-stack-demos, harness/css")
+                    (sizes '(:full-rules 0 :full-pretty 0 :full-mini 0
                                             :used-rules 0 :used-pretty 0 :used-mini 0)))
   "The demo page. STYLE is the stylesheet text inlined in <style>; SIZES feeds
 the table and the chart (the element structure does not depend on either)."
@@ -80,12 +101,12 @@ the table and the chart (the element structure does not depend on either)."
                 (el "meta" '("charset" "utf-8"))
                 (el "meta" '("name" "viewport" "content" "width=device-width, initial-scale=1"))
                 (el "meta" '("name" "color-scheme" "content" "light dark"))
-                (el "title" nil "Stylesheets as data — css-protocol 0.1.0")
+                (el "title" nil title)
                 (el "style" nil (format nil "~%~a" style)))
             (el "body" nil
                 (el "header" nil
-                    (el "h1" nil "Stylesheets as data")
-                    (el "p" nil "A classless page whose stylesheet is a CLOS model, pruned to the rules it uses.")
+                    (el "h1" nil heading)
+                    (el "p" nil lede)
                     (el "nav" '("aria-label" "Sections")
                         (el "ul" nil
                             (el "li" nil (el "a" '("href" "#model") "The model"))
@@ -95,11 +116,7 @@ the table and the chart (the element structure does not depend on either)."
                 (el "main" nil
                     (el "article" nil
                         (el "h2" '("id" "model") "The model is the stylesheet")
-                        (el "p" nil
-                            "Every rule on this page was built with "
-                            (el "code" nil "make-rule") " and " (el "code" nil "make-declaration")
-                            ", not written as text. Selectors are parsed into compounds, declaration values are
-validated and normalised, and the serializer writes either a readable or a minified form.")
+                        (el "p" nil model-text)
                         (el "h3" nil "Validated on construction")
                         (el "p" nil
                             "A value such as " (el "code" nil "red;}body{x:y") " is refused with a "
@@ -107,11 +124,8 @@ validated and normalised, and the serializer writes either a readable or a minif
                             (el "code" nil "use-value") " or drop the item with "
                             (el "code" nil "skip-invalid") ".")
                         (el "h3" nil "Light and dark from custom properties")
-                        (el "p" nil
-                            "Colours live in one theme. The rules only say "
-                            (el "code" nil "var(--fg)") "; the theme maps it to a light or a dark value through "
-                            (el "code" nil "prefers-color-scheme") ".")
-                        (el "pre" nil (el "code" nil *theme-snippet*))
+                        (el "p" nil theme-text)
+                        (el "pre" nil (el "code" nil snippet))
                         (el "h2" '("id" "sizes") "What it weighs")
                         (el "table" nil
                             (el "caption" nil "The stylesheet before and after pruning against this page, in bytes")
@@ -162,7 +176,7 @@ so anything it cannot decide is kept.")
                                 (el "li" nil (el "code" nil "@keyframes") " and " (el "code" nil "@font-face")
                                     " are always kept.")))))
                 (el "footer" nil
-                    (el "p" nil "Built with html-protocol 0.1.0 and css-protocol 0.1.0 · cl-stack-demos, harness/css")))))))))
+                    (el "p" nil footer)))))))))
 
 (defun page-elements (tree)
   "Every html-element in TREE, document order."

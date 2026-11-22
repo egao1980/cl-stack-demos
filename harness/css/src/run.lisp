@@ -1,7 +1,8 @@
 (in-package #:harness-demos-css)
 
 (defparameter *demos*
-  '(demo-serialise demo-scope demo-used-rules demo-conditions demo-theme demo-page))
+  '(demo-serialise demo-scope demo-used-rules demo-conditions demo-theme demo-page
+    demo-lass-source demo-classie-functions demo-calc demo-lass-restarts demo-lass-page))
 
 (defun run-demos ()
   "Run every demo; an error ends that demo only (printed), the rest still run."

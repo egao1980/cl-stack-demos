@@ -1,0 +1,12 @@
+;;;; Shared design tokens for page-lass.html. LASS bindings flow into an
+;;;; :include, never out of it, so the shared variables file is the outer
+;;;; :let*: everything it includes sees these names.
+
+(:let* ((space 8px)
+        (gutter (* 2 #(space)))           ; unit arithmetic: 16.00px
+        (column (* 96 #(space)))          ; 768.00px, Marx's main width
+        (radius (/ #(space) 2))           ; 4.00px
+        (accent "#0b5cd5")
+        (paper "#ffffff")
+        (ink "#16181d"))
+  (:include "page.lass"))

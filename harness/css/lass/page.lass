@@ -1,0 +1,17 @@
+;;;; The page's own colours, derived from the tokens with classie's colour
+;;;; functions. :let* is sequential: each binding sees the ones before it.
+
+(:let* (;; light
+        (accent-hover (darken #(accent) 10%))
+        (accent-border (mix #(accent) #(paper) 25%))
+        (accent-wash (mix #(accent) #(paper) 6%))
+        (bar (fade-out #(accent) 0.15))
+        ;; dark: lighten where light darkens
+        (accent-dark (lighten #(accent) 25%))
+        (accent-dark-hover (lighten #(accent-dark) 10%))
+        (accent-dark-border (mix #(accent-dark) #(ink) 35%))
+        (accent-dark-wash (mix #(accent-dark) #(ink) 8%))
+        (bar-dark (fade-in (fade-out #(accent-dark) 0.5) 0.35)))
+  (:include "parts/theme.lass")
+  (:include "parts/layout.lass")
+  (:include "parts/components.lass"))

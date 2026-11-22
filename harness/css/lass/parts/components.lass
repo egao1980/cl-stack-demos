@@ -1,0 +1,30 @@
+;;;; Components engels does not cover: numeric cells, the inline SVG chart,
+;;;; the form card.
+
+((:or (:and th [data-num]) (:and td [data-num]))
+ :text-align right
+ :font-variant-numeric tabular-nums)
+
+(figure
+ :margin (* 3 #(space)) 0
+ (svg :display block :width "100%" :height auto)
+ (figcaption :color "var(--engels-secondary)"
+             :font-size (ceil (* 85% "16px"))))
+
+(svg
+ (rect :fill "var(--page-bar)")
+ ((:and rect :hover) :fill "var(--page-accent-hover)")
+ (text :fill "var(--engels-text)"
+       :font-size (ceiling (* 0.85 "16px"))))
+
+(form
+ :padding #(gutter)
+ :border 1px solid "var(--page-border)"
+ :border-radius (* 2 #(radius))
+ :background "var(--page-wash)"
+ (label :display block :margin-bottom #(space))
+ ((:and input (:= type checkbox)) :margin-right #(space)))
+
+(a :text-underline-offset (/ #(space) 4))
+
+(code :word-break normal)
