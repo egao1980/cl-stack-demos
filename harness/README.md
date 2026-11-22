@@ -2,7 +2,7 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Ten cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Eleven cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
@@ -16,13 +16,14 @@ Ten cl-repo projects, one per area. Each `demo-output.txt` is the captured outpu
 | [`css/`](css/) | `harness-demos-css` | H4h-0b-0: css-protocol 0.1.0 (model + validating constructors, pretty / minified serializer, `make-css-theme` light / dark, `scope-stylesheet` `:prefix` / `:scope-rule`, `used-rules`, conditions + restarts), html-protocol 0.1.1 (the page tree); writes [`css/page.html`](css/page.html). H4h-0b-1/2: css-backend-lass 0.1.0 (LASS files in [`css/lass/`](css/lass/): unit arithmetic, `darken` / `lighten` / `mix` / `fade-*`, `:let*`, `:include` of a shared tokens file, `calc` pass-through, `use-value` / `skip-invalid`) layered on engels 0.2.1 (sanitize.css 13.0.0 base layer, full-width tables) and pruned; writes [`css/page-lass.html`](css/page-lass.html) (engels + page 166 rules, 18,147 bytes minified; used 143, 16,899) |
 | [`acp/`](acp/) | `harness-demos-acp` | acp-protocol 0.1.0, acp-backend-stdio 0.1.0: a scripted Lisp ACP agent on stdio (plan updates, `fs/read_text_file`, a diff tool call, `session/request_permission`, `fs/write_text_file`, a `terminal/*` test run), driven headless by a Lisp ACP client and live in Zed ([recording](acp/zed-demo.mp4), [README](acp/README.md)) |
 | [`policy/`](policy/) | `harness-demos-policy` | L1: policy-protocol 0.1.0 on logic-protocol 0.1.0 / logic-backend-datalog 0.1.0: user / project / session layers loaded from text (permit / forbid / ask on `Bash(git *)`, `Read(src)`, `WebFetch(github.com)`, a plan-mode condition, `:last-match` and `:forbid-overrides`), a 12-request decision table, `policy-explain` and proofs, `decision-why-not`, `skip-rule` on a malformed rule, a request budget resumed with `continue` ([README](policy/README.md)) |
+| [`unkernel/`](unkernel/) | `harness-demos-unkernel` | R4h-4: compute-backend-unkernel 0.1.0 (Linux compiled to wasm under Node, Node 24+, `scripts/setup.sh`): `confinement-available-p` and its reasons (missing Node, home not set up), one-shot `run-sandboxed` (`uname -a`, `/etc/os-release` on macOS), isolation (unmounted paths, read-only mounts, the writable area, no network, private TMPDIR), a warm session vs cold runs, a wall-clock deadline with `abort-execution` and no host process left, SBCL in the guest vs native (3.5–9.3x here) ([README](unkernel/README.md)) |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy
+cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1
@@ -148,6 +149,7 @@ Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43 for `fs/`; ≥ 2.56 for `cod
   - **Demo 4** — `red;}body{x:y` refused as `css-invalid-value` with `use-value` and `skip-invalid` offered; `use-value` validated again (`red;` refused, `crimson` taken); `skip-invalid` dropping a value, a property, a whole rule (bad selector) and a `@media` (bad query); each condition class; `css-string` escaping `</style>`; `compile-stylesheet` with no backend (`css-no-backend`, `use-value`).
   - **Demo 5** — the theme maps, the theme stylesheet, how OS preference and `data-theme` pick the values, a second (sepia) theme leaving every other rule byte-identical, the theme on `[data-canvas]`.
   - **Demo 6** — [`css/page.html`](css/page.html): the used rules inlined in `<style>` (5,590 bytes), no external URL, no class; readable in light and dark (centred 44rem column, WCAG AA contrast in both).
+- **unkernel** — compute-backend-unkernel 0.1.0 (R4h-4), a confinement backend that runs commands in Linux compiled to wasm under Node: availability and its reasons, one-shot runs that show Linux on macOS, isolation (mounts, network, TMPDIR), a warm session (~3 ms per exec) against cold runs (~640 ms), a wall-clock deadline handled with `abort-execution`, and SBCL in the guest at 3.5–9.3x native. See [unkernel/README.md](unkernel/README.md).
 
 ## Windows
 

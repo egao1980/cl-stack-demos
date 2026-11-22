@@ -1,0 +1,131 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+WARNING:
+   cl-repo: encoding-protocol 0.2.0 stays loaded from ~/.cl-repository-client/encoding-protocol-0.2.0/encoding-protocol.asd; the registry also has 0.3.0 at ~/.local/share/cl-repository/systems/encoding-protocol/0.3.0/encoding-protocol.asd, which this image will not load. Code that needs 0.3.0 runs against the older copy: upgrade the client or load the project in a fresh image.
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; compiling file "<scratchpad>/worktrees/demos-unkernel/harness/unkernel/src/demo.lisp" (written 22 NOV 2026 05:34:15 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<scratchpad>/worktrees/demos-unkernel/harness/unkernel/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.024
+compute-backend-unkernel 0.1.0 (unkernel 0.2.0-261121-e69adda, guest alpine-3.24.4-e0d59c37c0882d76, sbcl=2.6.5-r0)
+
+========================================================================
+== 1. Availability: confinement-available-p and its reason
+========================================================================
+Node: /opt/homebrew/opt/node@26/bin/node (COMPUTE_UNKERNEL_NODE)
+HOME: <scratchpad>/uk-home/ (COMPUTE_UNKERNEL_HOME)
+Node probe: v26.12.1
+Features: (:filesystem :read-system :network-none :network-allow :memory-limit)
+configured backend  → T NIL (160 ms, probed once, then cached)
+Node missing
+  available-p → NIL
+  reason: /nonexistent/bin/node: cannot be run (process error: cannot run program: Couldn't execute "/nonexistent/bin/node": No such file or directory); compute-backend-unkernel needs Node 24 or newer (Node 24+, set :node or COMPUTE_UNKERNEL_NODE)
+  run-sandboxed → COMPUTE-PROTOCOL:CONFINEMENT-UNAVAILABLE: fails closed, nothing ran unconfined
+guest HOME not set up
+  available-p → NIL
+  reason: compute-backend-unkernel: <tmp>/uk-empty-home is not set up (no unkernel in <tmp>/uk-empty-home/node_modules): run `sh ~/.local/share/cl-repository/systems/compute-backend-unkernel/0.1.0/scripts/setup.sh <tmp>/uk-empty-home` (scripts/setup.sh)
+  run-sandboxed → COMPUTE-PROTOCOL:CONFINEMENT-UNAVAILABLE: fails closed, nothing ran unconfined
+
+========================================================================
+== 2. One-shot run-sandboxed: Linux inside, whatever the host
+========================================================================
+host: Darwin arm64
+
+$ uname -a   (exit 0, 637 ms: boot + run + power-off)
+Linux unkernel 7.3.4+ #909a1964cecb Fri Nov 20 16:38:40 UTC 2026 aarch64 Linux
+
+$ cat /etc/os-release   (exit 0, 658 ms: boot + run + power-off)
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.24.4
+PRETTY_NAME="Alpine Linux v3.24"
+HOME_URL="https://alpinelinux.org/"
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"
+
+========================================================================
+== 3. Isolation: mounts, network, TMPDIR
+========================================================================
+session: boot 290 ms, writable <tmp>/uk-demo-50VGLX/area/, read-only <tmp>/uk-demo-50VGLX/ro/, outside/ not mounted
+a) unmounted host path is invisible:
+  $ cat <tmp>/uk-demo-50VGLX/outside/secret.txt
+  exit 1  cat: can't open '<tmp>/uk-demo-50VGLX/outside/secret.txt': No such file or directory
+   its parent holds only the mount points:
+  $ ls <tmp>/uk-demo-50VGLX/
+  exit 0  area | ro
+b) read-only mount: readable, writes refused:
+  $ cat <tmp>/uk-demo-50VGLX/ro/notes.txt && echo x > <tmp>/uk-demo-50VGLX/ro/new.txt
+  exit 1  read me  sh: can't create <tmp>/uk-demo-50VGLX/ro/new.txt: Read-only file system
+   on the host: ro/new.txt exists? NIL
+c) the writable worktree (the session's cwd):
+  $ pwd; echo written-in-guest > from-guest.txt
+  exit 0  <tmp>/uk-demo-50VGLX/area
+   on the host: area/from-guest.txt = "written-in-guest"
+d) network is off by default (DNS):
+  $ nslookup example.com
+  exit 1  nslookup: can't connect to remote host (10.0.2.3): Network unreachable
+   (connect):
+  $ nc -z -w 3 1.1.1.1 443; echo nc=$?; ip -o link | cut -d: -f2
+  exit 0  nc=1 |  lo
+e) TMPDIR is private, a fresh host dir mounted alone:
+  $ echo $TMPDIR; echo scratch > $TMPDIR/t.txt; ls $(dirname $TMPDIR)
+  exit 0  <tmp>/stack-compute-144a6d365839ed4a | stack-compute-144a6d365839ed4a | uk-demo-50VGLX
+   (the guest sees only the mount points; the host temp dir holds 5073 entries)
+   on the host: <tmp>/stack-compute-144a6d365839ed4a/t.txt exists? T
+   after close-sandbox: <tmp>/stack-compute-144a6d365839ed4a/ exists? NIL
+
+========================================================================
+== 4. A session: several execs in one warm guest
+========================================================================
+open-sandbox: 372 ms (kernel boot 292 ms)
+  uname -r                               → 7.3.4+    3 ms
+  echo $((6 * 7))                        → 42        2 ms
+  cat /proc/cpuinfo | grep -c processor  → 1         4 ms
+  ls /usr/bin | wc -l                    → 153       7 ms
+  date -u +%Y                            → 2026      2 ms
+5 warm execs: 18 ms in all (4 ms each); one cold run-sandboxed: 637 ms (176.9x one warm exec)
+
+========================================================================
+== 5. Deadline: a 2 s wall-clock on sleep 30
+========================================================================
+host process pid 60187, alive: T; unkernel hosts running: 1
+The handler:
+(handler-bind ((sc:sandbox-timeout
+                (lambda (c)
+                  (format t "  signalled ~s (limit ~a s): ~a~%" (type-of c)
+                          (sc:sandbox-timeout-limit c) c)
+                  (invoke-restart 'sc:abort-execution))))
+  (uk:session-exec s '("sleep" "30") :wall-clock 2))
+  signalled COMPUTE-PROTOCOL:SANDBOX-TIMEOUT (limit 2 s): sandbox wall-clock limit 2 s exceeded: sleep 30: the session was killed (host process, kernel, forwards, private temp dir)
+  → NIL after 2.1 s; session alive: NIL
+host pid 60187 alive: NIL; unkernel hosts running: 0; close-sandbox → NIL
+
+========================================================================
+== 6. SBCL inside the guest
+========================================================================
+guest: SBCL 2.6.5-85913ede1 (start-up alone: 12 ms); host: SBCL 2.6.9
+Each form is compiled and timed the same way in the guest and on the host:
+
+  generic arithmetic: (loop for i below 100000000 sum (mod (* i i) 7))
+    guest (exit 0): 199999997 2030 ms by its own clock, 2052 ms by the host's (less start-up)
+    host: 199999997 262 ms   guest / host: 7.7x (guest clock), 7.8x (host clock)
+
+  fixnum, (speed 3): (locally (declare (optimize speed (safety 0))) (loop for i fixnum below 100000000 sum (the fixnum (mod (* i i) 7)) fixnum))
+    guest (exit 0): 199999997 140 ms by its own clock, 163 ms by the host's (less start-up)
+    host: 199999997 47 ms   guest / host: 3.0x (guest clock), 3.5x (host clock)
+
+  consing, sort, GC: (length (sort (loop for i below 3000000 collect (mod (* i 7919) 1000003)) (function <)))
+    guest (exit 0): 3000000 5450 ms by its own clock, 5471 ms by the host's (less start-up)
+    host: 3000000 591 ms   guest / host: 9.2x (guest clock), 9.3x (host clock)
+
+The tradeoff: CPU-bound work in the guest is slower than native. The backend documents
+15-40x (26-34x in its README); these loops measured 3.5-9.3x on this host (Darwin ARM64).
+Either way it is the price of the portable tier: Linux in wasm under Node, no
+hypervisor, no root. Prefer Seatbelt / Landlock or a microVM where they exist;
+unkernel is the fallback, never the default.
