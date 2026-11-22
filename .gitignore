@@ -16,3 +16,4 @@ build/
 fixtures/_organize-out/
 .venv/
 cl-repo.lock
+harness/acp/acp-demo-agent
