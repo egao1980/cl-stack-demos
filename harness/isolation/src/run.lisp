@@ -1,7 +1,7 @@
 (in-package #:harness-demos-isolation)
 
 (defparameter *demos*
-  '(demo-clone demo-confine demo-suite))
+  '(demo-clone demo-confine demo-suite demo-confined-shell demo-confined-shell-live))
 
 (defun run-demos ()
   "Run every demo; an error ends that demo only (printed), the rest still run."

@@ -2,13 +2,13 @@
 
 ;;; Demos 2-3: R4d confinement of one command. compute-protocol 0.3.2's
 ;;; CONFINEMENT, run through the confining backend of this host:
-;;; compute-backend-seatbelt 0.1.0 (macOS, sandbox-exec) or
+;;; compute-backend-seatbelt 0.1.1 (macOS, sandbox-exec) or
 ;;; compute-backend-landlock 0.1.0 (Linux, bwrap / Landlock). Both load on
 ;;; every OS; the one that is unavailable here says why and is skipped.
 
 (defun host-backends ()
   "(label . backend) for both confining backends, seatbelt first."
-  (list (cons "compute-backend-seatbelt 0.1.0" (seatbelt:make-seatbelt-backend))
+  (list (cons "compute-backend-seatbelt 0.1.1" (seatbelt:make-seatbelt-backend))
         (cons "compute-backend-landlock 0.1.0" (landlock:make-landlock-backend))))
 
 (defun show-backends (backends)
