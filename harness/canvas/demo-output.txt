@@ -1,0 +1,125 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+WARNING:
+   cl-repo: encoding-protocol 0.2.0 stays loaded from ~/.cl-repository-client/encoding-protocol-0.2.0/encoding-protocol.asd; the registry also has 0.3.0 at ~/.local/share/cl-repository/systems/encoding-protocol/0.3.0/encoding-protocol.asd, which this image will not load. Code that needs 0.3.0 runs against the older copy: upgrade the client or load the project in a fresh image.
+WARNING:
+   cl-repo: http-protocol 0.4.0 stays loaded from ~/.cl-repository-client/http-protocol-0.4.0/http-protocol.asd; the registry also has 0.4.1 at ~/.local/share/cl-repository/systems/http-protocol/0.4.1/http-protocol.asd, which this image will not load. Code that needs 0.4.1 runs against the older copy: upgrade the client or load the project in a fresh image.
+WARNING:
+   cl-repo: http-backend-async 0.2.22 stays loaded from ~/.cl-repository-client/http-backend-async-0.2.22/http-backend-async.asd; the registry also has 0.2.23 at ~/.local/share/cl-repository/systems/http-backend-async/0.2.23/http-backend-async.asd, which this image will not load. Code that needs 0.2.23 runs against the older copy: upgrade the client or load the project in a fresh image.
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:SYSTEM-CLASS COMMON-LISP:T>) in DEFMETHOD
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+WARNING:
+   cl+ssl was loaded before cl-stack-ssl; it keeps the OpenSSL it found, not ~/.local/share/cl-repository/systems/cl-stack-ssl/3.5.9.3/native/libssl.3.dylib
+WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
+
+; compiling file "<demo>/src/demo.lisp" (written 22 NOV 2026 06:10:40 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demo>/src/demo-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.024
+canvas-protocol 0.1.1, theme :ENGELS, chart backend CANVAS-BACKEND-SVG:SVG-BACKEND, htmx 2.0.11 + sse 2.2.4
+token: 32 hex chars (printed as <token>)
+
+========================================================================
+== 1. In-process htmx client (no socket): fragments, the form, SSE, the allowlist
+========================================================================
+TEST-TABLE (:SORT "-tests") → 200
+  <div id="tests"><table><caption>Assertions per system (click a header to sort)</caption><thead><tr><th scope="col"><button type="button" hx-get="/canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=system&amp;page=1" hx-target="#tests" hx-swap="outerHTML">System</button></th><th scope="col" data-align="end" aria-sort="descending"><button type="button" hx-get="/canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=tests&amp;page=1" hx-target="#tests" hx-swap="outerHTML">Assertions</button></th></tr></thead><tbod … [842 chars]
+THRESHOLD-FORM (:MIN "400") → 200
+  <form hx-post="/canvas/HARNESS-DEMOS-CANVAS::TEST-CHART" hx-target="#chart" hx-swap="outerHTML"><label>Minimum assertions<input type="number" name="min" value="400" min="0"></label><button type="submit">Filter</button></form>
+TEST-CHART (:MIN "400") → 200
+  <div id="chart"><figure data-chart="bar"><svg id="chart-assertions-400" viewBox="0 0 640 360" role="img" aria-labelledby="chart-assertions-400-title chart-assertions-400-desc" fill="currentColor" font-family="sans-serif" font-size="12"><title id="chart-assertions-400-title">Assertions (≥ 400)</title><desc id="chart-assertions-400-desc">Bar chart of 1 series: assertions (3 bars).</desc><g><line x1="56" y1="320" x2="624" y2="320" stroke="currentColor"></line><line x1="151" y1="320" x2="151" y2="32 … [2054 chars]
+TEST-CHART (:MIN "lots") → 200
+  <div id="chart"><small id="min-error" role="alert">min must be an integer</small><figure data-chart="bar"><svg id="chart-assertions-0" viewBox="0 0 640 360" role="img" aria-labelledby="chart-assertions-0-title chart-assertions-0-desc" fill="currentColor" font-family="sans-serif" font-size="12"><title id="chart-assertions-0-title">Assertions (≥ 0)</title><desc id="chart-assertions-0-desc">Bar chart of 1 series: assertions (5 bars).</desc><g><line x1="56" y1="320" x2="624" y2="320" stroke="current … [2609 chars]
+TICKER (:N "3") → 200
+  event: row
+data: <p>tick 1: policy-protocol ok</p>
+
+event: row
+data: <p>tick 2: rpc-backend-htmx ok</p>
+
+event: row
+data: <p>tick 3: canvas-backend-svg ok</p>
+
+
+ticker (Accept: text/event-stream) → events (("row"
+                                              . "<p>tick 1: policy-protocol ok</p>")
+                                             ("row"
+                                              . "<p>tick 2: rpc-backend-htmx ok</p>")
+                                             ("row"
+                                              . "<p>tick 3: canvas-backend-svg ok</p>"))
+not in the allowlist: CL-USER::SECRET → 404
+serving on http://127.0.0.1:18467/canvas/ (Hunchentoot)
+
+========================================================================
+== 2. Real HTTP (http-backend-async on libuv) against Hunchentoot on 127.0.0.1
+========================================================================
+no token        → 403
+one-time URL    → 303, Location /canvas/HARNESS-DEMOS-CANVAS::DASHBOARD
+                  Set-Cookie canvas-token=<token>; HttpOnly; SameSite=Strict; Path=/
+same URL again, another client → 403 (the URL token is spent)
+GET dashboard (no HX-Request: full page) → 200 text/html; charset=utf-8
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;historyCacheSize&quot;:0,&quot;includeIndicatorStyles&quot;:false,&quot;refreshOnHistoryMiss&quot;:true,&quot;selfRequestsOnly&quot;:true}"><title>canvas demo</title><link rel="stylesheet" href="/canvas-assets/canvas.css"><script src="/canvas-assets/htmx.min.js"></script><script src="/canvas-assets/htmx-ext-sse.min.js"></script></head><body><main><div data-layout="stack"><h1>Canvas demo: this session's test runs</h1><div data-layout="grid" data-columns="2"><article><header><h3>Test counts</h3></header><div id="tests"><table><caption>Assertions per system (click a header to sort)</caption><thead><tr><th scope="col"><button type="button" hx-get="/canvas/HARNESS-DE … [7431 chars]
+the live region in that page: <div id="ticks" hx-ext="sse" sse-connect="/canvas/HARNESS-DEMOS-CANVAS::TICKER?n=3" sse-swap="row" hx-swap="beforeend" aria-live="polite"><p>Ticks stream in here over SSE (the frozen file has none).</p></div>
+csp-violations of the served dashboard tree: NIL
+form submit: POST min=450 to TEST-CHART (HX-Request) → 200
+  <div id="chart"><figure data-chart="bar"><svg id="chart-assertions-450" viewBox="0 0 640 360" role="img" aria-labelledby="chart-assertions-450-title chart-assertions-450-desc" fill="currentColor" font-family="sans-serif" font-size="12"><title id="chart-assertions-450-title">Assertions (≥ 450)</title><desc id="chart-assertions-450-desc">Bar chart of 1 series: assertions (2 bars).</desc><g><line x1= … [1810 chars]
+SSE ticker → 200
+event: row
+data: <p>tick 1: policy-protocol ok</p>
+
+event: row
+data: <p>tick 2: rpc-backend-htmx ok</p>
+
+event: row
+data: <p>tick 3: canvas-backend-svg ok</p>
+
+asset htmx.min.js → 200 (served from 'self', htmx 2.0.11)
+
+========================================================================
+== 3. freeze: the dashboard as one self-contained static file
+========================================================================
+wrote dashboard.html: 24018 chars, deterministic: T
+  http:      0 occurrences
+  https:     0 occurrences
+  //         0 occurrences
+  url(       0 occurrences
+  @import    0 occurrences
+  <script    0 occurrences
+  <link      0 occurrences
+  hx-        0 occurrences
+  sse-       0 occurrences
+
+========================================================================
+== 4. Redefine the chart canvas live: no restart, the next request shows it
+========================================================================
+(defun test-chart (&key min)
+  (declare (ignore min))
+  (canvas-protocol:el :div '(:id "chart")
+                      (canvas-protocol:make-chart :scatter :title
+                                                  "Assertions (redefined: scatter, vermillion)"
+                                                  :series
+                                                  (list
+                                                   (canvas-protocol:make-series
+                                                    "assertions"
+                                                    (loop for r in *tests*
+                                                          for i from 1
+                                                          collect (cons i
+                                                                        (getf r
+                                                                              :tests)))
+                                                    :color "#D55E00")))))
+WARNING: redefining HARNESS-DEMOS-CANVAS::TEST-CHART in DEFUN
+before: <div id="chart"><figure data-chart="bar"><svg id="chart-asse
+after:  <div id="chart"><figure data-chart="scatter"><svg id="chart-
+bar before: T, scatter after: T, color="#D55E00" after: T
+
+server stopped
