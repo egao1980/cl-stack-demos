@@ -1,0 +1,113 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+; compiling file "<tmp>/harness/policy/src/demo.lisp" (written 22 NOV 2026 04:49:47 PM):
+
+; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<tmp>/harness/policy/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.014
+
+========================================================================
+== 1. A layered agent-permission policy, loaded from text
+========================================================================
+Loading user / project / session text (project has a rule with :resource 42):
+  policy-syntax-error: Invalid policy form (#:PERMIT :ID "proj-typo" :ACTION "Bash" :RESOURCE 42): 42 is not a resource pattern
+  -> invoking SKIP-RULE
+  user: :last-match, default ask, rules user-bash user-git user-git-push user-make user-read user-edit user-github
+  project: :forbid-overrides, rules proj-src proj-secrets proj-rm proj-plan-edit
+  session: :last-match, rules sess-make sess-make-confined
+
+Combining modes, user rules on Bash(git status):
+  LAST-MATCH         -> permit by user-git
+  FORBID-OVERRIDES   -> ask by user-bash
+
+========================================================================
+== 2. Decisions (layered: user > project > session; inner layers only tighten)
+========================================================================
+request                          effect   layer    deciding rule       feedback / obligations
+Read(src/main.lisp)              permit   user     user-read           
+Read(.env)                       forbid   project  proj-secrets        Secrets stay out of the context.
+Bash(git status)                 permit   user     user-git            
+Bash(git push origin main)       ask      user     user-git-push       Pushing needs a confirmation.
+Bash(ls -la)                     ask      user     user-bash           Shell commands need a confirmation.
+Bash(rm -rf build)               forbid   project  proj-rm             
+Edit(src/main.lisp)              permit   user     user-edit           
+Edit(src/main.lisp) mode:plan    forbid   project  proj-plan-edit      Plan mode: propose the change, do not edit.
+WebFetch(api.github.com)         permit   user     user-github         
+WebFetch(evil.example)           ask      user     (layer default)     
+Bash(make test) sandbox:confined permit   user     user-make            obligations (("run" "confined"))
+Bash(make test)                  ask      session  sess-make           No sandbox: tests would run unconfined.
+
+========================================================================
+== 3. Proof of a permit, why-not for a deny
+========================================================================
+Bash(make test) sandbox:confined
+Decision: permit.
+Deciding layer: user.
+Deciding rule: user-make (permit) on resource "make test".
+Resource pattern: "make *".
+  per-layer trace:
+    user     permit by user-make
+    project  no-decision
+    session  permit by sess-make-confined
+  logic-protocol proof (deciding layer):
+    (POLICY-PROTOCOL::%APPLIES 3 :PERMIT 0)
+      (POLICY-PROTOCOL::%RESOURCE 3 0)
+        (POLICY-PROTOCOL::%ACTION 3)
+          (POLICY-PROTOCOL::%REQ-ACTION "Bash" "Bash") (base fact)
+        (POLICY-PROTOCOL::%REQ-RESOURCE 0 "make test" "make test") (base fact)
+  session layer's proof (sess-make-confined, its condition used the context):
+    (POLICY-PROTOCOL::%APPLIES 1 :PERMIT 0)
+      (POLICY-PROTOCOL::%RESOURCE 1 0)
+        (POLICY-PROTOCOL::%ACTION 1)
+          (POLICY-PROTOCOL::%REQ-ACTION "Bash" "Bash") (base fact)
+        (POLICY-PROTOCOL::%REQ-RESOURCE 0 "make test" "make test") (base fact)
+      (POLICY-PROTOCOL::%HOLDS 1 0)
+        (POLICY-PROTOCOL::%HOLDS 1 1)
+          (POLICY-PROTOCOL::%ACTION 1)
+            (POLICY-PROTOCOL::%REQ-ACTION "Bash" "Bash") (base fact)
+          (POLICY-PROTOCOL::%CTX "sandbox" "confined") (base fact)
+
+Read(.env):
+Decision: forbid.
+Deciding layer: project.
+Deciding rule: proj-secrets (forbid) on resource ".env".
+Resource pattern: ".env*".
+Feedback: Secrets stay out of the context.
+
+Read(.env) is forbid; why not proj-src? -> :RESOURCE
+Edit(src/main.lisp) is permit; why not proj-plan-edit? -> :CONDITION, literal (#:MODE :PLAN)
+Bash(git status) is permit; why not user-bash? -> :OVERRIDDEN
+Edit(src/main.lisp) mode:plan is forbid; why not user-edit? -> NIL: it decided its own layer (an inner layer tightened)
+
+========================================================================
+== 4. Conditions and restarts: the malformed rule
+========================================================================
+Section 1 loaded the layers inside (LOAD-LAYERS):
+  (handler-bind ((pol:policy-syntax-error
+                   (lambda (c)
+                     (format t "  policy-syntax-error: ~a~%  -> invoking SKIP-RULE~%" c)
+                     (pol:skip-rule c))))
+    (mapcar #'pol:load-policy (list *user-text* *project-text* *session-text*)))
+SKIP-RULE left proj-typo out; the other 4 project rules stand.
+Restarts visible to that handler, innermost first: skip-rule, use-value, continue, abort, abort, exit
+
+========================================================================
+== 5. A budget: 4 logic steps per request (CONTINUE grants 4 more each time)
+========================================================================
+  signalled LOGIC-PROTOCOL:LOGIC-BUDGET-EXCEEDED:
+    Logic budget #<LOGIC-PROTOCOL:LOGIC-BUDGET steps 4 seconds NIL> exceeded after 5 steps in :QUERY
+  handler invoked CONTINUE 17 times
+  finished: permit by user-make, obligations (("run" "confined")) (same as the unbudgeted decision)
+
+========================================================================
+== 6. Under the hood
+========================================================================
+Every layer compiles once to a logic-protocol program (stratified Datalog with
+glob, prefix, =, /=, < built-ins); each request is evaluated with :assume on it.
+Backend: datalog (logic-backend-datalog)
+Compiled programs (rules per layer): 46 / 37 / 28.
