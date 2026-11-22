@@ -1,0 +1,76 @@
+========================================================================
+== Loaded systems
+========================================================================
+  llm-protocol             0.6.0
+  llm-protocol-openai      0.7.0
+  llm-protocol-anthropic   0.5.0
+  http-protocol            0.4.1
+  http-backend-async       0.2.25
+  event-backend-libuv      0.2.3
+========================================================================
+== 1. Settings: defaults, initargs, env vars, and what goes on the wire
+========================================================================
+defaults:            :request-timeout 600  :stream-idle-timeout 300  :connect-timeout 30
+  stream request  -> (:CONNECT 30 :READ 300)
+  plain request   -> (:CONNECT 30 :TOTAL 600)
+initargs:            :request-timeout 1800  :stream-idle-timeout NIL  :connect-timeout 30
+OPENAI_TIMEOUT=1200 OPENAI_STREAM_IDLE_TIMEOUT=900 OPENAI_CONNECT_TIMEOUT=none:
+                     :request-timeout 1200  :stream-idle-timeout 900  :connect-timeout NIL
+  an initarg wins:   :request-timeout 60  :stream-idle-timeout 900  :connect-timeout NIL
+OPENAI_TIMEOUT=soon -> LLM-ERROR: llm error: OPENAI_TIMEOUT must be seconds (a number, or none), got "soon"
+anthropic defaults:  :request-timeout 600  :stream-idle-timeout 300  :connect-timeout 30
+  (demo-1-settings: 0.0 s wall time)
+========================================================================
+== 2. A slow but steady stream outlives the cap (24 tokens, 0.5 s apart = 12 s)
+========================================================================
+backend: :request-timeout 3  :stream-idle-timeout 2  :connect-timeout 30
+(the old fixed cap applied here would be 3 s; the stream needs 12 s)
+   12.4 s  6 tokens
+   12.4 s  12 tokens
+   12.4 s  18 tokens
+   12.4 s  24 tokens
+done after 12.4 s: finish :STOP, text "t0 t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19 t20 t21 t22 t23 "
+  (demo-2-steady-stream: 12.6 s wall time)
+========================================================================
+== 3. A stream that goes silent fails on the idle timeout
+========================================================================
+after 2.4 s: HTTP-TIMEOUT-ERROR
+  read timed out: no data for 2.0 s (127.0.0.1)
+  (demo-3-silent-stream: 2.4 s wall time)
+========================================================================
+== 4. Non-streaming: :request-timeout caps the whole call (the answer takes 4 s)
+========================================================================
+:request-timeout 2   -> request timed out after 2.0 s (127.0.0.1) after 2.0 s
+:request-timeout 10  -> "late but whole" after 4.0 s
+:request-timeout NIL -> "late but whole" after 4.0 s
+  (demo-4-non-streaming: 10.0 s wall time)
+========================================================================
+== 5. A timed-out model call is not sent again
+========================================================================
+read timed out: no data for 1.0 s (127.0.0.1)
+requests the origin saw: 1 (a POST; http-retry retries only idempotent methods)
+  (demo-5-no-retry: 1.1 s wall time)
+========================================================================
+== 6. Live: a long streamed answer on a slow local model, default timeouts
+========================================================================
+MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF at 192.168.86.21:8888
+backend: :request-timeout 600  :stream-idle-timeout 300  :connect-timeout 30 (defaults)
+   543. s  1 parts, 1 chars
+   543. s  2 parts, 10 chars
+   543. s  3 parts, 12 chars
+   543. s  4 parts, 16 chars
+   543. s  5 parts, 19 chars
+   543. s  6 parts, 26 chars
+   543. s  7 parts, 31 chars
+   543. s  8 parts, 39 chars
+   543. s  9 parts, 40 chars
+first part after 543.4 s; done after 543.4 s (past the old 180 s cap)
+finish :LENGTH, 11502 chars of text, 2800 output tokens (5.2 tok/s)
+text starts: "# Building a Robust Common Lisp Project: A Step-by-Step Guide to ASDF and Rove
+The Common Lisp ecosystem is renowned for its interactive development capabiliti"
+  (demo-6-live-long-answer: 543.4 s wall time)
+========================================================================
+== Summary
+========================================================================
+demos that raised an error: none
+total wall time 569.6 s
