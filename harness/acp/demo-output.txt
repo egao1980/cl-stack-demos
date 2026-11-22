@@ -1,0 +1,84 @@
+harness-demos-acp 0.1.0: acp-protocol 0.1.0, acp-backend-stdio 0.1.0
+Demo 1: the fix turn, edit approved (allow_once)
+------------------------------------------------------------------------
+  initialize → protocolVersion 1, agent cl-stack-acp-demo 0.1.0
+  session/new → demo-1
+  client: session/update message chunk "I'll fix the off-by-one in fib.lisp: read it through the editor, show you the change as a diff, apply it once you approve, then run the tests."
+  client: session/update plan [in_progress: Read fib.lisp through the editor (fs/read_text_file) | pending: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update tool_call read-fib "Read fib.lisp" kind read status in_progress
+  client: fs/read_text_file <project>/fib.lisp → 274 chars
+  client: session/update tool_call_update read-fib status completed
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | pending: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | in_progress: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update message chunk "
+Found it: `(loop repeat (1- n) …)` runs one step too few, so (fib 1) is 0 and (fib 10) is 34. It should repeat n times."
+  client: session/update tool_call edit-fib "Fix the off-by-one in fib.lisp" kind edit status pending content diff of <project>/fib.lisp (274 → 269 chars)
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | in_progress: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/request_permission "Fix the off-by-one in fib.lisp" options [apply (allow_once), reject (reject_once)] → allow-once
+  client: session/update tool_call_update edit-fib status in_progress
+  client: fs/write_text_file <project>/fib.lisp ← 269 chars
+  client: session/update tool_call_update edit-fib status completed
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | completed: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | completed: Apply the fix once you approve it (fs/write_text_file) | in_progress: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: terminal/create sbcl --script test.lisp in <project> → term-1 (exit 0)
+  client: session/update tool_call run-tests "sbcl --script test.lisp" kind execute status in_progress content terminal term-1
+  client: terminal/wait_for_exit term-1 → 0
+  client: terminal/output term-1 → 11 of 11 tests passed
+  client: session/update tool_call_update run-tests status completed
+  client: terminal/release term-1
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | completed: Apply the fix once you approve it (fs/write_text_file) | completed: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update message chunk "
+Tests: 11 of 11 tests passed (exit code 0)."
+  client: session/update message chunk "
+Done: fib.lisp now loops `repeat n`."
+  session/prompt → stopReason end_turn
+  agent exit code: 0
+  fib.lisp after the turn:
+(defun fib (n)
+  "The Nth Fibonacci number: (fib 0) = 0, (fib 1) = 1, (fib 10) = 55."
+  (let ((a 0) (b 1))
+    (loop repeat n
+          do (psetf a b
+                    b (+ a b)))
+    a))
+  [ok] stopReason end_turn
+  [ok] plan sent
+  [ok] fs/read_text_file
+  [ok] tool_call with diff content
+  [ok] session/request_permission
+  [ok] fs/write_text_file
+  [ok] fib.lisp fixed on disk
+  [ok] tests ran in a terminal, exit 0
+  [ok] plan finished: 4 entries completed
+Demo 2: the same turn, edit rejected (reject_once)
+------------------------------------------------------------------------
+  initialize → protocolVersion 1, agent cl-stack-acp-demo 0.1.0
+  session/new → demo-1
+  client: session/update message chunk "I'll fix the off-by-one in fib.lisp: read it through the editor, show you the change as a diff, apply it once you approve, then run the tests."
+  client: session/update plan [in_progress: Read fib.lisp through the editor (fs/read_text_file) | pending: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update tool_call read-fib "Read fib.lisp" kind read status in_progress
+  client: fs/read_text_file <project>/fib.lisp → 274 chars
+  client: session/update tool_call_update read-fib status completed
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | pending: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | in_progress: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update message chunk "
+Found it: `(loop repeat (1- n) …)` runs one step too few, so (fib 1) is 0 and (fib 10) is 34. It should repeat n times."
+  client: session/update tool_call edit-fib "Fix the off-by-one in fib.lisp" kind edit status pending content diff of <project>/fib.lisp (274 → 269 chars)
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | pending: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/update plan [completed: Read fib.lisp through the editor (fs/read_text_file) | completed: Propose the off-by-one fix as a diff | in_progress: Apply the fix once you approve it (fs/write_text_file) | pending: Run the tests: sbcl --script test.lisp (terminal/*)]
+  client: session/request_permission "Fix the off-by-one in fib.lisp" options [apply (allow_once), reject (reject_once)] → reject-once
+  client: session/update tool_call_update edit-fib status failed
+  client: session/update message chunk "
+OK, I left fib.lisp unchanged (permission: reject-once)."
+  session/prompt → stopReason end_turn
+  agent exit code: 0
+  [ok] stopReason end_turn
+  [ok] no fs/write_text_file
+  [ok] edit tool call failed
+  [ok] fib.lisp unchanged
+  [ok] no terminal
+Wire log: wire-log.txt, 61 messages
+  [ok] wire log written
+========================================================================
+Checks failed: 0
