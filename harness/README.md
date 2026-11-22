@@ -2,7 +2,7 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Eleven cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Twelve cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
@@ -17,13 +17,14 @@ Eleven cl-repo projects, one per area. Each `demo-output.txt` is the captured ou
 | [`acp/`](acp/) | `harness-demos-acp` | acp-protocol 0.1.0, acp-backend-stdio 0.1.0: a scripted Lisp ACP agent on stdio (plan updates, `fs/read_text_file`, a diff tool call, `session/request_permission`, `fs/write_text_file`, a `terminal/*` test run), driven headless by a Lisp ACP client and live in Zed ([recording](acp/zed-demo.mp4), [README](acp/README.md)) |
 | [`policy/`](policy/) | `harness-demos-policy` | L1: policy-protocol 0.1.0 on logic-protocol 0.1.0 / logic-backend-datalog 0.1.0: user / project / session layers loaded from text (permit / forbid / ask on `Bash(git *)`, `Read(src)`, `WebFetch(github.com)`, a plan-mode condition, `:last-match` and `:forbid-overrides`), a 12-request decision table, `policy-explain` and proofs, `decision-why-not`, `skip-rule` on a malformed rule, a request budget resumed with `continue` ([README](policy/README.md)) |
 | [`unkernel/`](unkernel/) | `harness-demos-unkernel` | R4h-4: compute-backend-unkernel 0.1.0 (Linux compiled to wasm under Node, Node 24+, `scripts/setup.sh`): `confinement-available-p` and its reasons (missing Node, home not set up), one-shot `run-sandboxed` (`uname -a`, `/etc/os-release` on macOS), isolation (unmounted paths, read-only mounts, the writable area, no network, private TMPDIR), a warm session vs cold runs, a wall-clock deadline with `abort-execution` and no host process left, SBCL in the guest vs native (3.5–9.3x here) ([README](unkernel/README.md)) |
+| [`eval/`](eval/) | `harness-demos-eval` | E0: agent-eval 0.1.0 (Terminal-Bench-format tasks on eval-protocol 0.3.0): a three-task dataset (fix a shell bug, write a file, fix a Lisp function under `sbcl --script`) run in the local environment by the `nop`, `oracle` and cl-stack-code 0.10.0 (`-p` stream-json, live on Unsloth `Qwen3.8-Flash-Next`) agents; rewards, pass@1, tokens, cost, time; `save-run` / `load-run`, JSON and Markdown reports in [`eval/reports/`](eval/reports/); `compare-runs`; `reward-missing` resolved with `score-zero` / `use-exit-code`, `dataset-mismatch` with `continue` ([README](eval/README.md)) |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel
+cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1

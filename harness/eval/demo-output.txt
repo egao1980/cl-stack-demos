@@ -1,0 +1,172 @@
+agent-eval 0.1.0 · eval-protocol run records · local environment (the podman lane needs compute-backend-podman 0.3.0)
+
+========================================================================
+== 1. A Terminal-Bench-format dataset (tasks/)
+========================================================================
+> (ae:load-tb-dataset (demo-path "tasks/") :name "harness-demos-eval")
+  => #<EVAL-PROTOCOL:EVAL-DATASET {800B86EB93}>
+   digest 969a2e0e55756a5ade91150cd5901441af76d7d302b718ce9c9f4bd1c8177bff
+   fix-greeting: workdir /app, agent timeout 900 s, verifier 60 s, image none (built from the Dockerfile), Dockerfile yes, solution yes, easy / debugging, tags shell, bugfix
+      instruction | The script `greet.sh` in the current directory should print `Hello, NAME!` for its first argument, or `Hello, world!` when it gets none. It has a one-line bug: it prints `Hello, !` instead.
+      instruction | 
+      instruction | Fix the bug in `greet.sh`. Do not rename the script or change its interface.
+   fix-lisp-mean: workdir /app, agent timeout 900 s, verifier 60 s, image none (built from the Dockerfile), Dockerfile yes, solution yes, easy / debugging, tags common-lisp, bugfix
+      instruction | `stats.lisp` in the current directory defines `mean`, which should return the arithmetic mean of a non-empty list of numbers, for example `(mean '(1 2 3 4))` → `5/2`. It returns the wrong value.
+      instruction | 
+      instruction | Fix `mean` in `stats.lisp`. The check is `sbcl --script` on a test file that loads `stats.lisp` and calls `mean`; keep the function's name and argument list.
+   write-release-notes: workdir /app, agent timeout 900 s, verifier 60 s, image none (built from the Dockerfile), Dockerfile yes, solution yes, easy / file-operations, tags shell, files
+      instruction | Create the file `notes/release.txt` (make the `notes` directory if needed) whose content is exactly these three lines, each ending in a newline:
+      instruction | 
+      instruction | ```
+      instruction | … (4 more lines)
+   Environment: agent-eval's LOCAL-ENVIRONMENT (path-mapped: /app is <trial>/root/app),
+   subclassed here as SEEDED-LOCAL-ENVIRONMENT to do the Dockerfile's COPY app/ /app/.
+
+========================================================================
+== 2. The nop and oracle agents
+========================================================================
+-- nop agent: run-agent-eval over 3 tasks
+   task                   reward passed source      status           turns in-tok  out-tok wall    
+   fix-greeting           0      no     reward-txt  completed        -     -       -       0.2 s   
+   fix-lisp-mean          0      no     reward-txt  completed        -     -       -       0.2 s   
+   write-release-notes    0      no     reward-txt  completed        -     -       -       0.1 s   
+   pass@1 0.00 · accuracy 0.00 · eval-run mean 0.00, 0/3 passed
+   totals: 3 trials · tokens in - / out - (cache -) · cost n/a (incomplete) · wall 0.5 s · agent 0.0 s
+   save-run → <runs>/nop/ (result.json, run.sexp, trials/fix-greeting/1/transcript.jsonl, trials/fix-greeting/1/trial.sexp, trials/fix-lisp-mean/1/transcript.jsonl, trials/fix-lisp-mean/1/trial.sexp, trials/write-release-notes/1/transcript.jsonl, trials/write-release-notes/1/trial.sexp)
+   reports/nop.json, reports/nop.md written
+-- oracle agent: run-agent-eval over 3 tasks
+   task                   reward passed source      status           turns in-tok  out-tok wall    
+   fix-greeting           1      yes    reward-txt  completed        -     -       -       0.2 s   
+   fix-lisp-mean          1      yes    reward-txt  completed        -     -       -       0.2 s   
+   write-release-notes    1      yes    reward-txt  completed        -     -       -       0.2 s   
+   pass@1 1.00 · accuracy 1.00 · eval-run mean 1.00, 3/3 passed
+   totals: 3 trials · tokens in - / out - (cache -) · cost n/a (incomplete) · wall 0.7 s · agent 0.2 s
+   save-run → <runs>/oracle/ (result.json, run.sexp, trials/fix-greeting/1/transcript.jsonl, trials/fix-greeting/1/trial.sexp, trials/fix-lisp-mean/1/transcript.jsonl, trials/fix-lisp-mean/1/trial.sexp, trials/write-release-notes/1/transcript.jsonl, trials/write-release-notes/1/trial.sexp)
+   reports/oracle.json, reports/oracle.md written
+-- the oracle run's Markdown summary (reports/oracle.md):
+   # agent-eval run oracle (oracle)
+   
+   | task | reward | passed | status | turns | input tokens | output tokens | cost | wall |
+   |------|--------|--------|--------|-------|--------------|---------------|------|------|
+   | fix-greeting | 1 | yes | completed | - | - | - | n/a | 0.2 s |
+   | fix-lisp-mean | 1 | yes | completed | - | - | - | n/a | 0.2 s |
+   | write-release-notes | 1 | yes | completed | - | - | - | n/a | 0.2 s |
+   
+   pass@1 1.00; accuracy 1.00; tokens in - / out -; cost n/a; wall 0.7 s
+-- the :JSON report's top-level members (ev:eval-report :format :json):
+   accuracy, agent, agent_config, attempts, dataset, id, label, mean, n, pass_at_k, pass_count, tasks, totals, trials
+-- load-run round trip:
+> (equal (ev:eval-report back) (ev:eval-report oracle))
+  => T
+
+========================================================================
+== 3. compare-runs: nop (baseline) vs oracle (candidate)
+========================================================================
+> (list :wins (ae:comparison-wins cmp) :ties (ae:comparison-ties cmp) :losses
+        (ae:comparison-losses cmp) :mean-delta (ae:comparison-mean-delta cmp) :wall-delta
+        (ae:comparison-wall-delta cmp))
+  => (:WINS 3 :TIES 0 :LOSSES 0 :MEAN-DELTA 1 :WALL-DELTA 181)
+   # agent-eval comparison: nop-run vs oracle-run
+   
+   | task | baseline | candidate | delta |
+   |------|----------|-----------|-------|
+   | fix-greeting | 0.00 | 1.00 | +1.00 |
+   | fix-lisp-mean | 0.00 | 1.00 | +1.00 |
+   | write-release-notes | 0.00 | 1.00 | +1.00 |
+   
+   Wins 3, ties 0, losses 0; mean delta +1.00
+   Tokens n/a; cost n/a; wall +181 ms
+   reports/nop-vs-oracle.md, reports/nop-vs-oracle.json written
+
+========================================================================
+== 4. cl-stack-code -p, live, on the same three tasks
+========================================================================
+   GET /v1/models at 192.168.86.21:8888: unsloth/Qwen3.8-Flash-Next-GGUF, unsloth/Inkling-2-Mini-GGUF, unsloth/Inkling-2-Mini-GGUF:UD-Q4_K_XL, unsloth/Inkling-2-Mini-GGUF:UD-Q8_K_XL, lmstudio-community/Qwen3.8-27B-GGUF, lmstudio-community/Qwen3.8-27B-GGUF:Q4_K_M, lmstudio-community/Qwen3.8-27B-GGUF:Q8_0, sahilchachra/Unlimited-OCR-GGUF, lmstudio-community/gemma-4-12B-it-QAT-GGUF, gpustack/bge-m3-GGUF, Qwen/Qwen3-Embedding-0.6B-GGUF, ggml-org/embeddinggemma-300M-GGUF, lmstudio-community/NVIDIA-Nemotron-3-Nano-4B-GGUF, qwen3-asr-0.6b
+   MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF at 192.168.86.21:8888 (from HARNESS_DEMOS_MODEL); API key given: yes (never printed)
+   SAMPLING PRESET SENT: thinking (HARNESS_DEMOS_MODE) {"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repeat_penalty":1.0,"chat_template_kwargs":{"enable_thinking":true,"preserve_thinking":true}}
+   agent-config (saved with the run; :env, which holds the key, is not in it):
+     (:name "cl-stack-code" :command
+      ("<demo>/bin/cl-stack-code")
+      :model "openai:unsloth/Qwen3.8-Flash-Next-GGUF" :max-turns 20 :permission-mode "bypassPermissions"
+      :append-system-prompt nil :model-params
+      (("chat_template_kwargs" . #<hash-table :TEST equal :COUNT 2 {800542FE83}>) ("min_p" . 0.0d0)
+       ("presence_penalty" . 0.0d0) ("repeat_penalty" . 1.0d0) ("temperature" . 1.0d0) ("top_k" . 20)
+       ("top_p" . 0.95d0))
+      :settings-json nil :prices (:input 0 :output 0))
+   argv for the first task:
+     "<demo>/bin/cl-stack-code" "-p" "<instruction.md>" "--output-format" "stream-json" "--permission-mode" "bypassPermissions" "--cwd" "<trial>/root/app" "--model" "openai:unsloth/Qwen3.8-Flash-Next-GGUF" "--max-turns" "20" "--model-param" "chat_template_kwargs={\"enable_thinking\":true,\"preserve_thinking\":true}" "--model-param" "min_p=0.0" "--model-param" "presence_penalty=0.0" "--model-param" "repeat_penalty=1.0" "--model-param" "temperature=1.0" "--model-param" "top_k=20" "--model-param" "top_p=0.95"
+-- cl-stack-code agent: run-agent-eval over 3 tasks
+   task                   reward passed source      status           turns in-tok  out-tok wall    
+   fix-greeting           1      yes    reward-txt  completed        4     19981   266     73.5 s  
+   fix-lisp-mean          1      yes    reward-txt  completed        4     20319   412     291.9 s 
+   write-release-notes    1      yes    reward-txt  completed        3     14837   337     87.8 s  
+   pass@1 1.00 · accuracy 1.00 · eval-run mean 1.00, 3/3 passed
+   totals: 3 trials · tokens in 55137 / out 1015 (cache 47960) · cost $0.0000 · wall 453.2 s · agent 452.7 s
+   fix-greeting: 12 stream-json events system×1 assistant×4 tool_use×3 tool_result×3 result×1; status-detail success; error none
+      verifier | ok:   greet.sh Lisp -> Hello, Lisp!
+      verifier | ok:   greet.sh  -> Hello, world!
+   fix-lisp-mean: 16 stream-json events system×1 assistant×4 tool_use×5 tool_result×5 result×1; status-detail error_during_execution; error none
+      verifier | ok:   (MEAN '(1 2 3 4)) => 5/2
+      verifier | ok:   (MEAN '(10)) => 10
+      verifier | ok:   (MEAN '(2 4 6)) => 4
+      verifier | ok:   (SPREAD '(3 9 1)) => 8
+   write-release-notes: 39 stream-json events system×1 assistant×3 tool_use×2 tool_result×2 text_delta×30 result×1; status-detail success; error none
+      answer | Created `notes/release.txt` — 3 lines, each terminated with `\n` (82 bytes total, verified via `od -c`).
+      verifier | notes/release.txt: ok
+   save-run → <runs>/cl-stack-code/ (result.json, run.sexp, trials/fix-greeting/1/transcript.jsonl, trials/fix-greeting/1/trial.sexp, trials/fix-lisp-mean/1/transcript.jsonl, trials/fix-lisp-mean/1/trial.sexp, trials/write-release-notes/1/transcript.jsonl, trials/write-release-notes/1/trial.sexp)
+   reports/cl-stack-code.json, reports/cl-stack-code.md written
+-- load-run of this run (its agent-config holds the chat_template_kwargs JSON object):
+   load-run FAILED: can't read #. while *READ-EVAL* is NIL
+   (save-run printed the hash table as #.(…); egao1980/agent-eval#4)
+
+========================================================================
+== 4b. compare-runs: oracle (baseline) vs cl-stack-code (candidate)
+========================================================================
+   # agent-eval comparison: oracle-run vs cl-stack-code-run
+   
+   | task | baseline | candidate | delta |
+   |------|----------|-----------|-------|
+   | fix-greeting | 1.00 | 1.00 | +0.00 |
+   | fix-lisp-mean | 1.00 | 1.00 | +0.00 |
+   | write-release-notes | 1.00 | 1.00 | +0.00 |
+   
+   Wins 0, ties 3, losses 0; mean delta +0.00
+   Tokens n/a; cost n/a; wall +452517 ms
+   reports/oracle-vs-cl-stack-code.md, .json written
+
+========================================================================
+== 5. Conditions and restarts: a verifier that writes no reward
+========================================================================
+   test.sh | #!/bin/bash
+   test.sh | # A broken verifier on purpose: it checks the file and exits 0, but never
+   test.sh | # writes /logs/verifier/reward.txt or reward.json, so agent-eval signals
+   test.sh | # REWARD-MISSING.
+   test.sh | if [ -f done.txt ]; then echo "done.txt is there"; else echo "done.txt is missing"; fi
+   test.sh | exit 0
+-- 5a. run-trial … :on-missing-reward :error, inside a handler-bind that picks SCORE-ZERO
+   signalled AGENT-EVAL:REWARD-MISSING: agent-eval: no reward for broken-verifier: no reward file
+   task-id broken-verifier, reason "no reward file"; is an eval-protocol:eval-error: T
+   restarts: use-exit-code, score-zero, continue, abort, abort, exit
+   → (invoke-restart 'agent-eval:score-zero)
+   trial: status completed, reward 0, passed NIL, grade source missing, test.sh exit 0
+   verifier | done.txt is there
+-- 5b. the same restart chosen by the caller instead: USE-EXIT-CODE (test.sh exited 0)
+   trial: reward 1, passed T, grade source exit-code
+-- 5c. run-agent-eval … :on-missing-reward :error: the error reaches the caller as
+   eval-protocol:scorer-error (restarts skip-case / retry-case / score-as-failure); its cause
+   still has SCORE-ZERO live
+   signalled EVAL-PROTOCOL:SCORER-ERROR, cause AGENT-EVAL:REWARD-MISSING
+   restarts for the scorer-error: skip-case, retry-case, score-as-failure, continue, abort, abort, exit
+   → (invoke-restart (find-restart 'agent-eval:score-zero cause))
+   task                   reward passed source      status           turns in-tok  out-tok wall    
+   broken-verifier        0      no     missing     completed        -     -       -       0.2 s   
+-- 5d. compare-runs on different datasets: DATASET-MISMATCH, resolved with CONTINUE
+   signalled: agent-eval: runs on different datasets (969a2e0e55756a5ade91150cd5901441af76d7d302b718ce9c9f4bd1c8177bff vs 54603bfb2543246a0621ea50dc6002fea6d1d9214caca19ec14a7de0752e30c3)
+   → (continue)
+   rows 0; only in the baseline ("fix-greeting" "fix-lisp-mean"
+                                 "write-release-notes"); only in the candidate ("broken-verifier")
+
+========================================================================
+== Summary
+========================================================================
+   wall 455.4 s
