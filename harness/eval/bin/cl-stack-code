@@ -1,0 +1,12 @@
+#!/bin/sh
+# cl-stack-code as a command for agent-eval's adapter, from the cl-stack-code
+# package cl-repo installed (harness-demos-eval depends on it). The demo passes
+# its own image's source registry as CL_SOURCE_REGISTRY in the adapter's env:
+# `cl-repo run` configures the Lisp it starts but exports no registry. Arguments pass through to
+# CL-STACK-CODE:RUN-CLI, the entry point of the cl-stack-code binary
+# (SBCL leaves only the arguments after --end-toplevel-options in *posix-argv*).
+exec sbcl --noinform --non-interactive --no-sysinit --no-userinit \
+  --eval '(require "asdf")' \
+  --eval '(let ((*standard-output* *error-output*)) (asdf:load-system "cl-stack-code"))' \
+  --eval '(uiop:quit (funcall (uiop:find-symbol* "RUN-CLI" "CL-STACK-CODE") (rest sb-ext:*posix-argv*)))' \
+  --end-toplevel-options "$@"
