@@ -13,5 +13,7 @@
                     (#:oa #:llm-protocol-openai)
                     (#:json #:json-protocol)
                     (#:ev #:event-protocol)
-                    (#:hp #:http-protocol))
+                    (#:hp #:http-protocol)
+                    ;; Demos 6-7: R4d-4b plan mode confined
+                    (#:code #:cl-stack-code))
   (:export #:run-demos))
