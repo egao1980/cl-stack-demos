@@ -83,7 +83,8 @@ validated and normalised, and the serializer writes either a readable or a minif
                     (snippet *theme-snippet*)
                     (model-text *model-text*)
                     (theme-text *theme-text*)
-                    (footer "Built with html-protocol 0.1.0 and css-protocol 0.1.0 · cl-stack-demos, harness/css")
+                    (footer (format nil "Built with ~a · cl-stack-demos, harness/css"
+                                    (built-with "html-protocol" "css-protocol")))
                     (sizes '(:full-rules 0 :full-pretty 0 :full-mini 0
                                             :used-rules 0 :used-pretty 0 :used-mini 0)))
   "The demo page. STYLE is the stylesheet text inlined in <style>; SIZES feeds

@@ -34,7 +34,7 @@
   (let* ((elements (page-elements *tree*))
          (names (remove-duplicates (mapcar #'html:html-element-name elements)
                                    :test #'string= :from-end t)))
-    (stage "the page (html-protocol 0.1.0 tree)")
+    (stage "the page (html-protocol ~a tree)" (loaded-version "html-protocol"))
     (show "elements" (length elements))
     (show "element types" (length names))
     (note "~{~a~^ ~}" names)

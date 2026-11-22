@@ -2,7 +2,7 @@
 
 ;;; Demos 7-11: the same page with its stylesheet written in LASS
 ;;; (harness/css/lass/*.lass), compiled by css-backend-lass 0.1.0 and layered
-;;; on engels 0.2.0: (engels:stylesheet), then the page rules, then
+;;; on engels 0.2.1: (engels:stylesheet), then the page rules, then
 ;;; used-rules against the page. Writes page-lass.html.
 
 (defun lass-path (name)
@@ -76,7 +76,7 @@ the way css-backend-lass reads LASS files (its user package, no #.)."
          :style style
          :title "Stylesheets as data — LASS on engels"
          :heading "Stylesheets as data, in LASS"
-         :lede "The same classless page, styled by engels 0.2.0 plus page rules written in LASS, pruned to the rules it uses."
+         :lede "The same classless page, styled by engels 0.2.1 plus page rules written in LASS, pruned to the rules it uses."
          :snippet *lass-snippet*
          :model-text (list "The page rules are LASS files compiled by "
                            (el "code" nil "css-backend-lass") " into the css-protocol model and layered on "
@@ -88,7 +88,8 @@ the way css-backend-lass reads LASS files (its user package, no #.)."
                            " ones, derived with " (el "code" nil "darken") ", " (el "code" nil "lighten")
                            " and " (el "code" nil "mix") ", switched by "
                            (el "code" nil "prefers-color-scheme") " or " (el "code" nil "data-theme") ".")
-         :footer "Built with engels 0.2.0, css-backend-lass 0.1.0, css-protocol 0.1.0 and html-protocol 0.1.0 · cl-stack-demos, harness/css"
+         :footer (format nil "Built with ~a · cl-stack-demos, harness/css"
+                         (built-with "engels" "css-backend-lass" "css-protocol" "html-protocol"))
          (when sizes (list :sizes sizes))))
 
 (defun ensure-lass-state ()
@@ -178,7 +179,7 @@ the way css-backend-lass reads LASS files (its user package, no #.)."
                              collect (vector (intern (string-upcase name) '#:css-backend-lass-user)))))))
     (dolist (d (css:rule-declarations (first (css:stylesheet-rules sheet))))
       (note "~22a ~a" (format nil "#(~a)" (css:declaration-property d)) (css:declaration-value d))))
-  (stage "engels 0.2.0 derives its palette the same way (engels:palette-colours)")
+  (stage "engels 0.2.1 derives its palette the same way (engels:palette-colours)")
   (loop for (name . value) in (engels:palette-colours engels:*light-palette*)
         for dark = (cdr (assoc name (engels:palette-colours engels:*dark-palette*) :test #'string=))
         when (member name '("engels-primary" "engels-primary-hover" "engels-primary-active"
@@ -277,7 +278,7 @@ the way css-backend-lass reads LASS files (its user package, no #.)."
     (flet ((row (label sheet)
              (note "~34a ~4d rules  pretty ~7:d  minified ~7:d" label (count-style-rules sheet)
                    (utf-8-length (pretty sheet)) (utf-8-length (mini sheet)))))
-      (row "engels 0.2.0 in full" engels)
+      (row "engels 0.2.1 in full" engels)
       (row "page rules (LASS) alone" *page-lass*)
       (row "engels + page" *layered*)
       (row "engels + page, used-rules" *layered-used*))

@@ -1,4 +1,4 @@
-WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: System definition file #P"/Users/nikolaimatiushev/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -12,7 +12,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
 == Demo 1: css-protocol 0.1.0 model + serializer — the page, the stylesheet, pretty vs minified
 ========================================================================
 
--- the page (html-protocol 0.1.0 tree)
+-- the page (html-protocol 0.1.1 tree)
    elements: 103
    element types: 40
    html head meta title style body header h1 p nav ul li a main article h2 code h3 pre table caption thead tr th tbody td figure svg text rect figcaption form label input select option button details summary footer
@@ -779,7 +779,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
    class attributes in the page: 0
    no external URLs: T
    </ only where tags close (none inside <style>): T
-   wrote harness/css/page.html: 10,086 bytes (style 5,590 bytes, 369 lines)
+   wrote harness/css/page.html: 10,083 bytes (style 5,590 bytes, 369 lines)
 
 -- page.html, first 30 lines
    <!DOCTYPE html>
@@ -1033,7 +1033,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
    #(accent-dark-wash)    #1D232E
    #(bar-dark)            rgba(104, 162, 247, 0.85)
 
--- engels 0.2.0 derives its palette the same way (engels:palette-colours)
+-- engels 0.2.1 derives its palette the same way (engels:palette-colours)
    --engels-primary               light #007bff                  dark #4da3ff
    --engels-primary-hover         light #0069D9                  dark #73B7FF
    --engels-primary-active        light #0062CC                  dark #80BDFF
@@ -1090,17 +1090,17 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
 -- layering: (merge-stylesheets (engels:stylesheet) page-sheet), then used-rules
    engels first (its :root theme, Marx's element rules, the canvas vocabulary),
    then the page's --page-* theme and rules, so on equal specificity the page wins.
-   engels top-level nodes: 101
+   engels top-level nodes: 140
    page top-level nodes: 26
    layered = engels ++ page: T
 
 -- sizes (bytes, UTF-8)
-   engels 0.2.0 in full                101 rules  pretty  15,962  minified  13,877
+   engels 0.2.1 in full                140 rules  pretty  19,023  minified  16,423
    page rules (LASS) alone              26 rules  pretty   2,120  minified   1,724
-   engels + page                       127 rules  pretty  18,083  minified  15,601
-   engels + page, used-rules           104 rules  pretty  16,494  minified  14,353
-   (engels:css-octets): 13,877 bytes = css/engels.css
-   pruning keeps 92% of the minified bytes
+   engels + page                       166 rules  pretty  21,144  minified  18,147
+   engels + page, used-rules           143 rules  pretty  19,555  minified  16,899
+   (engels:css-octets): 16,423 bytes = css/engels.css
+   pruning keeps 93% of the minified bytes
 
 -- what pruning dropped (top level)
      hr
@@ -1133,7 +1133,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
    class attributes in the page: 0
    no external URLs: T
    no </ inside <style>: T
-   wrote harness/css/page-lass.html: 21,396 bytes (style 16,494 bytes, 678 lines)
+   wrote harness/css/page-lass.html: 24,454 bytes (style 19,555 bytes, 874 lines)
 
 -- page-lass.html, first 24 lines
    <!DOCTYPE html>
@@ -1160,7 +1160,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
      --engels-on-primary: #fff;
      --engels-focus-ring: rgba(0, 123, 255, 0.5);
      --engels-input-focus-border: #80BDFF;
-   ... (769 more lines)
+   ... (965 more lines)
 
 ========================================================================
 Demos run: 11, failed: none
