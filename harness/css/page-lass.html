@@ -92,6 +92,198 @@
   color-scheme: light;
 }
 
+*, ::before, ::after {
+  box-sizing: border-box;
+  background-repeat: no-repeat;
+}
+
+::before, ::after {
+  text-decoration: inherit;
+  vertical-align: inherit;
+}
+
+:where(:root) {
+  cursor: default;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+:where(body) {
+  margin: 0;
+}
+
+:where(h1) {
+  font-size: 2em;
+  margin: 0.67em 0;
+}
+
+:where(dl, ol, ul) :where(dl, ol, ul) {
+  margin: 0;
+}
+
+:where(hr) {
+  color: inherit;
+  height: 0;
+}
+
+:where(nav) :where(ol, ul) {
+  list-style-type: none;
+  padding: 0;
+}
+
+:where(nav li)::before {
+  content: "\200B";
+  float: left;
+}
+
+:where(pre) {
+  font-family: monospace, monospace;
+  font-size: 1em;
+  overflow: auto;
+}
+
+:where(abbr[title]) {
+  text-decoration: underline;
+  text-decoration: underline dotted;
+}
+
+:where(b, strong) {
+  font-weight: bolder;
+}
+
+:where(code, kbd, samp) {
+  font-family: monospace, monospace;
+  font-size: 1em;
+}
+
+:where(small) {
+  font-size: 80%;
+}
+
+:where(audio, canvas, iframe, img, svg, video) {
+  vertical-align: middle;
+}
+
+:where(iframe) {
+  border-style: none;
+}
+
+:where(svg:not([fill])) {
+  fill: currentcolor;
+}
+
+:where(table) {
+  border-collapse: collapse;
+  border-color: inherit;
+  text-indent: 0;
+}
+
+:where(button, input, select) {
+  margin: 0;
+}
+
+:where(button, [type="button" i], [type="reset" i], [type="submit" i]) {
+  -webkit-appearance: button;
+}
+
+:where(fieldset) {
+  border: 1px solid var(--engels-dividers);
+}
+
+:where(progress) {
+  vertical-align: baseline;
+}
+
+:where(textarea) {
+  margin: 0;
+  resize: vertical;
+}
+
+:where([type="search" i]) {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+
+::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+::-webkit-input-placeholder {
+  color: inherit;
+  opacity: 0.54;
+}
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  font: inherit;
+}
+
+:where(dialog) {
+  background-color: var(--engels-surface);
+  border: solid;
+  color: var(--engels-text);
+  height: -moz-fit-content;
+  height: fit-content;
+  left: 0;
+  margin: auto;
+  padding: 1em;
+  position: absolute;
+  right: 0;
+  width: -moz-fit-content;
+  width: fit-content;
+}
+
+:where(dialog:not([open])) {
+  display: none;
+}
+
+:where(details > summary:first-of-type) {
+  display: list-item;
+}
+
+:where([aria-busy="true" i]) {
+  cursor: progress;
+}
+
+:where([aria-controls]) {
+  cursor: pointer;
+}
+
+:where([aria-disabled="true" i], [disabled]) {
+  cursor: not-allowed;
+}
+
+:where([aria-hidden="false" i][hidden]) {
+  display: initial;
+}
+
+:where([aria-hidden="false" i][hidden]:not(:focus)) {
+  clip: rect(0, 0, 0, 0);
+  position: absolute;
+}
+
+:where(button, input, select, textarea) {
+  background-color: transparent;
+  border: 1px solid var(--engels-dividers);
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  padding: 0.25em 0.375em;
+}
+
+:where([type="color" i], [type="range" i]) {
+  border-width: 0;
+  padding: 0;
+}
+
 main, header, footer, article, section, aside, details, summary {
   margin: 0 auto;
   margin-bottom: 16px;
@@ -398,6 +590,10 @@ th, td {
   vertical-align: inherit;
 }
 
+table {
+  width: 100%;
+}
+
 [data-layout="stack"] {
   display: flex;
   flex-direction: column;
@@ -689,7 +885,7 @@ code {
 <body>
 <header>
 <h1>Stylesheets as data, in LASS</h1>
-<p>The same classless page, styled by engels 0.2.0 plus page rules written in LASS, pruned to the rules it uses.</p>
+<p>The same classless page, styled by engels 0.2.1 plus page rules written in LASS, pruned to the rules it uses.</p>
 <nav aria-label="Sections">
 <ul>
 <li><a href="#model">The model</a></li>
@@ -730,33 +926,33 @@ code {
 <tbody>
 <tr>
 <th scope="row">Everything written</th>
-<td data-num="">127</td>
-<td data-num="">18,083</td>
-<td data-num="">15,601</td>
+<td data-num="">166</td>
+<td data-num="">21,144</td>
+<td data-num="">18,147</td>
 </tr>
 <tr>
 <th scope="row">Used by this page</th>
-<td data-num="">104</td>
-<td data-num="">16,494</td>
-<td data-num="">14,353</td>
+<td data-num="">143</td>
+<td data-num="">19,555</td>
+<td data-num="">16,899</td>
 </tr>
 </tbody>
 </table>
 <figure>
 <svg viewBox="0 0 640 144" role="img" aria-labelledby="chart-title">
-<title id="chart-title">Stylesheet sizes in bytes: Full, pretty 18083, Full, minified 15601, Used, pretty 16494, Used, minified 14353</title>
+<title id="chart-title">Stylesheet sizes in bytes: Full, pretty 21144, Full, minified 18147, Used, pretty 19555, Used, minified 16899</title>
 <text x="0" y="24">Full, pretty</text>
 <rect x="190" y="6" width="380" height="24" rx="3"></rect>
-<text x="578" y="24">18,083</text>
+<text x="578" y="24">21,144</text>
 <text x="0" y="58">Full, minified</text>
-<rect x="190" y="40" width="328" height="24" rx="3"></rect>
-<text x="526" y="58">15,601</text>
+<rect x="190" y="40" width="326" height="24" rx="3"></rect>
+<text x="524" y="58">18,147</text>
 <text x="0" y="92">Used, pretty</text>
-<rect x="190" y="74" width="347" height="24" rx="3"></rect>
-<text x="545" y="92">16,494</text>
+<rect x="190" y="74" width="351" height="24" rx="3"></rect>
+<text x="549" y="92">19,555</text>
 <text x="0" y="126">Used, minified</text>
-<rect x="190" y="108" width="302" height="24" rx="3"></rect>
-<text x="500" y="126">14,353</text>
+<rect x="190" y="108" width="304" height="24" rx="3"></rect>
+<text x="502" y="126">16,899</text>
 </svg>
 <figcaption>Figure 1. The same stylesheet four ways. This page inlines the used, pretty form.</figcaption>
 </figure>
@@ -787,7 +983,7 @@ so anything it cannot decide is kept.</p>
 </article>
 </main>
 <footer>
-<p>Built with engels 0.2.0, css-backend-lass 0.1.0, css-protocol 0.1.0 and html-protocol 0.1.0 · cl-stack-demos, harness/css</p>
+<p>Built with engels 0.2.1, css-backend-lass 0.1.0, css-protocol 0.1.0, html-protocol 0.1.1 · cl-stack-demos, harness/css</p>
 </footer>
 </body>
 </html>

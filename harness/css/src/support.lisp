@@ -64,3 +64,11 @@
                               :external-format :utf-8)
     (write-string text s))
   pathname)
+
+(defun loaded-version (name)
+  "The :version of the ASDF system NAME as loaded in this image."
+  (asdf:component-version (asdf:find-system name)))
+
+(defun built-with (&rest names)
+  "\"name version, ...\" for the loaded systems NAMES (the page footers)."
+  (format nil "~{~a~^, ~}" (mapcar (lambda (n) (format nil "~a ~a" n (loaded-version n))) names)))
