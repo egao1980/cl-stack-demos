@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Stylesheets as data — css-protocol 0.1.0</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fdfdfc;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --surface: #f4f5f7;
+  --border: #d8dee4;
+  --border-strong: #8c959f;
+  --accent: #0b5cd5;
+  --accent-hover: #0847a6;
+  --on-accent: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a;
+    --fg: #e4e6e9;
+    --muted: #9aa4b1;
+    --surface: #1d2026;
+    --border: #30353d;
+    --border-strong: #5b636e;
+    --accent: #7ab0ff;
+    --accent-hover: #a3c8ff;
+    --on-accent: #0b1220;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14161a;
+  --fg: #e4e6e9;
+  --muted: #9aa4b1;
+  --surface: #1d2026;
+  --border: #30353d;
+  --border-strong: #5b636e;
+  --accent: #7ab0ff;
+  --accent-hover: #a3c8ff;
+  --on-accent: #0b1220;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+header, main, footer {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+header {
+  padding-block: 2.5rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.015em;
+}
+
+header p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+nav a {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+main {
+  padding-block: 0.5rem 1rem;
+}
+
+h1, h2, h3 {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+h2 {
+  margin: 2.75rem 0 0.75rem;
+  font-size: 1.45rem;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+p, ul, ol {
+  margin: 0 0 1rem;
+}
+
+main li + li {
+  margin-top: 0.25rem;
+}
+
+code, pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
+}
+
+:not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+pre {
+  margin: 1.25rem 0;
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+caption {
+  padding-bottom: 0.5rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+th, td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  border-bottom: 2px solid var(--border-strong);
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: var(--surface);
+}
+
+tbody th {
+  font-weight: 500;
+}
+
+th[data-num], td[data-num] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+input, select, button {
+  font: inherit;
+  color: inherit;
+}
+
+input:not([type="checkbox"]), select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+button {
+  justify-self: start;
+  padding: 0.55rem 1.15rem;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--accent-hover);
+}
+
+figure {
+  margin: 1.75rem 0;
+}
+
+figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+svg rect {
+  fill: var(--accent);
+}
+
+svg text {
+  fill: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+}
+
+figcaption {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+details {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+details > :last-child {
+  margin-bottom: 0;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-block: 1.5rem 3rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 40rem) {
+  html {
+    font-size: 93.75%;
+  }
+
+  header, main, footer {
+    padding-inline: 1rem;
+  }
+
+  header {
+    padding-block: 1.75rem 1rem;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+  }
+
+  th, td {
+    padding: 0.45rem 0.5rem;
+  }
+
+  form {
+    padding: 1rem;
+  }
+
+  button {
+    justify-self: stretch;
+  }
+
+  svg text {
+    font-size: 20px;
+  }
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.4;
+  }
+}
+
+@media print {
+  aside, nav {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>Stylesheets as data</h1>
+<p>A classless page whose stylesheet is a CLOS model, pruned to the rules it uses.</p>
+<nav aria-label="Sections">
+<ul>
+<li><a href="#model">The model</a></li>
+<li><a href="#sizes">Sizes</a></li>
+<li><a href="#try">Try the form</a></li>
+<li><a href="#pruning">Pruning</a></li>
+</ul>
+</nav>
+</header>
+<main>
+<article>
+<h2 id="model">The model is the stylesheet</h2>
+<p>Every rule on this page was built with <code>make-rule</code> and <code>make-declaration</code>, not written as text. Selectors are parsed into compounds, declaration values are
+validated and normalised, and the serializer writes either a readable or a minified form.</p>
+<h3>Validated on construction</h3>
+<p>A value such as <code>red;}body{x:y</code> is refused with a <code>css-invalid-value</code> condition. A handler can supply a replacement with <code>use-value</code> or drop the item with <code>skip-invalid</code>.</p>
+<h3>Light and dark from custom properties</h3>
+<p>Colours live in one theme. The rules only say <code>var(--fg)</code>; the theme maps it to a light or a dark value through <code>prefers-color-scheme</code>.</p>
+<pre><code>(css:make-css-theme
+  :light '(("bg" . "#fdfdfc") ("fg" . "#1f2328") ("accent" . "#0b5cd5"))
+  :dark  '(("bg" . "#14161a") ("fg" . "#e4e6e9") ("accent" . "#7ab0ff"))
+  :toggle-attribute "data-theme")</code></pre>
+<h2 id="sizes">What it weighs</h2>
+<table>
+<caption>The stylesheet before and after pruning against this page, in bytes</caption>
+<thead>
+<tr>
+<th scope="col">Stylesheet</th>
+<th scope="col" data-num="">Style rules</th>
+<th scope="col" data-num="">Pretty</th>
+<th scope="col" data-num="">Minified</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Everything written</th>
+<td data-num="">67</td>
+<td data-num="">6,029</td>
+<td data-num="">4,792</td>
+</tr>
+<tr>
+<th scope="row">Used by this page</th>
+<td data-num="">61</td>
+<td data-num="">5,590</td>
+<td data-num="">4,454</td>
+</tr>
+</tbody>
+</table>
+<figure>
+<svg viewBox="0 0 640 144" role="img" aria-labelledby="chart-title">
+<title id="chart-title">Stylesheet sizes in bytes: Full, pretty 6029, Full, minified 4792, Used, pretty 5590, Used, minified 4454</title>
+<text x="0" y="24">Full, pretty</text>
+<rect x="190" y="6" width="380" height="24" rx="3"></rect>
+<text x="578" y="24">6,029</text>
+<text x="0" y="58">Full, minified</text>
+<rect x="190" y="40" width="302" height="24" rx="3"></rect>
+<text x="500" y="58">4,792</text>
+<text x="0" y="92">Used, pretty</text>
+<rect x="190" y="74" width="352" height="24" rx="3"></rect>
+<text x="550" y="92">5,590</text>
+<text x="0" y="126">Used, minified</text>
+<rect x="190" y="108" width="281" height="24" rx="3"></rect>
+<text x="479" y="126">4,454</text>
+</svg>
+<figcaption>Figure 1. The same stylesheet four ways. This page inlines the used, pretty form.</figcaption>
+</figure>
+<h2 id="try">Try the form</h2>
+<p>The form is styled from element selectors alone. Nothing is sent anywhere.</p>
+<form action="#try" method="get">
+<label for="name">Name<input id="name" name="name" type="text" autocomplete="name" placeholder="Ada Lovelace"></label>
+<label for="scheme">Colour scheme<select id="scheme" name="scheme">
+<option value="system" selected="">Follow the system</option>
+<option value="light">Light</option>
+<option value="dark">Dark</option>
+</select></label>
+<label><input type="checkbox" name="notes" checked="">Send me the release notes</label>
+<button type="submit">Save preferences</button>
+</form>
+<h2 id="pruning">How pruning decides</h2>
+<details>
+<summary>Which rules does used-rules keep?</summary>
+<p>A selector may match when each of its compounds is satisfied by some single element:
+its type, its ids and its classes. Combinators, attribute selectors and pseudo-classes count as satisfied,
+so anything it cannot decide is kept.</p>
+<ul>
+<li><code>table th</code> is kept: both elements are on the page.</li>
+<li><code>aside</code> and <code>.unused</code> are dropped: nothing here matches.</li>
+<li><code>@keyframes</code> and <code>@font-face</code> are always kept.</li>
+</ul>
+</details>
+</article>
+</main>
+<footer>
+<p>Built with html-protocol 0.1.0 and css-protocol 0.1.0 · cl-stack-demos, harness/css</p>
+</footer>
+</body>
+</html>
