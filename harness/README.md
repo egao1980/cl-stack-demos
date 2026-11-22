@@ -2,7 +2,7 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Twelve cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Thirteen cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
@@ -18,6 +18,7 @@ Twelve cl-repo projects, one per area. Each `demo-output.txt` is the captured ou
 | [`policy/`](policy/) | `harness-demos-policy` | L1: policy-protocol 0.1.0 on logic-protocol 0.1.0 / logic-backend-datalog 0.1.0: user / project / session layers loaded from text (permit / forbid / ask on `Bash(git *)`, `Read(src)`, `WebFetch(github.com)`, a plan-mode condition, `:last-match` and `:forbid-overrides`), a 12-request decision table, `policy-explain` and proofs, `decision-why-not`, `skip-rule` on a malformed rule, a request budget resumed with `continue` ([README](policy/README.md)) |
 | [`unkernel/`](unkernel/) | `harness-demos-unkernel` | R4h-4: compute-backend-unkernel 0.1.0 (Linux compiled to wasm under Node, Node 24+, `scripts/setup.sh`): `confinement-available-p` and its reasons (missing Node, home not set up), one-shot `run-sandboxed` (`uname -a`, `/etc/os-release` on macOS), isolation (unmounted paths, read-only mounts, the writable area, no network, private TMPDIR), a warm session vs cold runs, a wall-clock deadline with `abort-execution` and no host process left, SBCL in the guest vs native (3.5–9.3x here) ([README](unkernel/README.md)) |
 | [`eval/`](eval/) | `harness-demos-eval` | E0: agent-eval 0.1.0 (Terminal-Bench-format tasks on eval-protocol 0.3.0): a three-task dataset (fix a shell bug, write a file, fix a Lisp function under `sbcl --script`) run in the local environment by the `nop`, `oracle` and cl-stack-code 0.10.0 (`-p` stream-json, live on Unsloth `Qwen3.8-Flash-Next`) agents; rewards, pass@1, tokens, cost, time; `save-run` / `load-run`, JSON and Markdown reports in [`eval/reports/`](eval/reports/); `compare-runs`; `reward-missing` resolved with `score-zero` / `use-exit-code`, `dataset-mismatch` with `continue` ([README](eval/README.md)) |
+| [`canvas/`](canvas/) | `harness-demos-canvas` | H4h: canvas-protocol 0.1.1, canvas-backend-svg 0.1.0, rpc-backend-htmx 0.1.0 (+ `/canvas`), engels 0.2.1: canvases as plain functions (sortable table, bar and line charts, an htmx form that re-renders only the chart, an SSE ticker) served on 127.0.0.1 behind a one-time token and the strict CSP, driven in process and over real HTTP, redefined live, frozen to `dashboard.html` (+ `dashboard.png`) |
 
 ## Run
 
@@ -151,6 +152,7 @@ Needs: SBCL via Roswell, `cl-repo`, `git` (≥ 2.43 for `fs/`; ≥ 2.56 for `cod
   - **Demo 5** — the theme maps, the theme stylesheet, how OS preference and `data-theme` pick the values, a second (sepia) theme leaving every other rule byte-identical, the theme on `[data-canvas]`.
   - **Demo 6** — [`css/page.html`](css/page.html): the used rules inlined in `<style>` (5,590 bytes), no external URL, no class; readable in light and dark (centred 44rem column, WCAG AA contrast in both).
 - **unkernel** — compute-backend-unkernel 0.1.0 (R4h-4), a confinement backend that runs commands in Linux compiled to wasm under Node: availability and its reasons, one-shot runs that show Linux on macOS, isolation (mounts, network, TMPDIR), a warm session (~3 ms per exec) against cold runs (~640 ms), a wall-clock deadline handled with `abort-execution`, and SBCL in the guest at 3.5–9.3x native. See [unkernel/README.md](unkernel/README.md).
+- **canvas** — the first canvas demo (H4h): canvases are plain functions in the image, served by rpc-backend-htmx on Hunchentoot with a token cookie and the brief's CSP, driven by the in-process htmx client and by http-backend-async; `csp-violations` is empty, a live `defun` of the chart canvas shows on the next request, and `freeze` writes a self-contained [`canvas/dashboard.html`](canvas/dashboard.html) with no external URL. See [`canvas/README.md`](canvas/README.md).
 
 ## Windows
 
