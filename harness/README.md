@@ -2,7 +2,7 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Thirteen cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Fourteen cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
@@ -19,13 +19,14 @@ Thirteen cl-repo projects, one per area. Each `demo-output.txt` is the captured 
 | [`unkernel/`](unkernel/) | `harness-demos-unkernel` | R4h-4: compute-backend-unkernel 0.1.0 (Linux compiled to wasm under Node, Node 24+, `scripts/setup.sh`): `confinement-available-p` and its reasons (missing Node, home not set up), one-shot `run-sandboxed` (`uname -a`, `/etc/os-release` on macOS), isolation (unmounted paths, read-only mounts, the writable area, no network, private TMPDIR), a warm session vs cold runs, a wall-clock deadline with `abort-execution` and no host process left, SBCL in the guest vs native (3.5–9.3x here) ([README](unkernel/README.md)) |
 | [`eval/`](eval/) | `harness-demos-eval` | E0: agent-eval 0.1.0 (Terminal-Bench-format tasks on eval-protocol 0.3.0): a three-task dataset (fix a shell bug, write a file, fix a Lisp function under `sbcl --script`) run in the local environment by the `nop`, `oracle` and cl-stack-code 0.10.0 (`-p` stream-json, live on Unsloth `Qwen3.8-Flash-Next`) agents; rewards, pass@1, tokens, cost, time; `save-run` / `load-run`, JSON and Markdown reports in [`eval/reports/`](eval/reports/); `compare-runs`; `reward-missing` resolved with `score-zero` / `use-exit-code`, `dataset-mismatch` with `continue` ([README](eval/README.md)) |
 | [`canvas/`](canvas/) | `harness-demos-canvas` | H4h: canvas-protocol 0.1.1, canvas-backend-svg 0.1.0, rpc-backend-htmx 0.1.0 (+ `/canvas`), engels 0.2.1: canvases as plain functions (sortable table, bar and line charts, an htmx form that re-renders only the chart, an SSE ticker) served on 127.0.0.1 behind a one-time token and the strict CSP, driven in process and over real HTTP, redefined live, frozen to `dashboard.html` (+ `dashboard.png`) |
+| [`sample/`](sample/) | `harness-demos-sample` | ACP-4: cl-stack-code 0.10.1 through the lisp-workspace launcher (`scripts/cl-stack-code.sh`, downloaded, built into a fresh cache) on a fresh clone of cl-stack-sample: its README section 4 `-p` session (add a `w` unit with tests, `acceptEdits` + the project `.cl-stack-code/settings.json`) on a live model, checked by an independent `cl-repo test` ([README](sample/README.md)) |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval
+cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval, canvas, sample
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1
