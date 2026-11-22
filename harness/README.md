@@ -2,7 +2,7 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Nine cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Ten cl-repo projects, one per area. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
@@ -15,13 +15,14 @@ Nine cl-repo projects, one per area. Each `demo-output.txt` is the captured outp
 | [`isolation/`](isolation/) | `harness-demos-isolation` | R4c: cl-stack-pathlib 0.10.0 (`fs-clone-tree` protocol + the `:copy` rung, areas built on it), fs-backend-darwin 0.2.0 (`:clonefile`, APFS), fs-backend-linux 0.2.0 (`:ficlone`, Linux only); R4d: compute-protocol 0.3.2 (confinement, `run-confined`, the reference model, `compute-protocol/confinement-suite`), compute-backend-seatbelt 0.1.1 (macOS `sandbox-exec`), compute-backend-landlock 0.1.0 (Linux only: bwrap / Landlock), process-protocol 0.4.1, process-backend-uiop 0.3.1; R4d-4a: agent-tools 0.4.0 (confined shell tools); R4d-4b: cl-stack-code 0.10.0 (`-p --permission-mode plan` confined on Seatbelt: the plan event's `"sandbox"` object, the `# Sandbox` prompt section, `--allow-network`, the no-sandbox notice, `sandbox.failIfUnavailable`; a live model fixing a test in the confined area, then `--apply`), json-protocol 0.2.3 |
 | [`css/`](css/) | `harness-demos-css` | H4h-0b-0: css-protocol 0.1.0 (model + validating constructors, pretty / minified serializer, `make-css-theme` light / dark, `scope-stylesheet` `:prefix` / `:scope-rule`, `used-rules`, conditions + restarts), html-protocol 0.1.1 (the page tree); writes [`css/page.html`](css/page.html). H4h-0b-1/2: css-backend-lass 0.1.0 (LASS files in [`css/lass/`](css/lass/): unit arithmetic, `darken` / `lighten` / `mix` / `fade-*`, `:let*`, `:include` of a shared tokens file, `calc` pass-through, `use-value` / `skip-invalid`) layered on engels 0.2.1 (sanitize.css 13.0.0 base layer, full-width tables) and pruned; writes [`css/page-lass.html`](css/page-lass.html) (engels + page 166 rules, 18,147 bytes minified; used 143, 16,899) |
 | [`acp/`](acp/) | `harness-demos-acp` | acp-protocol 0.1.0, acp-backend-stdio 0.1.0: a scripted Lisp ACP agent on stdio (plan updates, `fs/read_text_file`, a diff tool call, `session/request_permission`, `fs/write_text_file`, a `terminal/*` test run), driven headless by a Lisp ACP client and live in Zed ([recording](acp/zed-demo.mp4), [README](acp/README.md)) |
+| [`policy/`](policy/) | `harness-demos-policy` | L1: policy-protocol 0.1.0 on logic-protocol 0.1.0 / logic-backend-datalog 0.1.0: user / project / session layers loaded from text (permit / forbid / ask on `Bash(git *)`, `Read(src)`, `WebFetch(github.com)`, a plan-mode condition, `:last-match` and `:forbid-overrides`), a 12-request decision table, `policy-explain` and proofs, `decision-why-not`, `skip-rule` on a malformed rule, a request budget resumed with `continue` ([README](policy/README.md)) |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp
+cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1
