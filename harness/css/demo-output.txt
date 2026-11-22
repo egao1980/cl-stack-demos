@@ -1,0 +1,817 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+
+========================================================================
+== Demo 1: css-protocol 0.1.0 model + serializer — the page, the stylesheet, pretty vs minified
+========================================================================
+
+-- the page (html-protocol 0.1.0 tree)
+   elements: 103
+   element types: 40
+   html head meta title style body header h1 p nav ul li a main article h2 code h3 pre table caption thead tr th tbody td figure svg text rect figcaption form label input select option button details summary footer
+   elements with a class attribute: 0
+   data-* attributes used: ("data-num")
+
+-- the stylesheet (make-css-theme + make-rule / make-media-rule / make-keyframes-rule / make-supports-rule)
+   top-level nodes: 60
+   style rules (inside @media / @supports too): 67
+   declarations using var(--…): 31
+
+-- pretty: (write-stylesheet sheet) — the whole stylesheet
+   :root {
+     color-scheme: light dark;
+     --bg: #fdfdfc;
+     --fg: #1f2328;
+     --muted: #59636e;
+     --surface: #f4f5f7;
+     --border: #d8dee4;
+     --border-strong: #8c959f;
+     --accent: #0b5cd5;
+     --accent-hover: #0847a6;
+     --on-accent: #ffffff;
+   }
+   
+   @media (prefers-color-scheme: dark) {
+     :root:not([data-theme="light"]) {
+       --bg: #14161a;
+       --fg: #e4e6e9;
+       --muted: #9aa4b1;
+       --surface: #1d2026;
+       --border: #30353d;
+       --border-strong: #5b636e;
+       --accent: #7ab0ff;
+       --accent-hover: #a3c8ff;
+       --on-accent: #0b1220;
+     }
+   }
+   
+   :root[data-theme="dark"] {
+     color-scheme: dark;
+     --bg: #14161a;
+     --fg: #e4e6e9;
+     --muted: #9aa4b1;
+     --surface: #1d2026;
+     --border: #30353d;
+     --border-strong: #5b636e;
+     --accent: #7ab0ff;
+     --accent-hover: #a3c8ff;
+     --on-accent: #0b1220;
+   }
+   
+   :root[data-theme="light"] {
+     color-scheme: light;
+   }
+   
+   *, *::before, *::after {
+     box-sizing: border-box;
+   }
+   
+   html {
+     font-size: 100%;
+     -webkit-text-size-adjust: 100%;
+   }
+   
+   body {
+     margin: 0;
+     background: var(--bg);
+     color: var(--fg);
+     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+     line-height: 1.6;
+     text-rendering: optimizeLegibility;
+   }
+   
+   header, main, footer {
+     max-width: 44rem;
+     margin-inline: auto;
+     padding-inline: 1.25rem;
+   }
+   
+   header {
+     padding-block: 2.5rem 1.25rem;
+     border-bottom: 1px solid var(--border);
+   }
+   
+   header h1 {
+     margin: 0;
+     font-size: 2rem;
+     letter-spacing: -0.015em;
+   }
+   
+   header p {
+     margin: 0.35rem 0 0;
+     color: var(--muted);
+   }
+   
+   nav ul {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 0.25rem 1.25rem;
+     margin: 1.25rem 0 0;
+     padding: 0;
+     list-style: none;
+   }
+   
+   nav a {
+     font-weight: 500;
+     text-decoration: none;
+   }
+   
+   nav a:hover {
+     text-decoration: underline;
+   }
+   
+   a {
+     color: var(--accent);
+     text-underline-offset: 0.2em;
+   }
+   
+   a:hover {
+     text-decoration-thickness: 2px;
+   }
+   
+   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+     outline: 2px solid var(--accent);
+     outline-offset: 2px;
+   }
+   
+   main {
+     padding-block: 0.5rem 1rem;
+   }
+   
+   h1, h2, h3 {
+     line-height: 1.25;
+     text-wrap: balance;
+   }
+   
+   h2 {
+     margin: 2.75rem 0 0.75rem;
+     font-size: 1.45rem;
+     letter-spacing: -0.01em;
+   }
+   
+   h3 {
+     margin: 1.75rem 0 0.5rem;
+     font-size: 1.1rem;
+   }
+   
+   p, ul, ol {
+     margin: 0 0 1rem;
+   }
+   
+   main li + li {
+     margin-top: 0.25rem;
+   }
+   
+   code, pre {
+     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+     font-size: 0.9em;
+   }
+   
+   :not(pre) > code {
+     padding: 0.1em 0.35em;
+     border-radius: 4px;
+     background: var(--surface);
+   }
+   
+   pre {
+     margin: 1.25rem 0;
+     padding: 1rem 1.1rem;
+     overflow-x: auto;
+     line-height: 1.5;
+     background: var(--surface);
+     border: 1px solid var(--border);
+     border-radius: 8px;
+   }
+   
+   table {
+     width: 100%;
+     margin: 1.25rem 0;
+     border-collapse: collapse;
+     font-size: 0.95rem;
+   }
+   
+   caption {
+     padding-bottom: 0.5rem;
+     color: var(--muted);
+     text-align: left;
+   }
+   
+   th, td {
+     padding: 0.55rem 0.75rem;
+     border-bottom: 1px solid var(--border);
+     text-align: left;
+     vertical-align: top;
+   }
+   
+   thead th {
+     border-bottom: 2px solid var(--border-strong);
+     font-weight: 600;
+   }
+   
+   tbody tr:nth-child(even) {
+     background: var(--surface);
+   }
+   
+   tbody th {
+     font-weight: 500;
+   }
+   
+   th[data-num], td[data-num] {
+     text-align: right;
+     font-variant-numeric: tabular-nums;
+   }
+   
+   form {
+     display: grid;
+     gap: 1rem;
+     margin: 1.25rem 0;
+     padding: 1.25rem;
+     background: var(--surface);
+     border: 1px solid var(--border);
+     border-radius: 10px;
+   }
+   
+   label {
+     display: grid;
+     gap: 0.35rem;
+     font-weight: 500;
+   }
+   
+   label:has(input[type="checkbox"]) {
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     font-weight: 400;
+   }
+   
+   input, select, button {
+     font: inherit;
+     color: inherit;
+   }
+   
+   input:not([type="checkbox"]), select {
+     width: 100%;
+     padding: 0.5rem 0.65rem;
+     background: var(--bg);
+     border: 1px solid var(--border-strong);
+     border-radius: 6px;
+   }
+   
+   input::placeholder {
+     color: var(--muted);
+     opacity: 1;
+   }
+   
+   input[type="checkbox"] {
+     width: 1.1rem;
+     height: 1.1rem;
+     margin: 0;
+     accent-color: var(--accent);
+   }
+   
+   button {
+     justify-self: start;
+     padding: 0.55rem 1.15rem;
+     color: var(--on-accent);
+     background: var(--accent);
+     border: 0;
+     border-radius: 6px;
+     font-weight: 600;
+     cursor: pointer;
+   }
+   
+   button:hover {
+     background: var(--accent-hover);
+   }
+   
+   figure {
+     margin: 1.75rem 0;
+   }
+   
+   figure svg {
+     display: block;
+     width: 100%;
+     height: auto;
+   }
+   
+   svg rect {
+     fill: var(--accent);
+   }
+   
+   svg text {
+     fill: var(--fg);
+     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+     font-size: 14px;
+   }
+   
+   figcaption {
+     margin-top: 0.5rem;
+     color: var(--muted);
+     font-size: 0.9rem;
+   }
+   
+   details {
+     margin: 1.25rem 0;
+     padding: 0.75rem 1rem;
+     border: 1px solid var(--border);
+     border-radius: 8px;
+   }
+   
+   summary {
+     font-weight: 600;
+     cursor: pointer;
+   }
+   
+   details[open] > summary {
+     margin-bottom: 0.75rem;
+   }
+   
+   details > :last-child {
+     margin-bottom: 0;
+   }
+   
+   footer {
+     margin-top: 3rem;
+     padding-block: 1.5rem 3rem;
+     border-top: 1px solid var(--border);
+     color: var(--muted);
+     font-size: 0.9rem;
+   }
+   
+   @media (max-width: 40rem) {
+     html {
+       font-size: 93.75%;
+     }
+   
+     header, main, footer {
+       padding-inline: 1rem;
+     }
+   
+     header {
+       padding-block: 1.75rem 1rem;
+     }
+   
+     header h1 {
+       font-size: 1.6rem;
+     }
+   
+     th, td {
+       padding: 0.45rem 0.5rem;
+     }
+   
+     form {
+       padding: 1rem;
+     }
+   
+     button {
+       justify-self: stretch;
+     }
+   
+     svg text {
+       font-size: 20px;
+     }
+   }
+   
+   .unused {
+     display: none;
+   }
+   
+   aside {
+     float: right;
+     width: 14rem;
+     margin: 0 0 1rem 1.5rem;
+     padding: 1rem;
+     border-left: 3px solid var(--accent);
+   }
+   
+   #sidebar {
+     position: sticky;
+     top: 1rem;
+   }
+   
+   blockquote {
+     margin: 1.5rem 0;
+     padding-left: 1rem;
+     border-left: 3px solid var(--border-strong);
+     color: var(--muted);
+   }
+   
+   @keyframes pulse {
+     from {
+       opacity: 1;
+     }
+   
+     to {
+       opacity: 0.4;
+     }
+   }
+   
+   @media print {
+     aside, nav {
+       display: none;
+     }
+   
+     .no-print {
+       display: none;
+     }
+   }
+   
+   @supports (display: grid) {
+     .grid-only {
+       display: grid;
+     }
+   }
+
+-- minified: (write-stylesheet sheet :pretty nil) — first 600 characters
+   :root{color-scheme:light dark;--bg:#fdfdfc;--fg:#1f2328;--muted:#59636e;--surface:#f4f5f7;--border:#d8dee4;--border-strong:#8c959f;--accent:#0b5cd5;--accent-hover:#0847a6;--on-accent:#ffffff}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#14161a;--fg:#e4e6e9;--muted:#9aa4b1;--surface:#1d2026;--border:#30353d;--border-strong:#5b636e;--accent:#7ab0ff;--accent-hover:#a3c8ff;--on-accent:#0b1220}}:root[data-theme="dark"]{color-scheme:dark;--bg:#14161a;--fg:#e4e6e9;--muted:#9aa4b1;--surface:#1d2026;--border:#30353d;--border-strong:#5b636e;--accent:#7ab0ff;--accent-hover:#a3…
+
+-- sizes
+   pretty:    6,029 bytes, 403 lines
+   minified:  4,792 bytes, 1 line (79% of pretty)
+   minified has no newline: T
+
+========================================================================
+== Demo 2: scope-stylesheet — :prefix and :scope-rule (a frozen canvas inside a larger page)
+========================================================================
+
+-- (scope-stylesheet sheet "[data-canvas=\"css-demo\"]") — :prefix, the default
+   selectors before -> after (theme, root-like and ordinary rules):
+     :root
+      -> [data-canvas="css-demo"]
+     @media (prefers-color-scheme: dark) (1 rule)
+      -> @media (prefers-color-scheme: dark) (1 rule)
+     :root[data-theme="dark"]
+      -> [data-canvas="css-demo"][data-theme="dark"]
+     :root[data-theme="light"]
+      -> [data-canvas="css-demo"][data-theme="light"]
+     *, *::before, *::after
+      -> [data-canvas="css-demo"] *, [data-canvas="css-demo"] *::before, [data-canvas="css-demo"] *::after
+     html
+      -> [data-canvas="css-demo"]
+     body
+      -> [data-canvas="css-demo"]
+     header
+      -> [data-canvas="css-demo"] header
+     header h1
+      -> [data-canvas="css-demo"] header h1
+     nav a:hover
+      -> [data-canvas="css-demo"] nav a:hover
+   inside @media (max-width: 40rem):
+     [data-canvas="css-demo"]
+     [data-canvas="css-demo"] header, [data-canvas="css-demo"] main, [data-canvas="css-demo"] footer
+     [data-canvas="css-demo"] header
+   @keyframes is copied unchanged: @keyframes pulse
+
+-- excerpt, pretty (first 40 lines)
+   [data-canvas="css-demo"] {
+     color-scheme: light dark;
+     --bg: #fdfdfc;
+     --fg: #1f2328;
+     --muted: #59636e;
+     --surface: #f4f5f7;
+     --border: #d8dee4;
+     --border-strong: #8c959f;
+     --accent: #0b5cd5;
+     --accent-hover: #0847a6;
+     --on-accent: #ffffff;
+   }
+   
+   @media (prefers-color-scheme: dark) {
+     [data-canvas="css-demo"]:not([data-theme="light"]) {
+       --bg: #14161a;
+       --fg: #e4e6e9;
+       --muted: #9aa4b1;
+       --surface: #1d2026;
+       --border: #30353d;
+       --border-strong: #5b636e;
+       --accent: #7ab0ff;
+       --accent-hover: #a3c8ff;
+       --on-accent: #0b1220;
+     }
+   }
+   
+   [data-canvas="css-demo"][data-theme="dark"] {
+     color-scheme: dark;
+     --bg: #14161a;
+     --fg: #e4e6e9;
+     --muted: #9aa4b1;
+     --surface: #1d2026;
+     --border: #30353d;
+     --border-strong: #5b636e;
+     --accent: #7ab0ff;
+     --accent-hover: #a3c8ff;
+     --on-accent: #0b1220;
+   }
+   
+   ... (363 more lines)
+
+-- (scope-stylesheet sheet "[data-canvas=\"css-demo\"]" :method :scope-rule)
+   top level: each run of style / @media / @supports rules becomes one @scope;
+   @keyframes stays outside, so it splits the runs:
+     @scope ([data-canvas="css-demo"]) { 57 rules }
+     @keyframes pulse
+     @scope ([data-canvas="css-demo"]) { 2 rules }
+   inside the first @scope, the root-like selectors become :scope:
+     :scope
+     @media (prefers-color-scheme: dark) (1 rule)
+     :scope[data-theme="dark"]
+     :scope[data-theme="light"]
+     *, *::before, *::after
+     :scope
+
+-- excerpt, pretty (first 30 lines)
+   @scope ([data-canvas="css-demo"]) {
+     :scope {
+       color-scheme: light dark;
+       --bg: #fdfdfc;
+       --fg: #1f2328;
+       --muted: #59636e;
+       --surface: #f4f5f7;
+       --border: #d8dee4;
+       --border-strong: #8c959f;
+       --accent: #0b5cd5;
+       --accent-hover: #0847a6;
+       --on-accent: #ffffff;
+     }
+   
+     @media (prefers-color-scheme: dark) {
+       :scope:not([data-theme="light"]) {
+         --bg: #14161a;
+         --fg: #e4e6e9;
+         --muted: #9aa4b1;
+         --surface: #1d2026;
+         --border: #30353d;
+         --border-strong: #5b636e;
+         --accent: #7ab0ff;
+         --accent-hover: #a3c8ff;
+         --on-accent: #0b1220;
+       }
+     }
+   
+     :scope[data-theme="dark"] {
+       color-scheme: dark;
+   ... (377 more lines)
+
+-- sizes (minified)
+   unscoped 4,792, :prefix 6,978, :scope-rule 4,872 bytes
+   the input stylesheet is unchanged: T
+
+========================================================================
+== Demo 3: used-rules — prune the stylesheet to what the page can use
+========================================================================
+
+-- kept (55 top-level nodes; style rules are the same objects, EQ)
+     :root
+     @media (prefers-color-scheme: dark) (1 rule)
+     :root[data-theme="dark"]
+     :root[data-theme="light"]
+     *, *::before, *::after
+     html
+     body
+     header, main, footer
+     header
+     header h1
+     header p
+     nav ul
+     nav a
+     nav a:hover
+     a
+     a:hover
+     a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible
+     main
+     h1, h2, h3
+     h2
+     h3
+     p, ul, ol
+     main li+li
+     code, pre
+     :not(pre)>code
+     pre
+     table
+     caption
+     th, td
+     thead th
+     tbody tr:nth-child(even)
+     tbody th
+     th[data-num], td[data-num]
+     form
+     label
+     label:has(input[type="checkbox"])
+     input, select, button
+     input:not([type="checkbox"]), select
+     input::placeholder
+     input[type="checkbox"]
+     button
+     button:hover
+     figure
+     figure svg
+     svg rect
+     svg text
+     figcaption
+     details
+     summary
+     details[open]>summary
+     details>:last-child
+     footer
+     @media (max-width: 40rem) (8 rules)
+     @keyframes pulse
+     @media print (2 rules)
+
+-- dropped (6)
+     .unused
+     aside
+     #sidebar
+     blockquote
+     .no-print   (inside @media print (2 rules))
+     @supports (display: grid) (1 rule)
+
+-- why
+   aside, blockquote, #sidebar, .unused, .grid-only, .no-print: no element matches.
+   @supports (display: grid) has no rule left, so it goes; @media print keeps
+   "aside, nav" whole, because nav is on the page (a rule is kept or dropped as one).
+   @keyframes pulse is kept although nothing animates: at-rules without
+   selectors are always kept (the brief's conservative rule).
+   Pseudo-classes and attribute selectors (a:hover, th[data-num],
+   label:has(input[type="checkbox"])) count as satisfied.
+
+-- sizes before -> after
+   style rules:  67 ->  61
+   pretty:    6,029 ->  5,590 bytes (7% smaller)
+   minified:  4,792 ->  4,454 bytes (7% smaller)
+   pruning the pruned sheet again changes nothing: T
+
+========================================================================
+== Demo 4: invalid input — conditions, use-value, skip-invalid
+========================================================================
+
+-- (make-declaration "color" "red;}body{x:y") with no handler that fixes it
+   condition: CSS-PROTOCOL:CSS-INVALID-VALUE
+   report:    Invalid CSS value: ; outside strings and brackets: "red;}body{x:y"
+   input:     "red;}body{x:y"
+   a css-error: T, a css-syntax-error: T
+   restarts offered at the signal:
+     USE-VALUE — Use another value (it is validated again).
+     CSS-PROTOCOL:SKIP-INVALID — Skip this item (the constructor returns NIL).
+
+-- use-value: a handler supplies a replacement (validated again)
+   inputs refused, in order: ("red;}body{x:y" "red;")
+   result: p{color:crimson}
+
+-- skip-invalid: the bad item is dropped, its container keeps the rest
+   skipping CSS-PROTOCOL:CSS-INVALID-VALUE: "red;}body{x:y"
+   skipping CSS-PROTOCOL:CSS-INVALID-SELECTOR: "p { } body"
+   skipping CSS-PROTOCOL:CSS-INVALID-PROPERTY: "col or"
+   skipping CSS-PROTOCOL:CSS-INVALID-PRELUDE: "screen {"
+   skipping CSS-PROTOCOL:CSS-INVALID-VALUE: "</style><script>"
+   stylesheet left: p{margin:0}em{font-style:italic}strong{}
+   (rule "p { } body" is NIL: a rule whose selector list is skipped is not a rule;
+    @media "screen {" is NIL the same way; "strong" keeps no declarations)
+
+-- each refusal, one by one
+   value:               CSS-PROTOCOL:CSS-INVALID-VALUE  "red;}body{x:y"
+   value with </:       CSS-PROTOCOL:CSS-INVALID-VALUE  "\"</style>\""
+   property:            CSS-PROTOCOL:CSS-INVALID-PROPERTY  "col or"
+   selector:            CSS-PROTOCOL:CSS-INVALID-SELECTOR  "p { } body"
+   selector (nesting):  CSS-PROTOCOL:CSS-INVALID-SELECTOR  "& > a"
+   media query:         CSS-PROTOCOL:CSS-INVALID-PRELUDE  "screen {"
+   keyframes name:      CSS-PROTOCOL:CSS-INVALID-IDENTIFIER  ""
+   keyframe selector:   CSS-PROTOCOL:CSS-INVALID-SELECTOR  "halfway"
+
+-- text that is data, not syntax, is escaped instead
+   (css-string "</style>")  => "\3c /style>"
+   (css-ident "2col")         => \32 col
+   (css-url "a b\".png")      => url("a b\".png")
+   rule with content: (css-string ...): q::before{content:"\3c /style>"}
+
+-- compile-stylesheet with no backend: css-no-backend, then use-value
+   condition: CSS-PROTOCOL:CSS-NO-BACKEND
+   report:    No CSS backend to compile (:LASS (HARNESS-DEMOS-CSS::BODY :MARGIN 0)); bind CSS-PROTOCOL:*CSS-BACKEND* or pass :backend
+   restarts: (USE-VALUE CSS-PROTOCOL:USE-BACKEND)
+   result: body{margin:0} (the fallback, EQ: T)
+
+========================================================================
+== Demo 5: make-css-theme — light and dark through custom properties
+========================================================================
+
+-- the maps (css-theme-light / css-theme-dark)
+   --bg             light #fdfdfc   dark #14161a 
+   --fg             light #1f2328   dark #e4e6e9 
+   --muted          light #59636e   dark #9aa4b1 
+   --surface        light #f4f5f7   dark #1d2026 
+   --border         light #d8dee4   dark #30353d 
+   --border-strong  light #8c959f   dark #5b636e 
+   --accent         light #0b5cd5   dark #7ab0ff 
+   --accent-hover   light #0847a6   dark #a3c8ff 
+   --on-accent      light #ffffff   dark #0b1220 
+
+-- (css-theme-stylesheet theme), pretty
+   :root {
+     color-scheme: light dark;
+     --bg: #fdfdfc;
+     --fg: #1f2328;
+     --muted: #59636e;
+     --surface: #f4f5f7;
+     --border: #d8dee4;
+     --border-strong: #8c959f;
+     --accent: #0b5cd5;
+     --accent-hover: #0847a6;
+     --on-accent: #ffffff;
+   }
+   
+   @media (prefers-color-scheme: dark) {
+     :root:not([data-theme="light"]) {
+       --bg: #14161a;
+       --fg: #e4e6e9;
+       --muted: #9aa4b1;
+       --surface: #1d2026;
+       --border: #30353d;
+       --border-strong: #5b636e;
+       --accent: #7ab0ff;
+       --accent-hover: #a3c8ff;
+       --on-accent: #0b1220;
+     }
+   }
+   
+   :root[data-theme="dark"] {
+     color-scheme: dark;
+     --bg: #14161a;
+     --fg: #e4e6e9;
+     --muted: #9aa4b1;
+     --surface: #1d2026;
+     --border: #30353d;
+     --border-strong: #5b636e;
+     --accent: #7ab0ff;
+     --accent-hover: #a3c8ff;
+     --on-accent: #0b1220;
+   }
+   
+   :root[data-theme="light"] {
+     color-scheme: light;
+   }
+
+-- how the page switches
+   The rules never name a colour, only var(--…):
+     body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;line-height:1.6;text-rendering:optimizeLegibility}
+   OS light, no data-theme      -> :root                       (light values)
+   OS dark,  no data-theme      -> :root:not([data-theme="light"]) in @media (dark values)
+   data-theme="dark" on <html>  -> :root[data-theme="dark"]    (dark, whatever the OS)
+   data-theme="light" on <html> -> :root[data-theme="light"]   (light: the @media rule no longer matches)
+   color-scheme: light dark on :root also switches form controls and scrollbars.
+
+-- another theme, same rules: only the custom properties change
+   rules after the theme block identical: T
+   sepia theme block, minified: :root{color-scheme:light dark;--bg:#fbf6ec;--fg:#2b2118;--muted:#6b5a48;--surface:#f3ead9;--border:#e0d3bc;--border-strong:#a08d74;--accent:#8a3b12;--accent-hover:#6d2e0e;--on-accent:#ffffff}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1b1612;--fg:#eadfce;--muted:#b3a28c;--surface:#251e18;--border:#3d332a;--border-strong:#6e604f;--accent:#f0a46c;--accent-hover:#f6c39c;--on-accent:#1b1612}}:root[data-theme="dark"]{color-scheme:dark;--bg:#1b1612;--fg:#eadfce;--muted:#b3a28c;--surface:#251e18;--border:#3d332a;--border-strong:#6e604f;--accent:#f0a46c;--accent-hover:#f6c39c;--on-accent:#1b1612}:root[data-theme="light"]{color-scheme:light}
+
+-- the same theme on a canvas instead of :root (:selector)
+   [data-canvas]{color-scheme:light dark;--bg:#fdfdfc;--fg:#1f2328;--muted:#59636e;--surface:#f4f5f7;--border:#d8dee4;--border-strong:#8c959f;--accent:#0b5cd5;--accent-hover:#0847a6;--on-accent:#ffffff}@media (prefers-color-scheme: dark){[data-canvas]:not([data-theme="light"]){--bg:#14161a;--fg:#e4e6e9;--muted:#9aa4b1;--surface:#1d2026;--border:#30353d;--border-strong:#5b636e;--accent:#7ab0ff;--accent-hover:#a3c8ff;--on-accent:#0b1220}}[data-canvas][data-theme="dark"]{color-scheme:dark;--bg:#14161a;--fg:#e4e6e9;--muted:#9aa4b1;--surface:#1d2026;--border:#30353d;--border-strong:#5b636e;--accent:#7ab0ff;--accent-hover:#a3c8ff;--on-accent:#0b1220}[data-canvas][data-theme="light"]{color-scheme:light}
+
+========================================================================
+== Demo 6: page.html — the used rules inlined in <style>, nothing external
+========================================================================
+   used-rules on the final page = the inlined rules: T
+   class attributes in the page: 0
+   no external URLs: T
+   </ only where tags close (none inside <style>): T
+   wrote harness/css/page.html: 10,086 bytes (style 5,590 bytes, 369 lines)
+
+-- page.html, first 30 lines
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <meta name="color-scheme" content="light dark">
+   <title>Stylesheets as data — css-protocol 0.1.0</title>
+   <style>
+   :root {
+     color-scheme: light dark;
+     --bg: #fdfdfc;
+     --fg: #1f2328;
+     --muted: #59636e;
+     --surface: #f4f5f7;
+     --border: #d8dee4;
+     --border-strong: #8c959f;
+     --accent: #0b5cd5;
+     --accent-hover: #0847a6;
+     --on-accent: #ffffff;
+   }
+   
+   @media (prefers-color-scheme: dark) {
+     :root:not([data-theme="light"]) {
+       --bg: #14161a;
+       --fg: #e4e6e9;
+       --muted: #9aa4b1;
+       --surface: #1d2026;
+       --border: #30353d;
+       --border-strong: #5b636e;
+       --accent: #7ab0ff;
+   ... (450 more lines)
+
+========================================================================
+Demos run: 6, failed: none
