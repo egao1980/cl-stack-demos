@@ -1,5 +1,5 @@
 (defsystem "harness-demos-code"
-  :version "0.8.0"
+  :version "0.8.1"
   :description "Live demo of cl-stack-code: -p (H3a: text, stream-json, headless denial, layered settings, AGENTS.md discovery), the interactive mode (H3b) on the headless terminal, and plan mode (H5a: plan, project, approve, drift, reject; git and copy areas) and checkpoints with rewind (H5b: git private refs, jj @ commits, folder snapshots; files / both rewinds, drift restarts, plan checkpoints, retention, the rewind dialog), and the Lisp image (H4b: -p --lisp-image spawn with image_event lines, onDebugger turn and notice with the banner and status marker, observe against an attached image), and the session's units (H8d: the process panel on the headless terminal, follow and search, unit control under the agent's permission rules, failure notices, the units/* RPC methods, the crash sweep); LM Studio or a scripted model"
   :author "egao1980"
   :license "MIT"
@@ -12,8 +12,9 @@
                (:version "rpc-protocol-json" "0.1.1")
                (:version "rpc-backend-stdio" "0.2.0")
                ;; 0.3.3: a crashed --rpc child's shell jobs no longer hold its stdout pipe
-               ;; on Windows, so t6 sweeps live orphans (egao1980/supervisor-protocol#9)
-               (:version "process-backend-uiop" "0.3.3")
+               ;; on Windows, so t6 sweeps live orphans (egao1980/supervisor-protocol#9);
+               ;; 0.3.4 passes a cmd.exe command line verbatim
+               (:version "process-backend-uiop" "0.3.4")
                (:version "lisp-mcp" "0.7.0")
                (:version "lisp-mcp/agent" "0.7.0")
                ;; 0.2.8 kills a spawned image's whole tree: on Windows ros.exe runs SBCL
