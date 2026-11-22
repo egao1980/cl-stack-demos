@@ -6,6 +6,7 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
+WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:SYSTEM-CLASS COMMON-LISP:T>) in DEFMETHOD
 
 ========================================================================
 == Demo 1: css-protocol 0.1.0 model + serializer — the page, the stylesheet, pretty vs minified
@@ -814,4 +815,352 @@ distribution for more information.
    ... (450 more lines)
 
 ========================================================================
-Demos run: 6, failed: none
+== Demo 7: css-backend-lass 0.1.0 — LASS source next to the CSS it compiles to
+========================================================================
+
+-- lass/tokens.lass — the shared variables file (bindings flow into :include, not out)
+   ;;;; Shared design tokens for page-lass.html. LASS bindings flow into an
+   ;;;; :include, never out of it, so the shared variables file is the outer
+   ;;;; :let*: everything it includes sees these names.
+   
+   (:let* ((space 8px)
+           (gutter (* 2 #(space)))           ; unit arithmetic: 16.00px
+           (column (* 96 #(space)))          ; 768.00px, Marx's main width
+           (radius (/ #(space) 2))           ; 4.00px
+           (accent "#0b5cd5")
+           (paper "#ffffff")
+           (ink "#16181d"))
+     (:include "page.lass"))
+
+-- lass/page.lass — :let* of derived colours, then the parts
+   ;;;; The page's own colours, derived from the tokens with classie's colour
+   ;;;; functions. :let* is sequential: each binding sees the ones before it.
+   
+   (:let* (;; light
+           (accent-hover (darken #(accent) 10%))
+           (accent-border (mix #(accent) #(paper) 25%))
+           (accent-wash (mix #(accent) #(paper) 6%))
+           (bar (fade-out #(accent) 0.15))
+           ;; dark: lighten where light darkens
+           (accent-dark (lighten #(accent) 25%))
+           (accent-dark-hover (lighten #(accent-dark) 10%))
+           (accent-dark-border (mix #(accent-dark) #(ink) 35%))
+           (accent-dark-wash (mix #(accent-dark) #(ink) 8%))
+           (bar-dark (fade-in (fade-out #(accent-dark) 0.5) 0.35)))
+     (:include "parts/theme.lass")
+     (:include "parts/layout.lass")
+     (:include "parts/components.lass"))
+
+-- parts/theme.lass, form 1
+   LASS:
+     ;;;; --page-* custom properties, switched the way engels switches its own:
+     ;;;; prefers-color-scheme, overridden by data-theme on <html>.
+     
+     (:root
+      :--page-accent #(accent)
+      :--page-accent-hover #(accent-hover)
+      :--page-border #(accent-border)
+      :--page-wash #(accent-wash)
+      :--page-bar #(bar))
+   CSS (pretty):
+     :root {
+       --page-accent: #0b5cd5;
+       --page-accent-hover: #0847A5;
+       --page-border: #C2D6F5;
+       --page-wash: #F0F5FC;
+       --page-bar: rgba(11, 92, 213, 0.85);
+     }
+
+-- parts/theme.lass, form 2
+   LASS:
+     (:media "(prefers-color-scheme: dark)"
+      (":root:not([data-theme=\"light\"])"
+       :--page-accent #(accent-dark)
+       :--page-accent-hover #(accent-dark-hover)
+       :--page-border #(accent-dark-border)
+       :--page-wash #(accent-dark-wash)
+       :--page-bar #(bar-dark)))
+   CSS (pretty):
+     @media (prefers-color-scheme: dark) {
+       :root:not([data-theme="light"]) {
+         --page-accent: #68A2F7;
+         --page-accent-hover: #98C0FA;
+         --page-border: #334869;
+         --page-wash: #1D232E;
+         --page-bar: rgba(104, 162, 247, 0.85);
+       }
+     }
+
+-- parts/layout.lass, form 1
+   LASS:
+     ;;;; Layout on top of engels: header and footer share main's column.
+     
+     ((:or header footer)
+      :max-width #(column)
+      :padding 0 #(gutter))
+   CSS (pretty):
+     header, footer {
+       max-width: 768.00px;
+       padding: 0 16.00px;
+     }
+
+-- parts/layout.lass, form 3
+   LASS:
+     ("nav ul"
+      :display flex
+      :flex-wrap wrap
+      :gap (values (/ #(space) 2) #(gutter))
+      :padding 0
+      :list-style none)
+   CSS (pretty):
+     nav ul {
+       display: flex;
+       flex-wrap: wrap;
+       gap: 4.00px 16.00px;
+       padding: 0;
+       list-style: none;
+     }
+
+-- parts/layout.lass, form 5
+   LASS:
+     ;; calc(...) is CSS's own arithmetic: inside it LASS writes the operators,
+     ;; it does not evaluate them (the tokens are substituted first).
+     (details
+      :max-width (calc (- 100% (* 2 #(gutter))))
+      :padding #(space) #(gutter)
+      :border 1px solid "var(--page-border)"
+      :border-radius #(radius)
+      :background "var(--page-wash)")
+   CSS (pretty):
+     details {
+       max-width: calc((100%) - ((2) * (16.00px)));
+       padding: 8px 16.00px;
+       border: 1px solid var(--page-border);
+       border-radius: 4.00px;
+       background: var(--page-wash);
+     }
+
+-- parts/components.lass, form 2
+   LASS:
+     (figure
+      :margin (* 3 #(space)) 0
+      (svg :display block :width "100%" :height auto)
+      (figcaption :color "var(--engels-secondary)"
+                  :font-size (ceil (* 85% "16px"))))
+   CSS (pretty):
+     figure {
+       margin: 24.00px 0;
+     }
+     
+     figure svg {
+       display: block;
+       width: 100%;
+       height: auto;
+     }
+     
+     figure figcaption {
+       color: var(--engels-secondary);
+       font-size: 14.00px;
+     }
+
+-- parts/components.lass, form 3
+   LASS:
+     (svg
+      (rect :fill "var(--page-bar)")
+      ((:and rect :hover) :fill "var(--page-accent-hover)")
+      (text :fill "var(--engels-text)"
+            :font-size (ceiling (* 0.85 "16px"))))
+   CSS (pretty):
+     svg rect {
+       fill: var(--page-bar);
+     }
+     
+     svg rect:hover {
+       fill: var(--page-accent-hover);
+     }
+     
+     svg text {
+       fill: var(--engels-text);
+       font-size: 14.00px;
+     }
+
+-- the whole page sheet: (compile-lass-file "lass/tokens.lass")
+   top-level nodes: 26
+   style rules: 26
+   same text on a second compile: T
+
+-- minified
+   :root{--page-accent:#0b5cd5;--page-accent-hover:#0847A5;--page-border:#C2D6F5;--page-wash:#F0F5FC;--page-bar:rgba(11, 92, 213, 0.85)}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page-accent:#68A2F7;--page-accent-hover:#98C0FA;--page-border:#334869;--page-wash:#1D232E;--page-bar:rgba(104, 162, 247, 0.85)}}:root[data-theme="dark"]{--page-accent:#68A2F7;--page-accent-hover:#98C0FA;--page-border:#334869;--page-wash:#1D232E;--page-bar:rgba(104, 162, 247, 0.85)}header,footer{max-width:768.00px;padding:0 16.00px}header{padding-top:40.00px;border-bottom:1px solid var(--page-border)}header h1{margin-top:0}header p{color:var(--engels-secondary)}nav ul{display:flex;flex-wrap:wrap;gap:4.00px 16.00px;padding:0;list-style:none}main h2{border-bottom:1px solid var(--page-border);padding-bottom:4.00px}details{max-width:calc((100%) - ((2) * (16.00px)));padding:8px 16.00px;border:1px solid var(--page-border);border-radius:4.00px;background:var(--page-wash)}details[open]>summary{margin-bottom:8px}@media screen and (max-width:400px){header,footer{padding:0 8px}}aside{float:right;width:240.00px}.promo{display:none}th[data-num],td[data-num]{text-align:right;font-variant-numeric:tabular-nums}figure{margin:24.00px 0}figure svg{display:block;width:100%;height:auto}figure figcaption{color:var(--engels-secondary);font-size:14.00px}svg rect{fill:var(--page-bar)}svg rect:hover{fill:var(--page-accent-hover)}svg text{fill:var(--engels-text);font-size:14.00px}form{padding:16.00px;border:1px solid var(--page-border);border-radius:8.00px;background:var(--page-wash)}form label{display:block;margin-bottom:8px}form input[type="checkbox"]{margin-right:8px}a{text-underline-offset:2.00px}code{word-break:normal}
+
+========================================================================
+== Demo 8: classie's functions, re-implemented in css-backend-lass (no cl-colors, no dufy)
+========================================================================
+
+-- (compile-lass '((x :v EXPRESSION))) -> the declaration value
+   unit arithmetic                (+ 2in (ceil (* 85% "800px")))                => 9.08in
+   percent of a length            (* 85% "800px")                               => 680.00px
+   percent of a percent           (* 50% 50%)                                   => 25.00%
+   pt to the left unit            (+ 1in 36pt)                                  => 1.50in
+   length / length                (/ 768px 16px)                                => 48
+   ceil (shown number)            (ceil 49.5%)                                  => 50.00%
+   ceiling (fraction)             (ceiling 49.5%)                               => 100.00%
+   ceil of 0.85 * 16px            (ceil (* 0.85 "16px"))                        => 14.00px
+   values                         (values 1px solid "#d0d7de")                  => 1px solid #d0d7de
+   darken 20%                     (darken "#fff" 20%)                           => #CCCCCC
+   darken 10% (hover)             (darken "#0b5cd5" 10%)                        => #0847A5
+   lighten 25% (dark accent)      (lighten "#0b5cd5" 25%)                       => #68A2F7
+   mix 25% with white (border)    (mix "#0b5cd5" "#ffffff" 25%)                 => #C2D6F5
+   mix, default 50%               (mix "#007bff" "#fff")                        => #80BDFF
+   fade-out 0.15                  (fade-out "#0b5cd5" 0.15)                     => rgba(11, 92, 213, 0.85)
+   fade-in 0.25                   (fade-in "rgba(11, 92, 213, 0.5)" 0.25)       => rgba(11, 92, 213, 0.75)
+   engels: darken primary 7.5%    (darken "#007bff" 0.075)                      => #0069D9
+   engels: darken primary 10%     (darken "#007bff" 0.1)                        => #0062CC
+   engels: darken red 10%         (darken "#f44336" 0.1)                        => #EA1C0D
+
+-- the page's tokens and derived colours, resolved in order (:let*)
+   #(space)               8px
+   #(gutter)              16.00px
+   #(column)              768.00px
+   #(radius)              4.00px
+   #(accent)              #0b5cd5
+   #(accent-hover)        #0847A5
+   #(accent-border)       #C2D6F5
+   #(accent-wash)         #F0F5FC
+   #(bar)                 rgba(11, 92, 213, 0.85)
+   #(accent-dark)         #68A2F7
+   #(accent-dark-hover)   #98C0FA
+   #(accent-dark-border)  #334869
+   #(accent-dark-wash)    #1D232E
+   #(bar-dark)            rgba(104, 162, 247, 0.85)
+
+-- engels 0.2.0 derives its palette the same way (engels:palette-colours)
+   --engels-primary               light #007bff                  dark #4da3ff
+   --engels-primary-hover         light #0069D9                  dark #73B7FF
+   --engels-primary-active        light #0062CC                  dark #80BDFF
+   --engels-primary-active-border light #005CBF                  dark #8DC4FF
+   --engels-input-focus-border    light #80BDFF                  dark #366293
+   --engels-input-focus-ring      light rgba(0, 123, 255, 0.25)  dark rgba(77, 163, 255, 0.25)
+   --engels-red-dark              light #EA1C0D                  dark #FF9A91
+
+========================================================================
+== Demo 9: calc(...) passes through — CSS arithmetic is not LASS arithmetic
+========================================================================
+   (calc (- 100% (* 2 "16px")))           => calc((100%) - ((2) * (16px)))
+   (calc (+ 2.25rem 2px))                 => calc((2.25rem) + (2px))
+   (calc (- 100vw #(gutter)))             => calc((100vw) - (16px))
+   "calc(2.25rem + 2px)"                  => calc(2.25rem + 2px)
+   LASS 0.6.0 parenthesises each calc operand; css-backend-lass keeps its output exactly.
+   A string value is copied as is.
+   outside calc the same operators evaluate: (- 100% 2rem) => "css-invalid-value \"2rem\" (rem is no unit of the arithmetic)"
+
+-- in the page (lass/parts/layout.lass) and in engels (forms.lass)
+   details{max-width:calc((100%) - ((2) * (16.00px)));padding:8px 16.00px;border:1px solid var(--page-border);border-radius:4.00px;background:var(--page-wash)}
+   select:not([size]):not([multiple]){height:calc(2.25rem + 2px)}
+
+========================================================================
+== Demo 10: an invalid LASS value — css-invalid-value, use-value, skip-invalid
+========================================================================
+
+-- source: (button :color "white" :background (darken "tomato" 10%) :border-radius 4px)
+   colour names are not parsed (only #hex, rgb(), rgba()), so darken refuses "tomato"
+   condition: CSS-PROTOCOL:CSS-INVALID-VALUE
+   report:    Invalid CSS value: "tomato"
+   input:     "tomato"
+   restarts offered at the signal:
+     USE-VALUE — Use replacement text for this value.
+     CSS-PROTOCOL:SKIP-INVALID — Drop every declaration that uses this value.
+     USE-VALUE — Compile a replacement LASS form instead.
+     CSS-PROTOCOL:SKIP-INVALID — Drop this LASS form.
+
+-- use-value "#E5533A": the replacement text stands for the whole call
+   button{color:white;background:#E5533A;border-radius:4px}
+
+-- skip-invalid: the declaration that used the value is dropped, the rule stays
+   button{color:white;border-radius:4px}
+
+-- the same restarts for an unbound #(name) and for a value css-protocol refuses
+   skipping CSS-PROTOCOL:CSS-INVALID-VALUE: "no-such-token"
+   skipping CSS-PROTOCOL:CSS-INVALID-VALUE: "red;}body{x:y"
+   result: p{margin:0}em{content:"a";font-style:italic}
+
+========================================================================
+== Demo 11: engels + LASS page rules, pruned — page-lass.html
+========================================================================
+
+-- layering: (merge-stylesheets (engels:stylesheet) page-sheet), then used-rules
+   engels first (its :root theme, Marx's element rules, the canvas vocabulary),
+   then the page's --page-* theme and rules, so on equal specificity the page wins.
+   engels top-level nodes: 101
+   page top-level nodes: 26
+   layered = engels ++ page: T
+
+-- sizes (bytes, UTF-8)
+   engels 0.2.0 in full                101 rules  pretty  15,962  minified  13,877
+   page rules (LASS) alone              26 rules  pretty   2,120  minified   1,724
+   engels + page                       127 rules  pretty  18,083  minified  15,601
+   engels + page, used-rules           104 rules  pretty  16,494  minified  14,353
+   (engels:css-octets): 13,877 bytes = css/engels.css
+   pruning keeps 92% of the minified bytes
+
+-- what pruning dropped (top level)
+     hr
+     img
+     embed, iframe, video
+     h4
+     h5
+     h6
+     small
+     dl
+     dd
+     blockquote
+     u
+     s
+     sup
+     sub
+     mark
+     fieldset
+     legend
+     textarea
+     tfoot tr
+     tfoot td
+     small[role="alert"]
+     aside
+     .promo
+
+-- checks
+   used-rules on the final page = the inlined rules: T
+   engels' theme kept (:root, @media dark, data-theme): T
+   class attributes in the page: 0
+   no external URLs: T
+   no </ inside <style>: T
+   wrote harness/css/page-lass.html: 21,396 bytes (style 16,494 bytes, 678 lines)
+
+-- page-lass.html, first 24 lines
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <meta name="color-scheme" content="light dark">
+   <title>Stylesheets as data — LASS on engels</title>
+   <style>
+   :root {
+     color-scheme: light dark;
+     --engels-bg: #fff;
+     --engels-surface: #fff;
+     --engels-code-bg: #f7f7f9;
+     --engels-text: rgba(0, 0, 0, 0.8);
+     --engels-secondary: rgba(0, 0, 0, 0.54);
+     --engels-disabled: rgba(0, 0, 0, 0.38);
+     --engels-dividers: rgba(0, 0, 0, 0.12);
+     --engels-primary: #007bff;
+     --engels-primary-hover: #0069D9;
+     --engels-primary-active: #0062CC;
+     --engels-primary-active-border: #005CBF;
+     --engels-on-primary: #fff;
+     --engels-focus-ring: rgba(0, 123, 255, 0.5);
+     --engels-input-focus-border: #80BDFF;
+   ... (769 more lines)
+
+========================================================================
+Demos run: 11, failed: none

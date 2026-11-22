@@ -1,0 +1,41 @@
+;;;; Layout on top of engels: header and footer share main's column.
+
+((:or header footer)
+ :max-width #(column)
+ :padding 0 #(gutter))
+
+(header
+ :padding-top (* 5 #(space))
+ :border-bottom 1px solid "var(--page-border)"
+ (h1 :margin-top 0)
+ (p :color "var(--engels-secondary)"))
+
+("nav ul"
+ :display flex
+ :flex-wrap wrap
+ :gap (values (/ #(space) 2) #(gutter))
+ :padding 0
+ :list-style none)
+
+(main
+ (h2 :border-bottom 1px solid "var(--page-border)"
+     :padding-bottom #(radius)))
+
+;; calc(...) is CSS's own arithmetic: inside it LASS writes the operators,
+;; it does not evaluate them (the tokens are substituted first).
+(details
+ :max-width (calc (- 100% (* 2 #(gutter))))
+ :padding #(space) #(gutter)
+ :border 1px solid "var(--page-border)"
+ :border-radius #(radius)
+ :background "var(--page-wash)")
+
+("details[open] > summary"
+ :margin-bottom #(space))
+
+(:media (:and screen (:max-width 400px))
+ ((:or header footer) :padding 0 #(space)))
+
+;; Nothing on the page matches these: used-rules drops them.
+(aside :float right :width (* 30 #(space)))
+(.promo :display none)

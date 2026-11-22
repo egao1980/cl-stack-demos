@@ -1,0 +1,24 @@
+;;;; --page-* custom properties, switched the way engels switches its own:
+;;;; prefers-color-scheme, overridden by data-theme on <html>.
+
+(:root
+ :--page-accent #(accent)
+ :--page-accent-hover #(accent-hover)
+ :--page-border #(accent-border)
+ :--page-wash #(accent-wash)
+ :--page-bar #(bar))
+
+(:media "(prefers-color-scheme: dark)"
+ (":root:not([data-theme=\"light\"])"
+  :--page-accent #(accent-dark)
+  :--page-accent-hover #(accent-dark-hover)
+  :--page-border #(accent-dark-border)
+  :--page-wash #(accent-dark-wash)
+  :--page-bar #(bar-dark)))
+
+(":root[data-theme=\"dark\"]"
+ :--page-accent #(accent-dark)
+ :--page-accent-hover #(accent-dark-hover)
+ :--page-border #(accent-dark-border)
+ :--page-wash #(accent-dark-wash)
+ :--page-bar #(bar-dark))
