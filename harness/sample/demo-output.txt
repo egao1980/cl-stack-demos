@@ -1,0 +1,204 @@
+harness-demos-sample: cl-stack-sample README section 4, as a newcomer
+MODEL THAT RAN: unsloth/Qwen3.8-Flash-Next-GGUF on http://192.168.86.21:8888/v1 (openai provider)
+
+== 1. Clone the sample ==
+$ git clone --quiet --depth 1 --branch main https://github.com/egao1980/cl-stack-sample.git <tmp>/cl-stack-sample/
+   exit 0, 1 s
+$ git log --oneline -1
+   | ce96670 Merge pull request #4 from egao1980/agent/harness-section-7c41
+   exit 0, 0 s
+$ cat .cl-stack-code/settings.json
+   | {
+   |   "permissions": {
+   |     "allow": [
+   |       "read(**)",
+   |       "glob(**)",
+   |       "grep(**)",
+   |       "ls(**)",
+   |       "edit(src/**)",
+   |       "edit(tests/**)",
+   |       "edit(agent/**)",
+   |       "multi_edit(src/**)",
+   |       "multi_edit(tests/**)",
+   |       "multi_edit(agent/**)",
+   |       "write(src/**)",
+   |       "write(tests/**)",
+   |       "write(agent/**)",
+   |       "bash(cl-repo test)",
+   |       "bash(cl-repo test *)",
+   |       "bash(program:cl-repo)",
+   |       "bash(git status *)",
+   |       "bash(git diff *)",
+   |       "bash(git log *)",
+   |       "bash(program:git)",
+   |       "bash(ls *)",
+   |       "bash(program:ls)",
+   |       "bash(cat *)",
+   |       "bash(program:cat)",
+   |       "bash(head *)",
+   |       "bash(program:head)",
+   |       "bash(tail *)",
+   | … (30 more lines)
+   exit 0, 0 s
+
+== 2. Get the launcher (direct download) ==
+$ curl -fsSL https://raw.githubusercontent.com/egao1980/lisp-workspace/main/scripts/cl-stack-code.sh -o <tmp>/bin/cl-stack-code
+   exit 0, 0 s
+$ chmod +x <tmp>/bin/cl-stack-code
+   exit 0, 0 s
+$ grep -m1 ^VERSION= <tmp>/bin/cl-stack-code
+   | VERSION="${CL_STACK_CODE_VERSION:-0.10.1}"
+   exit 0, 0 s
+
+== 3. Build the executable (a fresh cache) ==
+$ <tmp>/bin/cl-stack-code --which
+   | … (47271 lines above)
+   | ; wrote <tmp>/cache/common-lisp/sbcl-2.4.11.roswell-macosx-arm64<tmp>/cache/cl-stack-code/systems/http-encoding-snappy/0.1.1/src/backend-tmpATZ3B5D0.fasl
+   | ; compilation finished in 0:00:00.003
+   | cl-stack-code: writing <tmp>/cache//cl-stack-code/cl-stack-code-0.10.1-sbcl-bin-2.4.11.tmp.53447
+   | <tmp>/cache//cl-stack-code/cl-stack-code-0.10.1-sbcl-bin-2.4.11
+   exit 0, 120 s
+$ <tmp>/bin/cl-stack-code --version
+   | cl-stack-code 0.10.1
+   exit 0, 1 s
+$ <tmp>/bin/cl-stack-code --acp
+   | cl-stack-code: --acp (editors over the Agent Client Protocol) needs cl-stack-code >= 0.11.0; this launcher pins 0.10.1 (set CL_STACK_CODE_VERSION when 0.11.0 is published)
+   exit 2, 0 s
+
+== 4. The -p session (README: "Headless") ==
+$ <tmp>/bin/cl-stack-code --model openai -p 'Add a w (week) unit to parse-duration, with tests. Run them.' --permission-mode acceptEdits --output-format stream-json
+   exit 0, 908 s
+   step  1  ls 
+   step  1  glob **/*.lisp
+            → error  Tool ls rejected its arguments: the path is empty; give a path relative to the p…
+            → done
+   step  2  read src/duration.lisp
+   step  2  read tests/duration-test.lisp
+            → done
+            → done
+   step  3  grep .
+            → done
+   step  4  edit-replace src/duration.lisp
+            → error  Tool edit-replace rejected its arguments: src/duration.lisp changed since it was…
+   step  5  edit-replace src/duration.lisp
+            → done
+   step  6  edit-replace src/duration.lisp
+            → done
+   step  7  read src/duration.lisp
+            → done
+   step  8  edit-replace src/duration.lisp
+            → done
+   step  9  edit-replace tests/duration-test.lisp
+            → error  Tool edit-replace rejected its arguments: tests/duration-test.lisp changed since…
+   step 10  edit-replace tests/duration-test.lisp
+            → done
+   step 11  edit-replace tests/duration-test.lisp
+            → done
+   step 12  bash cl-repo test 2>&1 | tail -30
+   step 12  grep agent/agent.lisp
+            → done
+            → done
+   step 13  bash cl-repo test 2>&1 | sed -n '1,30p'; echo "=== agent ==="; cl-repo test --system cl-stack-s…
+            → denied  Tool bash was not run: approval is not available (no one can be asked) Feedback:…
+   step 14  bash cl-repo test --system cl-stack-sample/agent 2>&1 | tail -20
+            → done
+   step 15  repl-load-system {"system":"cl-stack-sample"}
+            → done
+   step 16  debug-invoke-restart {"restart":5}
+            → denied  Tool debug-invoke-restart was not run: approval is not available (no one can be …
+   step 17  bash cl-repo test 2>&1 | grep -B1 -A9 "reads-units"
+            → done
+   model calls: 18
+   result: success, 18 turns, exit 0
+   final answer:
+   | Done — `w` is now a first-class unit.
+   | 
+   | **`src/duration.lisp`**
+   | - `*units*` gained `(#\w . 604800)` at the front, keeping the list largest-first so `format-duration` / `add-durations` emit weeks too.
+   | - "missing unit" message is now `(w, d, h, m or s)`; the `parse-duration` docstring mentions `"1w"`.
+   | 
+   | **`tests/duration-test.lisp`**
+   | - `parse-duration-reads-units`: `"1w"` → 604800, `"1W"` → 604800, `"1w2d 3h"` → 788400.
+   | - `format-duration-round-trips`: `"1w"` for 604800, `"7d"` round-trips to `"1w"`, `"1w2d 3h"` → `"1w2d3h"`, and `(add-durations "1w" "8d")` → `"2w1d"`.
+   | 
+   | **Tests:** `cl-repo test` — all pass (8/8 parametrized unit cases, rejects, formatting, restart/policy tests). `cl-repo test --system cl-stack-sample/agent` also passes.
+
+== 5. What changed ==
+$ git status --short
+   |  M src/duration.lisp
+   |  M tests/duration-test.lisp
+   exit 0, 0 s
+$ git diff
+   | diff --git a/src/duration.lisp b/src/duration.lisp
+   | index 3ab5f37..3d9efc3 100644
+   | --- a/src/duration.lisp
+   | +++ b/src/duration.lisp
+   | @@ -1,7 +1,7 @@
+   |  (in-package #:cl-stack-sample)
+   |  
+   |  (defparameter *units*
+   | -  '((#\d . 86400) (#\h . 3600) (#\m . 60) (#\s . 1))
+   | +  '((#\w . 604800) (#\d . 86400) (#\h . 3600) (#\m . 60) (#\s . 1))
+   |    "Unit letters and their length in seconds, largest first.")
+   |  
+   |  (declaim (ftype (function (string) (values (integer 0) &optional)) %parse-duration))
+   | @@ -20,7 +20,7 @@
+   |            (unless n (fail "expected a number"))
+   |            (when (minusp n) (fail "negative amount"))
+   |            (setf pos next)
+   | -          (when (>= pos end) (fail "missing unit (d, h, m or s)"))
+   | +          (when (>= pos end) (fail "missing unit (w, d, h, m or s)"))
+   |            (let ((unit (assoc (char-downcase (char text pos)) *units*)))
+   |              (unless unit (fail (format nil "unknown unit ~s" (char text pos))))
+   |              (incf total (* n (cdr unit)))
+   | @@ -30,7 +30,7 @@
+   |        total)))
+   |  
+   |  (defun parse-duration (text)
+   | -  "Seconds in TEXT such as \"1h30m\", \"45s\" or \"2d 4h\".
+   | +  "Seconds in TEXT such as \"1w\", \"1h30m\", \"45s\" or \"2d 4h\".
+   |  Signals INVALID-DURATION with a USE-VALUE restart: invoke it with the
+   |  number of seconds to return instead."
+   |    (check-type text string)
+   | diff --git a/tests/duration-test.lisp b/tests/duration-test.lisp
+   | index 2dabbac..dbb2ecd 100644
+   | --- a/tests/duration-test.lisp
+   | +++ b/tests/duration-test.lisp
+   | @@ -9,7 +9,10 @@
+   |       ("1h30m" 5400)
+   |       ("2d 4h" 187200)
+   |       ("1H" 3600)
+   | -     ("  90m  " 5400))
+   | +     ("  90m  " 5400)
+   | +     ("1w" 604800)
+   | +     ("1W" 604800)
+   | +     ("1w2d 3h" 788400))
+   |    (ok (= seconds (parse-duration text))))
+   |  
+   |  (deftest-parametrize parse-duration-rejects
+   | @@ -28,7 +31,11 @@
+   |    (ok (equal "0s" (format-duration 0)))
+   |    (ok (equal "1h30m" (format-duration 5400)))
+   |    (ok (equal "2d4h" (format-duration (parse-duration "2d 4h"))))
+   | -  (ok (equal "1h45m" (add-durations "1h" "45m"))))
+   | +  (ok (equal "1w" (format-duration 604800)))
+   | +  (ok (equal "1w" (format-duration (parse-duration "7d"))))
+   | +  (ok (equal "1w2d3h" (format-duration (parse-duration "1w2d 3h"))))
+   | +  (ok (equal "1h45m" (add-durations "1h" "45m")))
+   | +  (ok (equal "2w1d" (add-durations "1w" "8d"))))
+   |  
+   |  (deftest use-value-restart-recovers
+   |    (testing "a handler supplies the value"
+   exit 0, 0 s
+
+== 6. Independent check: cl-repo test ==
+$ cl-repo test
+   exit 0, 12 s
+   |   ✓ Expect (EQUAL "1w" (FORMAT-DURATION 604800)) to be true.
+   |   ✓ Expect (EQUAL "1w" (FORMAT-DURATION (PARSE-DURATION "7d"))) to be true.
+   |   ✓ Expect (EQUAL "1w2d3h" (FORMAT-DURATION (PARSE-DURATION "1w2d 3h"))) to be true.
+   |   ✓ Expect (EQUAL "2w1d" (ADD-DURATIONS "1w" "8d")) to be true.
+   |   All 1 test passed.
+
+== Verdict ==
+OK: w unit added, tests added, cl-repo test passes

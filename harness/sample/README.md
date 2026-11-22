@@ -40,3 +40,15 @@ You need SBCL through Roswell, `cl-repo`, `git` and `curl`, plus an OpenAI-compa
 | `HARNESS_SAMPLE_KEEP=1` | Keep the temporary directory. |
 
 The exit code is 0 when the verdict is `OK` and 1 otherwise. A slow model makes this a long demo. On the shared Unsloth server, the session took about 20 minutes and 20 or more model calls.
+
+## Last run (2026-11-22)
+
+The model was `unsloth/Qwen3.8-Flash-Next-GGUF` (UD-IQ4_XS) on a shared Unsloth Studio server, with its default sampling. The demo took 1087 s and the verdict was **OK**.
+
+- **Build:** the fresh build took 120 s.
+- **Session:** `-p` ran 18 model calls in 908 s and ended with `success`.
+- **Reading and editing:** the model read with `read` and `grep`. It edited with lisp-mcp's `edit-replace`, which the sample's settings turn on through the Lisp image.
+- **Two stale edits refused.** Twice, an `edit-replace` was refused because the file had changed since the model last read it ("changed since it was…"). The model re-read the file and edited again. The plain `edit` tool has no such check: it lost an edit in an earlier run ([cl-stack-code#30](https://github.com/egao1980/cl-stack-code/issues/30)).
+- **Testing:** `cl-repo test` passed for both systems.
+- **Denials:** two calls were denied because they match no allow rule. One was a compound shell command that included `echo`. The other was `debug-invoke-restart` after `repl-load-system` put the image into the debugger.
+- **Independent check:** the separate `cl-repo test` passed (12 s).

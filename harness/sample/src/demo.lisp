@@ -28,7 +28,19 @@
     (push (cons text replacement) *scrub*)
     (setf *scrub* (sort *scrub* #'> :key (lambda (p) (length (car p)))))))
 
+(defun strip-ansi (text)
+  "TEXT without ESC [ … m colour sequences (Rove's reporter prints them)."
+  (with-output-to-string (o)
+    (loop with i = 0 and n = (length text)
+          while (< i n)
+          do (let ((c (char text i)))
+               (if (and (char= c (code-char 27)) (< (1+ i) n) (char= #\[ (char text (1+ i))))
+                   (let ((m (position #\m text :start i)))
+                     (setf i (if m (1+ m) n)))
+                   (progn (write-char c o) (incf i)))))))
+
 (defun scrub (text)
+  (setf text (strip-ansi text))
   (dolist (pair *scrub* text)
     (loop for p = (search (car pair) text)
           while p
