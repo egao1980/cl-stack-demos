@@ -1,0 +1,82 @@
+========================================================================
+== 1. The engine and a plain completion
+========================================================================
+  llama-version                          1.0.0-dev
+  libllamastack ABI                      4
+  model                                  ~/Projects/cl-workspace/.worktrees/native/scratch/llama/models/stories260K.gguf
+  complete "Once upon a time" (12)       ", there was a little girl named Lily. She"
+  ok       some text: T
+
+========================================================================
+== 2. Grammar-constrained COMPLETE (#17)
+========================================================================
+llama-cpp 0.2.0 called llama_sampler_accept after llama_sampler_sample, which
+already accepts the token: the grammar saw every piece twice and threw
+"Unexpected empty grammar stack after accepting piece: y" on the first token.
+The shim was C, so the C++ exception ran into std::terminate: SIGABRT, LDB.
+0.2.1 accepts each token once; once the grammar is complete llama.cpp only allows
+end-of-generation, so the text is a sentence of the grammar.
+
+  grammar                                root ::= ("yes" | "no")
+  ok       complete "The cat" :grammar: T
+    →                                    (:OK "yes")
+  ok       complete "Is the sky blue?" :grammar: T
+    →                                    (:OK "no")
+  ok       complete "Once upon a time" :grammar: T
+    →                                    (:OK "no")
+  grammar                                root ::= "The answer is " ("yes" | "no") "."
+  ok       complete "Question:": "The answer is yes."
+
+========================================================================
+== 3. PARSE-GRAMMAR reuse, :on-token streaming, temperature
+========================================================================
+  ok       one parse, three completions (COMPLETE clones the sampler): ("yes" "yes" "yes")
+  :on-token pieces                       ("y" "e" "s")
+  ok       pieces join to the text: "yes"
+  ok       temperature 0.8: still a sentence: T
+
+========================================================================
+== 4. An open-ended grammar is cut at :max-tokens
+========================================================================
+  grammar                                root ::= "{" [a-z]+ "}"
+  :max-tokens 2                          "{c"
+  ok       prefix of a sentence (2): T
+  :max-tokens 4                          "{cles"
+  ok       prefix of a sentence (4): T
+  :max-tokens 8                          "{clessines"
+  ok       prefix of a sentence (8): T
+
+========================================================================
+== 5. C++ exceptions become LLAMA-ERROR (#17)
+========================================================================
+libllamastack 0.2.1 is C++ behind the C ABI: every exported function catches
+std::exception and returns LLAMA_STACK_RUNTIME with "C++ exception: ...".
+No token's piece starts with NUL, so this grammar rules out every candidate;
+greedy picks one anyway and llama.cpp's accept throws. 0.2.0 aborted here.
+
+  complete :grammar "root ::= \"\\x00\"" llama-cpp error (RUNTIME): llama_stack_complete_ex: C++ exception: Unexpected empty grammar stack after accepting piece: <unk> (0)
+  ok       a LLAMA-ERROR: :LLAMA-ERROR
+  ok       status RUNTIME, the exception's text: T
+  undefined rule                         llama-cpp error (INVALID): llama_stack_complete_ex: grammar parse failed
+  ok       status INVALID: T
+  ok       the image goes on: complete after the errors: "yes"
+
+========================================================================
+== 6. Exit with a live engine (#18, #20)
+========================================================================
+An engine kept in a global outlives the Lisp side: C exit() destroyed
+ggml-metal's device list under the model's residency sets and
+ggml_metal_device_free aborted (GGML_ASSERT, SIGABRT) instead of exiting with the
+program's code. The finalizers never helped: they closed over the engine, so it
+was never garbage (#20). 0.2.1 frees what is still live from sb-ext:*exit-hooks*
+(FREE-LIVE-HANDLES: grammars, then engines).
+
+  child: engine in a global, then (sb-ext:exit :code 3) exit 3
+  ok       exit code, no abort: (3 NIL)
+  child: engine in a global, then (error "boom") exit 1
+  ok       exit code, no abort: (1 NIL)
+  ok       free-live-handles (one engine, one grammar here): 2
+  ok       again: nothing left: 0
+  ok       the handles read as freed: (T T)
+
+20 checks, 0 mismatched
