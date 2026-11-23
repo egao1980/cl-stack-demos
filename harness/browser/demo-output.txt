@@ -1,0 +1,117 @@
+========================================================================
+== 1. Chrome's JSON and base64 go through the stack (#1)
+========================================================================
+0.1.0 parsed CDP JSON with a private parser whenever no json-protocol backend
+was bound, and that parser could not read `false`: Chrome's Page.navigate reply
+("isDownload":false) failed with "bad JSON false". 0.2.0 depends on
+json-protocol + json-backend-jzon and encoding-protocol; the private parser and
+base64 are gone.
+
+  decode-cdp-message →                   HASH-TABLE
+  ok       frameId: "13AAB0BE9ACCA194BE5D8B66BD278795"
+  ok       isDownload (false → NIL, present): (NIL T)
+  ok       null → :NULL: :NULL
+  ok       symbols gone: %PARSE-JSON %BASE64-DECODE: 0
+  malformed JSON →                       BROWSER-ERROR
+  ok       its cause is a json-protocol condition: T
+
+========================================================================
+== 2. Launch: chromium.launch() + new_page() (#2)
+========================================================================
+LAUNCH-BROWSER starts the browser headless with --remote-debugging-port=0 and a
+temporary --user-data-dir in its own process group, reads the port from
+DevToolsActivePort, opens the browser websocket (ws-protocol) and attaches to the
+page with a flattened session: one socket, page commands carry the sessionId.
+
+  find-browser-executable                /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+  process alive-p                        T
+  profile                                <tmp>/browser-protocol-1U85JUP-BZD4VE/profile/
+  browser websocket                      ws://127.0.0.1:54145
+  session id (flatten)                   1C2B1A49… (32 chars)
+  user agent                             Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
+  ok       connected: T
+
+========================================================================
+== 3. Replies are matched by id while events arrive (#2)
+========================================================================
+CONNECT-BROWSER sent Target.setDiscoverTargets; Chrome answers with a
+Target.targetCreated event per target before the reply. 0.1.0 took the first event
+as the reply and every later EVAL-JS read the next event (NIL, NIL, NIL). 0.2.0
+reads until the reply with its id and keeps the events in a bounded buffer.
+
+  Target.targetCreated events buffered   3: page, browser_ui, service_worker
+  ok       at least the page: T
+  ok       eval-js 1+1, 2+2, 3+3: (2 4 6)
+
+========================================================================
+== 4. NAVIGATE waits for the page (#2)
+========================================================================
+Playwright's page.goto waits for `load` by default. NAVIGATE now takes
+:wait-until (:load, :domcontentloaded, :commit) and :timeout; it sends Page.enable
+once and waits for the load event of the new loader.
+
+  ok       default (:load): readyState: "complete"
+  ok       title: "fast"
+
+A page whose image never arrives (10.255.255.1 does not answer): DOMContentLoaded
+fires at once, load does not.
+
+  :domcontentloaded returned after       0.0s
+  ok       :domcontentloaded: readyState: "interactive"
+  :load, :timeout 2 →                    BROWSER-TIMEOUT after 2.0s
+  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: no Page.loadEventFired within 2s
+  ok       browser-error-url: "data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>"
+  ok       #fragment (same document, no load event): "#part"
+  unresolvable host →                    BROWSER-ERROR
+  ok       message names Chrome's errorText: T
+
+========================================================================
+== 5. Events: ON-CDP-EVENT and WAIT-FOR-CDP-EVENT
+========================================================================
+Handlers run on the reading thread for every event read while a command or a
+wait reads. Events are also kept in a bounded buffer, and WAIT-FOR-CDP-EVENT
+takes the oldest matching one from it first, so an event that came in during the
+previous command is not missed. :test narrows the wait.
+
+  ok       eval-js "console.log('hello from the page'), 42": 42
+  ok       the handler saw the console event: ("hello from the page")
+  ok       wait-for-cdp-event: the buffered one first: "hello from the page"
+  the :test wait returned after          0.3s
+  ok       its message: "later"
+  ok       the handler saw both: ("hello from the page" "later")
+
+========================================================================
+== 6. Screenshot and PDF: base64 through encoding-protocol (#1)
+========================================================================
+  screenshot                             8,173 bytes, 756×469 px
+  ok       PNG signature: (137 80 78 71)
+  print-pdf                              10,321 bytes
+  ok       PDF header: "%PDF-"
+  dom-snapshot                           <h1 style="color:white">browser-protocol 0.2.0</h1>
+
+========================================================================
+== 7. CONNECT-CDP: a second client on a running browser
+========================================================================
+connect_over_cdp: CONNECT-CDP attaches its own session; its CLOSE-BROWSER detaches
+and leaves the browser running.
+
+  ok       other client: eval-js 6*7: 42
+  ok       browser still alive after the other client closed: T
+  ok       launched client still works: 2
+
+========================================================================
+== 8. CLOSE-BROWSER
+========================================================================
+  ok       process alive-p: NIL
+  ok       temporary profile exists: NIL
+
+========================================================================
+== 9. WITH-BROWSER and *BROWSER-BACKEND* (#3)
+========================================================================
+WITH-BROWSER binds the backend and *BROWSER-BACKEND*; the NIL-backend methods now
+use *BROWSER-BACKEND* (0.1.0 ignored it).
+
+  ok       (eval-js nil "document.title"): "with-browser"
+  ok       closed on the way out: NIL
+
+28 checks, 0 mismatched
