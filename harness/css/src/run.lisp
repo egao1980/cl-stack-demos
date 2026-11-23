@@ -2,7 +2,8 @@
 
 (defparameter *demos*
   '(demo-serialise demo-scope demo-used-rules demo-conditions demo-theme demo-page
-    demo-lass-source demo-classie-functions demo-calc demo-lass-restarts demo-lass-page))
+    demo-lass-source demo-classie-functions demo-calc demo-lass-restarts demo-lass-page
+    demo-markdown-images demo-org-markup demo-markup-page))
 
 (defun run-demos ()
   "Run every demo; an error ends that demo only (printed), the rest still run."

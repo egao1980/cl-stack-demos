@@ -1,5 +1,7 @@
 WARNING: System definition file #P"/Users/nikolaimatiushev/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (15 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
 SBCL is free software, provided as is, with absolutely no warranty.
@@ -12,7 +14,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
 == Demo 1: css-protocol 0.1.0 model + serializer — the page, the stylesheet, pretty vs minified
 ========================================================================
 
--- the page (html-protocol 0.1.1 tree)
+-- the page (html-protocol 0.1.2 tree)
    elements: 103
    element types: 40
    html head meta title style body header h1 p nav ul li a main article h2 code h3 pre table caption thead tr th tbody td figure svg text rect figcaption form label input select option button details summary footer
@@ -1163,4 +1165,146 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
    ... (965 more lines)
 
 ========================================================================
-Demos run: 11, failed: none
+== Demo 12: markdown-protocol 0.2.0 — images
+========================================================================
+
+-- an image: "![logo](logo.png \"title dropped\")"
+   AST: ((:PARAGRAPH ((:IMAGE "logo.png" ("logo")))))
+
+-- alt text keeps its inlines: "![a *b* c](i.png)"
+   AST: ((:PARAGRAPH ((:IMAGE "i.png" ("a " (:EMPH ("b")) " c")))))
+
+-- a badge: an image inside a link: "[![build](badge.svg)](https://ci.example)"
+   AST: ((:PARAGRAPH ((:LINK "https://ci.example" ((:IMAGE "badge.svg" ("build")))))))
+
+-- a link inside alt text: "![see [docs](d.html)](i.png)"
+   AST: ((:PARAGRAPH ((:IMAGE "i.png" ("see " (:LINK "d.html" ("docs")))))))
+
+-- escaped !: a plain link: "\\![x](u)"
+   AST: ((:PARAGRAPH ("!" (:LINK "u" ("x")))))
+
+-- no destination: text: "![x]"
+   AST: ((:PARAGRAPH ("![x]")))
+
+========================================================================
+== Demo 13: org-markup 0.1.0 — the same note in Org, the same AST
+========================================================================
+
+-- the note in Org
+   #+TITLE: Notes on markup
+   #+DATE: <2026-11-23 Mon>
+   #+FILETAGS: :lisp:demo:
+   
+   * Notes on markup
+   :PROPERTIES:
+   :ID: dropped-with-its-drawer
+   :END:
+   Some /emphasis/, ~code~, a [[https://example.com][link]] and +strike+.
+   
+   [[images/diagram.svg]]
+   
+   - one
+   - two
+   
+   | <l>  | <r>   |
+   | name | count |
+   |------+-------|
+   | ada  | 2     |
+   
+   #+BEGIN_SRC lisp
+   (+ 1 2)
+   #+END_SRC
+   
+   # a comment line, dropped
+   * Draft notes                                                     :noexport:
+   Not exported.
+
+-- keywords (post metadata)
+   keywords: (("title" . "Notes on markup") ("date" . "<2026-11-23 Mon>") ("filetags" . ":lisp:demo:"))
+
+-- blocks (drawer, comment and the :noexport: subtree dropped)
+   org-markup:
+     
+     ((:HEADING 1 ("Notes on markup"))
+      (:PARAGRAPH
+       ("Some " (:EMPH ("emphasis")) ", " (:CODE "code") ", a " (:LINK "https://example.com" ("link"))
+        " and " (:STRIKE ("strike")) "."))
+      (:PARAGRAPH ((:IMAGE "images/diagram.svg" NIL)))
+      (:BULLET-LIST T (((:PARAGRAPH ("one"))) ((:PARAGRAPH ("two")))))
+      (:TABLE (:LEFT :RIGHT) (("name") ("count")) ((("ada") ("2")))) (:CODE-BLOCK "lisp" ("(+ 1 2)")))
+
+-- the same note in markdown
+   # Notes on markup
+   
+   Some *emphasis*, `code`, a [link](https://example.com) and ~~strike~~.
+   
+   ![](images/diagram.svg)
+   
+   - one
+   - two
+   
+   | name | count |
+   |:-----|------:|
+   | ada  | 2     |
+   
+   ```lisp
+   (+ 1 2)
+   ```
+   (equal org-blocks markdown-blocks): T
+
+-- org specifics
+   *bold* /italic/ _underline_ =verbatim= ~code~ +strike+: ((:PARAGRAPH
+                                                             ((:STRONG ("bold")) " " (:EMPH ("italic")) " "
+                                                              (:EMPH ("underline")) " " (:CODE "verbatim")
+                                                              " " (:CODE "code") " " (:STRIKE ("strike")))))
+   snake_case a/b/c 2*3*4 stay text: ((:PARAGRAPH ("snake_case a/b/c 2*3*4 stay text")))
+   [[https://example.com][see [[thumb.png]]]]: ((:PARAGRAPH
+                                                 ((:LINK "https://example.com"
+                                                   ("see " (:IMAGE "thumb.png" NIL))))))
+   plain https://example.com/x, then text: ((:PARAGRAPH
+                                             ("plain "
+                                              (:LINK "https://example.com/x" ("https://example.com/x"))
+                                              ", then text")))
+   - term :: its description: ((:BULLET-LIST T (((:PARAGRAPH ((:STRONG ("term")) " — its description"))))))
+
+========================================================================
+== Demo 14: html-markdown 0.1.0 — the AST as HTML, on an engels page — page-markup.html
+========================================================================
+
+-- (markdown-html blocks :heading-ids t)
+   <h1 id="notes-on-markup">Notes on markup</h1>
+   <p>Some <em>emphasis</em>, <code>code</code>, a <a href="https://example.com">link</a> and <del>strike</del>.</p>
+   <p><img src="images/diagram.svg" alt=""></p>
+   <ul>
+   <li>one</li>
+   <li>two</li>
+   </ul>
+   <table>
+   <thead>
+   <tr><th align="left">name</th><th align="right">count</th></tr>
+   </thead>
+   <tbody>
+   <tr><td align="left">ada</td><td align="right">2</td></tr>
+   </tbody>
+   </table>
+   <pre><code class="language-lisp">(+ 1 2)
+   </code></pre>
+
+-- a URL function: images to a CDN, unsafe URLs dropped (SAFE-URL)
+   <p><img src="https://cdn.example/images/d.svg" alt="d"> <a href="https://x.y">ok</a> bad x</p>
+
+-- a node the renderer does not know
+   signals: HTML-MARKDOWN:UNKNOWN-MARKDOWN-NODE
+   CONTINUE: "<p>a</p>
+"
+   USE-VALUE: "<p>[x^2]</p>
+"
+
+-- the page: engels, pruned to the page, inlined
+   engels rules, all / used: (140 92)
+   class attributes in the page: 1
+   bytes: 9569
+   wrote page-markup.html
+
+========================================================================
+Demos run: 14, failed: none
