@@ -1,0 +1,314 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: wrote cl-repo.lock (1 package)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+; compiling file "<tmp>/harness/music-theory/src/demo.lisp" (written 23 NOV 2026 09:35:25 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<tmp>/harness/music-theory/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.048
+music-theory 0.1.0: spelled pitches, the line of fifths and intervals (slice MT0)
+
+========================================================================
+== 1. Spelled pitches: letter, accidental, octave
+========================================================================
+A SPELLED-PITCH is a value: LETTER 0-6 (C D E F G A B), ALTER -2..2 (double flat
+to double sharp) and a scientific OCTAVE. It is an immutable struct compared with
+EQUALP. PARSE-PITCH reads a name and PITCH-NAME prints one, in ASCII by default.
+
+  (parse-pitch "F#4") => #S(spelled-pitch :letter 3 :alter 1 :octave 4)   ; F#4
+  (pitch-name (make-spelled-pitch :letter 6 :alter -2 :octave 3)) => "Bbb3"
+  (pitch-name (parse-pitch "F#4") :accidentals :unicode) => "F♯4"
+  (pitch-name (parse-pitch "Bbb3") :accidentals :unicode) => "B𝄫3"
+
+The parser takes # b ## bb x and the Unicode signs ♯ ♭ 𝄪 𝄫, either letter case and
+surrounding blanks. "-" is never a flat: in "B-1" it starts octave -1.
+
+  text         letter alter octave   ASCII   Unicode  MIDI
+  "F#4"             3     1      4   F#4     F♯4        66
+  "Bbb3"            6    -2      3   Bbb3    B𝄫3        57
+  "C-1"             0     0     -1   C-1     C-1         0
+  "C##5"            0     2      5   C##5    C𝄪5        74
+  "Fx5"             3     2      5   F##5    F𝄪5        79
+  "F♯4"             3     1      4   F#4     F♯4        66
+  "B𝄫3"             6    -2      3   Bbb3    B𝄫3        57
+  "e♭4"             2    -1      4   Eb4     E♭4        63
+  " ab5 "           5    -1      5   Ab5     A♭5        80
+  "B-1"             6     0     -1   B-1     B-1        11
+  "G9"              4     0      9   G9      G9        127
+
+Round trip, 35 spellings x octaves -1..9: 385 of 385 names parse back to the same
+pitch and print the same, in ASCII and in Unicode.
+
+Values print readably, so they can be written out and read back (or used as keys
+in EQUALP hash tables):
+  #S(MUSIC-THEORY:SPELLED-PITCH :LETTER 6 :ALTER -2 :OCTAVE 3)
+  read back, EQUALP to the original: T
+
+A PITCH-CLASS-NAME is the spelling without an octave.
+
+  (parse-pitch-class "Eb") => #S(pitch-class-name :letter 2 :alter -1)   ; Eb
+  (pitch-spelling (parse-pitch "C##5"))
+    => #S(pitch-class-name :letter 0 :alter 2)   ; C##
+  (pitch-class-string (parse-pitch-class "C##") :accidentals :unicode) => "C𝄪"
+
+========================================================================
+== 2. MIDI numbers and the scientific octave
+========================================================================
+PITCH-MIDI is 12 x (octave + 1) + the letter's semitones + ALTER, so C4 = 60 and
+C-1 = 0. The octave number belongs to the letter, not to the sound: B#3 sounds as
+C4 and Cb4 sounds as B3. PITCH-DIATONIC-INDEX (letter + 7 x octave) is the staff
+position, which ignores accidentals; PITCH-CLASS is the unspelled class 0-11.
+
+  pitch   MIDI   class     staff
+  C-1        0       0        -7
+  A0        21       9         5
+  B3        59      11        27
+  B#3       60       0        27
+  C4        60       0        28
+  Dbb4      60       0        29
+  Cb4       59      11        28
+  A4        69       9        33
+  G9       127       7        67
+
+B#3, C4 and Dbb4 are one key on a keyboard but three different notes on paper:
+
+  (pitch-midi (parse-pitch "B#3")) => 60
+  (pitch-midi (parse-pitch "C4")) => 60
+  (equalp (parse-pitch "B#3") (parse-pitch "C4")) => nil
+  (pitch-enharmonic-p (parse-pitch "B#3") (parse-pitch "C4")) => t
+  (interval-name (interval-between (parse-pitch "C4") (parse-pitch "B#3"))) => "-d2"
+
+Two pitches are enharmonic when their MIDI numbers are equal. Once a pitch class is
+involved, only the pitch classes are compared:
+
+  (pitch-enharmonic-p (parse-pitch "F#4") (parse-pitch "Gb4")) => t
+  (pitch-enharmonic-p (parse-pitch "F#4") (parse-pitch "Gb5")) => nil
+  (pitch-enharmonic-p (parse-pitch "F#4") (parse-pitch-class "Gb")) => t
+
+========================================================================
+== 3. The line of fifths
+========================================================================
+Every spelling has an integer position on the line of fifths: C 0, G 1, D 2, and
+F -1, Bb -2 the other way. A sharp adds 7 and a flat subtracts 7. With at most two
+accidentals the line runs from Fbb (-15) to B## (19), 35 spellings.
+FIFTHS-PITCH-CLASS gives the spelling at a position, PITCH-FIFTHS the position.
+
+  double flats   -15 Fbb  -14 Cbb  -13 Gbb  -12 Dbb  -11 Abb  -10 Ebb   -9 Bbb
+  flats           -8 Fb    -7 Cb    -6 Gb    -5 Db    -4 Ab    -3 Eb    -2 Bb
+  naturals        -1 F      0 C      1 G      2 D      3 A      4 E      5 B
+  sharps           6 F#     7 C#     8 G#     9 D#    10 A#    11 E#    12 B#
+  double sharps   13 F##   14 C##   15 G##   16 D##   17 A##   18 E##   19 B##
+
+  F𝄫 C𝄫 G𝄫 D𝄫 A𝄫 E𝄫 B𝄫 F♭ C♭ G♭ D♭ A♭ E♭ B♭ F C G D A E B F♯ C♯ G♯ D♯ A♯ E♯ B♯ F𝄪 C𝄪 G𝄪 D𝄪 A𝄪 E𝄪 B𝄪
+
+All 35 positions: (pitch-fifths (fifths-pitch-class n)) = n, and the pitch class
+is 7n mod 12 (35 of 35).
+
+Twelve steps along the line give the same pitch class again, spelled differently:
+the line never closes into a circle on paper (B# at 12 is not C at 0). Within two
+accidentals each pitch class has three spellings, except G#/Ab with two.
+
+  class  spellings (position)
+      0  Dbb (-12)       C (0)           B# (12)
+      1  Db (-5)         C# (7)          B## (19)
+      2  Ebb (-10)       D (2)           C## (14)
+      3  Fbb (-15)       Eb (-3)         D# (9)
+      4  Fb (-8)         E (4)           D## (16)
+      5  Gbb (-13)       F (-1)          E# (11)
+      6  Gb (-6)         F# (6)          E## (18)
+      7  Abb (-11)       G (1)           F## (13)
+      8  Ab (-4)         G# (8)
+      9  Bbb (-9)        A (3)           G## (15)
+     10  Cbb (-14)       Bb (-2)         A# (10)
+     11  Cb (-7)         B (5)           A## (17)
+
+An interval is a fixed distance on the line. From C up to each spelling within the
+octave:
+
+  distance   -7  -6  -5  -4  -3  -2  -1   0   1   2   3   4   5   6   7
+  to         Cb  Gb  Db  Ab  Eb  Bb   F   C   G   D   A   E   B  F#  C#
+  interval   d1  d5  m2  m6  m3  m7  P4  P1  P5  M2  M6  M3  M7  A4  A1
+
+All 1225 ordered pairs of the 35 spellings, the second placed 0-6 steps above the
+first: 985 have a named interval, with 39 distinct names. Each distance names one
+interval and each interval has one distance.
+
+========================================================================
+== 4. Intervals: quality, number, compound, inversion
+========================================================================
+An INTERVAL is STEPS (signed diatonic steps; compound intervals are kept, so P12 is
+not P5) plus SEMITONES. Quality and number are derived, never stored.
+INTERVAL-BETWEEN measures from the first pitch to the second.
+
+  (interval-between (parse-pitch "Eb4") (parse-pitch "A4"))
+    => #S(interval :steps 3 :semitones 6)   ; A4
+  (interval-name (interval-between (parse-pitch "C4") (parse-pitch "G5"))) => "P12"
+
+  from  to    steps semis  name  quality            num  dir  compound simple
+  Eb4 A4          3     6  A4    augmented            4    1  no       A4
+  C4 G5          11    19  P12   perfect             12    1  yes      P5
+  C4 E4           2     4  M3    major                3    1  no       M3
+  E4 C4          -2    -4  -M3   major                3   -1  no       -M3
+  B3 F4           4     6  d5    diminished           5    1  no       d5
+  F4 B4           3     6  A4    augmented            4    1  no       A4
+  C4 C5           7    12  P8    perfect              8    1  no       P8
+  D4 F#5          9    16  M10   major               10    1  yes      M3
+  E4 D#4         -1    -1  -m2   minor                2   -1  no       -m2
+  C4 Cb4          0    -1  d1    diminished           1    0  no       d1
+  C4 C#4          0     1  A1    augmented            1    0  no       A1
+  G#3 Fb4         6     8  dd7   doubly-diminished    7    1  no       dd7
+  A4 C3         -12   -21  -M13  major               13   -1  yes      -M6
+
+A unison has no direction and is read as ascending, so C4 to Cb4 is a diminished
+unison (d1), not a descending augmented one. PARSE-INTERVAL accepts exactly what
+INTERVAL-NAME prints: an optional "-", a quality (dd d m M P A AA) and a number.
+
+  (parse-interval "-P5") => #S(interval :steps -4 :semitones -7)   ; -P5
+  (parse-interval "AA4") => #S(interval :steps 3 :semitones 7)   ; AA4
+  (interval-semitones (parse-interval "dd7")) => 8
+
+Numbers 1-15 with each quality: 161 names (83 ascending, 78 descending) parse and
+print back unchanged. The 22 that put m or M on a unison, fourth, fifth or octave
+(or their compounds), or P on any other number, are rejected:
+  m1 m4 m5 m8 m11 m12 m15 P2 P3 P6 P7 P9 P10 P13 P14 M1 M4 M5 M8 M11 M12 M15
+
+SIMPLE-INTERVAL removes whole octaves while the interval is wider than one (an
+octave itself stays). INVERT-INTERVAL complements the simple interval within the
+octave: the numbers add up to 9, M and m swap, A and d swap, P stays P.
+REVERSE-INTERVAL turns the direction around.
+
+  name    simple    inversion   reversal
+  P12     P5        P4          -P12
+  P15     P8        P1          -P15
+  P8      P8        P1          -P8
+  -M9     -M2       -m7         M9
+  M10     M3        m6          -M10
+  M3      M3        m6          -M3
+  m3      m3        M6          -m3
+  A4      A4        d5          -A4
+  M7      M7        m2          -M7
+  P1      P1        P8          P1
+  A1      A1        d8          d1
+  AA2     AA2       dd7         -AA2
+
+All 44 simple ascending intervals: numbers add up to 9, semitones to 12, and
+inverting twice gives the interval back (44 of 44).
+
+Reversing A1 gives d1 because a unison is read as ascending. INTERVAL-BETWEEN agrees:
+
+  (interval-name (interval-between (parse-pitch "C#4") (parse-pitch "C4"))) => "d1"
+
+========================================================================
+== 5. Transposition keeps the spelling
+========================================================================
+TRANSPOSE-PITCH moves the letter and octave by STEPS and lets the accidental make up
+the SEMITONES. The spelling is exact: the same key on the keyboard gets a different
+name after a different interval.
+
+  (pitch-name (transpose-pitch (parse-pitch "F#4") (parse-interval "M2"))) => "G#4"
+  (pitch-name (transpose-pitch (parse-pitch "F#4") (parse-interval "d3"))) => "Ab4"
+  (pitch-name (transpose-pitch (parse-pitch "C4") (parse-interval "A1"))) => "C#4"
+  (pitch-name (transpose-pitch (parse-pitch "C4") (parse-interval "m2"))) => "Db4"
+  (pitch-name (transpose-pitch (parse-pitch "D4") (parse-interval "-P5"))) => "G3"
+  (pitch-name (transpose-pitch (parse-pitch "Bb3") (parse-interval "P12"))) => "F5"
+
+The C major scale up an augmented fourth is F# major, with E# as its seventh degree
+(one letter per step). Up a diminished fifth it is Gb major, with Cb. The two rows
+sound the same note by note but share no spelling, and the steps between neighbours
+are the same in all three rows.
+
+  C major           C4    D4    E4    F4    G4    A4    B4    C5
+  up A4: F# major   F#4   G#4   A#4   B4    C#5   D#5   E#5   F#5
+  up d5: Gb major   Gb4   Ab4   Bb4   Cb5   Db5   Eb5   F5    Gb5
+  MIDI (both)       66    68    70    71    73    75    77    78
+  steps (all rows)     M2    M2    m2    M2    M2    M2    m2
+
+Twelve perfect fifths up from C1 walk the line of fifths from 0 to 12 and end on
+B#7, which sounds as C8 but is not C8:
+
+  name   C1   G1   D2   A2   E3   B3   F#4  C#5  G#5  D#6  A#6  E#7  B#7
+  fifths 0    1    2    3    4    5    6    7    8    9    10   11   12
+
+  (pitch-midi (parse-pitch "B#7")) => 108
+  (pitch-enharmonic-p (parse-pitch "B#7") (parse-pitch "C8")) => t
+  (equalp (parse-pitch "B#7") (parse-pitch "C8")) => nil
+
+All 35 spellings in octaves 3-5, every ordered pair p, q (11025 pairs): p moved by
+(interval-between p q) is q, and q moved by its reversal is p (11025 of 11025).
+
+========================================================================
+== 6. Conditions and restarts
+========================================================================
+Bad text signals INVALID-PITCH or INVALID-INTERVAL (both MUSIC-THEORY-ERROR) with
+the text and a short reason, inside a USE-VALUE restart whose value the parse
+function returns. Here HANDLER-BIND answers NIL for every input it cannot read:
+
+  "H4"     unknown letter
+  "Eb"     missing octave
+  "G#10"   octave out of range
+  "F#4x"   trailing characters
+  ""       empty
+  "Cbbb4"  missing octave
+  => C4 nil nil nil Bb3 nil nil nil C#4
+
+"Cbbb4" has an octave; its fault is the third flat. The reason should say so
+(egao1980/music-theory#4).
+
+The innermost restart of "H4" is USE-VALUE:
+  Supply a value to return instead of parsing "H4".
+
+Invoked interactively, the restart reads replacement text from *QUERY-IO* and
+parses that instead (here the reply is scripted):
+
+  (parse-pitch "Bb")  prompt "Text to parse instead: "  reply "Bb4"  => Bb4
+
+The same restart on PARSE-INTERVAL; M4 does not exist, so the handler supplies P4:
+
+  (handler-bind ((invalid-interval (lambda (c) (use-value (parse-interval "P4") c))))
+    (interval-name (parse-interval "M4")))
+    => "P4"
+
+TRANSPOSE-PITCH signals INVALID-PITCH (TEXT NIL) when the result needs more than two
+accidentals; it offers no restart, so the caller decides. G# major has F## as its
+seventh degree, so up an augmented unison that note would need three sharps:
+
+  G# major  G#4   A#4   B#4   C#5   D#5   E#5   F##5  G#5
+  up A1     G##4  A##4  B##4  C##5  D##5  E##5  --    G##5
+  F##5 up A1 -> invalid-pitch: needs more than two accidentals
+
+Some intervals are too far out for a name (beyond doubly augmented or doubly
+diminished). They still exist and still transpose; only naming them signals:
+
+  (interval-between (parse-pitch "Cb4") (parse-pitch "C##4"))
+    => #S(interval :steps 0 :semitones 3)
+  (pitch-name (transpose-pitch (parse-pitch "Cb4") (make-interval :steps 0 :semitones 3)))
+    => "C##4"
+
+One handler on MUSIC-THEORY-ERROR catches all of them:
+
+  (parse-pitch "H4")
+    -> invalid-pitch "H4": unknown letter
+  (parse-pitch-class "Ebbb")
+    -> invalid-pitch "Ebbb": trailing characters
+  (parse-interval "P3")
+    -> invalid-interval "P3": quality does not fit the interval number
+  (parse-interval "-P1")
+    -> invalid-interval "-P1": a unison has no direction
+  (fifths-pitch-class 20)
+    -> invalid-pitch: needs more than two accidentals
+  (interval-name (make-interval :steps 0 :semitones 3))
+    -> invalid-interval: quality beyond doubly augmented or doubly diminished
+  (transpose-pitch (parse-pitch "Fbb4") (parse-interval "d1"))
+    -> invalid-pitch: needs more than two accidentals
+
+========================================================================
+== Summary
+========================================================================
+118 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
