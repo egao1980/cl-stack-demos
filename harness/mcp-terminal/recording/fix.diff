@@ -1,0 +1,13 @@
+diff --git a/src/duration.lisp b/src/duration.lisp
+index ac2f0a9..3ab5f37 100644
+--- a/src/duration.lisp
++++ b/src/duration.lisp
+@@ -21,7 +21,7 @@
+           (when (minusp n) (fail "negative amount"))
+           (setf pos next)
+           (when (>= pos end) (fail "missing unit (d, h, m or s)"))
+-          (let ((unit (assoc (char text pos) *units*)))
++          (let ((unit (assoc (char-downcase (char text pos)) *units*)))
+             (unless unit (fail (format nil "unknown unit ~s" (char text pos))))
+             (incf total (* n (cdr unit)))
+             (incf pos)
