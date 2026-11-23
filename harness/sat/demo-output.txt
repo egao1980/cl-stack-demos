@@ -1,0 +1,290 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (2 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+; compiling file "<tmp>/harness/sat/src/demo.lisp" (written 23 NOV 2026 11:24:52 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64/<tmp>/harness/sat/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.087
+sat-protocol 0.2.0 on sat-backend-dpll 0.1.0 (SBCL 2.6.9)
+
+==============================================================================
+== 1. Cardinality constraints and their encodings
+==============================================================================
+SAT-EXACTLY-ONE and SAT-AT-MOST-K build one :AT-MOST node (sum of the true literals
+<= K); TO-CNF turns it into clauses with the node's :ENCODING. Every encoding has the
+same models on the user variables; they differ in size. Models are counted by
+SOLVE-ALL and checked against the binomial sums.
+
+constraint       n   encoding    clauses  aux    models  expected
+exactly-one        8 pairwise          29      0       8 8
+exactly-one        8 sequential        21      7       8 8
+exactly-one        8 totalizer         38     14       8 8
+exactly-one        8 bdd               28     14       8 8
+at-most-3          8 pairwise          70      0      93 93
+at-most-3          8 sequential        44     21      93 93
+at-most-3          8 totalizer         53     20      93 93
+at-most-3          8 bdd               37     20      93 93
+
+exactly-one       16 pairwise         121      0      16 16
+exactly-one       16 sequential        45     15      16 16
+exactly-one       16 totalizer         82     30      16 16
+exactly-one       16 bdd               60     30      16 16
+at-most-3         16 pairwise        1820      0     697 697
+at-most-3         16 sequential       100     45     697 697
+at-most-3         16 totalizer        129     44     697 697
+at-most-3         16 bdd              101     52     697 697
+
+:ENCODING :AUTO (the default) resolves on the folded node:
+  at-most-one, n=4       -> :pairwise
+  at-most-one, n=8       -> :sequential
+  at-most-3, n=8         -> :totalizer
+  weights 3,2,2,1 <= 4   -> :bdd
+Constants fold before any encoding:
+  (sat-at-most-k x 8), n=8   -> :TRUE
+  (sat-at-least-k x 9), n=8  -> :FALSE
+  (sat-at-least-k x 1), n=4  -> (:OR (:VAR (:X 0)) (:VAR (:X 1)) (:VAR (:X 2)) (:VAR (:X 3)))
+  (sat-at-most-k x 0), n=4   -> (:AND (:NOT (:VAR (:X 0))) (:NOT (:VAR (:X 1))) (:NOT (:VAR (:X 2)))
+                                 (:NOT (:VAR (:X 3))))
+
+==============================================================================
+== 1b. Pseudo-Boolean constraints: a knapsack
+==============================================================================
+SAT-PB-AT-MOST is the weighted case: sum of w_i over the true literals <= K. A 0/1
+knapsack: 10 items, weights 5 4 6 3 7 2 8 4 5 3, values 10 7 12 4 13 3 15 6 9 5, capacity 20.
+Maximising the value packed is minimising the value left out, the objective
+((value . (sat-not pick_i)) ...).
+
+encoding    clauses  aux    feasible sets  best value packed items
+pairwise         128      0            367         38 0 1 2 8
+sequential       334    180            367         38 0 1 2 8
+totalizer        508     85            367         38 0 4 6
+bdd              163     91            367         38 0 2 4 5
+Brute force over all 1024 subsets: 367 feasible, best value 38.
+
+==============================================================================
+== 2. N-queens
+==============================================================================
+8-queens: SAT-EXACTLY-ONE per row, SAT-AT-MOST-ONE per column and per diagonal.
+
+encoding    clauses  aux    solve (s)    first board valid
+auto             576    150        0.001 yes
+pairwise         736      0        0.000 yes
+sequential       592    206        0.001 yes
+totalizer       1078    412        0.003 yes
+bdd              798    412        0.001 yes
+
+The :auto board (row r has its queen in column c):
+    . Q . . . . . .
+    . . . . . . Q .
+    . . Q . . . . .
+    . . . . . Q . .
+    . . . . . . . Q
+    . . . . Q . . .
+    Q . . . . . . .
+    . . . Q . . . .
+
+Every solution, by SOLVE-ALL, against the known counts:
+  n=4:   2 solutions (known   2), all valid: yes  0.00s
+  n=5:  10 solutions (known  10), all valid: yes  0.00s
+  n=6:   4 solutions (known   4), all valid: yes  0.00s
+  n=7:  40 solutions (known  40), all valid: yes  0.02s
+  n=8:  92 solutions (known  92), all valid: yes  0.28s
+
+==============================================================================
+== 3. Weighted sequence labelling: every MINIMIZE strategy
+==============================================================================
+12 positions, 3 levels, observed 0 2 2 1 0 0 2 2 1 1 0 2.
+Hard: one level per position; adjacent levels differ by at most 1; also forbidden:
+level 0 -> 1 from position 3 to 4, level 1 -> 0 from position 8 to 9.
+Costs: |label - observed| per position; a step up 2, a step down 1.
+
+Encoding: x(p,l) one-hot per position (SAT-EXACTLY-ONE, :auto = :pairwise), a
+clause (-x(p,a) -x(p+1,b)) per forbidden pair, and a step indicator y(p,a,b) with
+(-x(p,a) -x(p+1,b) y(p,a,b)) that the objective pays for. CNF: 78 variables
+(0 auxiliary), 114 clauses; objective: 66 weighted literals, weights 1, 2.
+
+run                        cost  optimal-p  solves  final-conflict  decisions  seconds
+:linear-bdd                    9 T               16               0     108552 77.176
+:linear-bdd :timeout 600       9 T               10               0        694 0.448
+:linear-totalizer              9 T               13               0       2356 0.245
+:stratified                    9 T               17               0        829 0.082
+:core-guided                   9 T              537             536       2695 0.028
+
+Dynamic-programming oracle: optimum 9, labelling 1 1 1 1 1 1 1 1 1 1 1 1.
+Every run's model decodes to a valid labelling of cost 9. The labelling from
+:linear-totalizer:
+    position   0  1  2  3  4  5  6  7  8  9 10 11
+    observed   0  2  2  1  0  0  2  2  1  1  0  2
+    labelled   2  2  2  1  1  1  1  1  1  1  1  1
+    level 2    o  #  #           .  .           .
+    level 1             #  o  o  o  o  #  #  o  o
+    level 0    .           .  .              .   
+    (# labelled = observed, o labelled, . observed only)
+All four strategies return an optimum; they differ in the work. :core-guided
+assumes every cost literal false and relaxes the conflicts it meets
+(BACKEND-FINAL-CONFLICT; sat-backend-dpll returns every assumption, so each core
+is shrunk by deletion: hence the many calls); the linear strategies descend from
+the first model with a tightening bound (BDD or totalizer); :stratified descends
+over the heaviest weights first, then over all of them.
+
+The first two rows are the same strategy. With nothing but the strategy given,
+MINIMIZE keeps its 0.1 descent, whose BDD bound propagates only in BDD order;
+any 0.2 argument (here :timeout) selects the 0.2 descent with the propagating
+bound (egao1980/sat-protocol#6).
+
+==============================================================================
+== 4. Anytime: budgets, timeouts, SAT-BUDGET-EXCEEDED and CONTINUE
+==============================================================================
+With :BUDGET (decisions, over every backend call) or :TIMEOUT (seconds) the search
+stops early and returns the best model so far: (values model cost optimal-p), with
+OPTIMAL-P NIL until the bound is proven. :linear-bdd, budgets doubling:
+
+budget   cost           optimal-p  labelling
+       0 (no model yet) -          -
+       8 (no model yet) -          -
+      16             66 NIL        012101221101
+      32             39 NIL        000100121101
+      64             20 NIL        000101221100
+     128             11 NIL        222100111112
+     256              9 NIL        222111111111
+     512              9 NIL        222111111111
+    1024              9 T          222111111111
+
+:TIMEOUT, :linear-totalizer (times vary from run to run; the costs are checked
+only for validity):
+  timeout 0.02 : cost  53, optimal-p NIL  (0.023s)
+  timeout 0.2  : cost   9, optimal-p NIL  (0.200s)
+  timeout 1    : cost   9, optimal-p T    (0.238s)
+  timeout 30   : cost   9, optimal-p T    (0.209s)
+
+No model yet when the limit runs out: MINIMIZE signals SAT-BUDGET-EXCEEDED (an
+error when unhandled):
+  (minimize ... :budget 3) -> SAT-PROTOCOL:SAT-BUDGET-EXCEEDED
+    SAT search exceeded its budget of 3 decisions
+    budget slot 3, timeout slot NIL
+  (minimize ... :timeout 0) -> SAT search exceeded its timeout of 0 seconds
+
+CONTINUE doubles the limit that ran out and resumes the search where it stopped:
+  :budget 1, a handler invoking CONTINUE: signalled at budgets 1, 2, 4, 8; then a
+  model of cost 66, optimal-p NIL (the last budget ran out with that incumbent:
+  no signal).
+  USE-VALUE :gave-up instead: MINIMIZE returns (:GAVE-UP NIL)
+
+==============================================================================
+== 5. Hints: a warm start from a previous model
+==============================================================================
+The observations change at positions 9 to 11:
+  0 2 2 1 0 0 2 2 1 1 0 2  ->  0 2 2 1 0 0 2 2 1 2 2 2
+The previous optimum, 2 2 2 1 1 1 1 1 1 1 1 1 (from :linear-totalizer),
+costs 10 under the new costs; the new optimum (DP) is 8. Re-solve, once from
+scratch and once with :HINT the previous model (a complete model; any partial
+assignment works too). The hint is tried first, as assumptions; a model that
+agrees with it becomes the first incumbent, and the descent starts from there.
+
+  :hint + :budget 0: the hint itself comes back, cost 10, optimal-p NIL
+
+Each run under :timeout 30 (seconds):
+
+strategy           start                cost  optimal-p  solves  decisions  seconds
+:linear-totalizer  cold                    27 NIL              5     470205 30.000
+:linear-totalizer  hint                     8 T                4        657 0.028
+:linear-totalizer  cold, :phase :false      8 T               12       1058 0.114
+:stratified        cold                     8 T               19        656 0.077
+:stratified        hint                     8 T                5        339 0.012
+The hint skips the descent from a poor first model: the hinted runs prove the new
+optimum in a few calls. The cold :linear-totalizer run meets
+egao1980/sat-protocol#7: with :phase NIL, MINIMIZE guides the backend with its own
+phases (the incumbent's values), and on sat-backend-dpll (DLIS, no clause
+learning) one refutation then takes over a million decisions; with :phase :false
+(third row) it does not here. The timeout turns the slow run into an anytime answer.
+  hint = the old levels only (12 literals)        -> cost 8, optimal-p T
+  hint = an inconsistent hint (two levels at 0)   -> cost 8, optimal-p T
+An inconsistent hint is ignored: the first call fails and the search goes on
+without it.
+
+==============================================================================
+== 6. Lexicographic objectives
+==============================================================================
+Requests (position . level): (1 . 0) (2 . 2) (5 . 2) (6 . 0) (9 . 0) (10 . 2).
+Adjacent requests 1/2, 5/6 and 9/10 jump by two levels, so no labelling grants all
+six. Objective (:lex violations cost): first minimise the requests not granted,
+then the chain cost among those.
+
+Each strategy under :timeout 20 (seconds):
+
+run                              cost (lex)  optimal-p  solves  decisions  seconds
+:linear-bdd                      (3 11)      T               14        383 0.558
+:linear-totalizer                (3 59)      NIL              5     150246 20.000
+:stratified                      (3 11)      T               21        522 0.138
+:core-guided                     (3 11)      T              500       2309 0.026
+:linear-totalizer :phase :false  (3 58)      NIL              4     147527 20.000
+:linear-totalizer :order #'first (3 11)      T                7        612 0.013
+
+DP oracle over cost vectors: (3 11), labelling 2 2 2 2 2 2 2 2 2 2 2 2.
+The :core-guided labelling:
+    position   0  1  2  3  4  5  6  7  8  9 10 11
+    observed   0  2  2  1  0  0  2  2  1  1  0  2
+    labelled   2  2  2  2  2  2  2  2  2  2  2  2
+    level 2    o  #  #  o  o  o  #  #  o  o  o  #
+    level 1             .              .  .      
+    level 0    .           .  .              .   
+    (# labelled = observed, o labelled, . observed only)
+A run the timeout stopped returns its incumbent with OPTIMAL-P NIL; here:
+  :linear-totalizer
+  :linear-totalizer :phase :false
+The second level of :linear-totalizer meets egao1980/sat-protocol#7, as in section 5.
+Here :phase :false is not enough: the backend still decides the totalizer's
+auxiliary variables freely. An :ORDER hook (MINIMIZE then decides the user
+variables first and an auxiliary only when no user variable is left) is.
+
+Cost alone (no requests, :linear-totalizer): cost 9, granting 1 of the 6 requests.
+The same order as one weighted sum (violations x 97 + cost, :core-guided):
+302 = 97 x 3 + 11. :lex needs no such big-M weight: a proven level becomes a
+hard bound on the next.
+
+==============================================================================
+== 7. Final-conflict cores and minimal cores
+==============================================================================
+Assume the levels x0=1 x3=0 x5=2 x7=2 x9=1 x11=2.
+  (solve ... :assumptions pins) -> NIL NIL: unsatisfiable
+
+BACKEND-FINAL-CONFLICT (index level): (2 10 18 24 29 36) T
+  = x0=1 x3=0 x5=2 x7=2 x9=1 x11=2
+  sat-backend-dpll keeps the default method: one BACKEND-SOLVE, and on UNSAT every
+  assumption (a CDCL backend returns the assumptions its final conflict used).
+
+(unsat-core ... :minimal nil), the final conflict mapped back: x0=1 x3=0 x5=2 x7=2 x9=1 x11=2 (T)
+(unsat-core ... ), minimal (deletion over the assumptions): x3=0 x5=2 (T)
+  x3=0 forces x4=0 (0 -> 1 is forbidden after position 3, 0 -> 2 jumps two),
+  and x5=2 cannot follow x4=0.
+
+With the two extra rules as named soft formulas too, the core names a rule:
+  ("x3=0" "x5=2" "rule: no 0->1 at 3->4") (T)
+
+==============================================================================
+== 8. Conditions and restarts
+==============================================================================
+  SAT-PROTOCOL:SAT-INVALID-FORMULA:
+    Invalid SAT formula (a constraint operand must be a literal or a constant): #<SAT-PROTOCOL:FORMULA (:AND (:VAR (:X 0)) (:VAR (:X 1)))>
+    -> USE-VALUE (sat-var (:x 9))
+  (sat-at-most-k (x0 x1 x2 (and x0 x1)) 1) with the replacement:
+    (:AT-MOST 1 (:VAR (:X 0)) (:VAR (:X 1)) (:VAR (:X 2)) (:VAR (:X 9)))
+  Bare names are positive literals (any non-NIL object): (:AT-MOST 1 "a" "b" 42)
+  :encoding :quantum           -> SIMPLE-TYPE-ERROR
+  :strategy :fastest           -> SIMPLE-TYPE-ERROR
+  objective (:lex), no level   -> TYPE-ERROR
+  :budget -1                   -> SIMPLE-TYPE-ERROR
+  unsatisfiable under the assumptions -> (NIL NIL) (two values, as in 0.1)
+
+==============================================================================
+== Summary
+==============================================================================
+149 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
