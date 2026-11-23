@@ -22,13 +22,14 @@ Fifteen cl-repo projects, one per area. Each `demo-output.txt` is the captured o
 | [`llm-timeouts/`](llm-timeouts/) | `harness-demos-llm-timeouts` | llm-protocol-openai 0.7.0 and llm-protocol-anthropic 0.5.0 (`:request-timeout` / `:stream-idle-timeout` / `:connect-timeout`, `OPENAI_TIMEOUT` / `OPENAI_STREAM_IDLE_TIMEOUT` / `OPENAI_CONNECT_TIMEOUT` and the `ANTHROPIC_*` twins), http-backend-async 0.2.25 (`:read` is an idle timeout; `:total` only when set): a 12 s steady stream under a 2 s idle limit, a silent stream failing with "read timed out", a non-streaming cap, no retry of a timed-out POST, and a live 2800-token answer on Unsloth `Qwen3.8-Flash-Next` that took 543 s, past the old 180 s cap ([README](llm-timeouts/README.md)) |
 | [`llm-live-stream/`](llm-live-stream/) | `harness-demos-llm-live-stream` | http-backend-async 0.2.27 (#70): the blocking `send` with `:want-stream t` returns at the headers with the live body, so llm-protocol-openai 0.7.0 / llm-protocol-anthropic 0.5.0 `on-part` fires per SSE event: send vs `on-part` times from paced loopback origins (both dialects), an early stop that hangs up the request, and a live Unsloth `Qwen3.8-Flash-Next` stream with a timestamp per chunk ([README](llm-live-stream/README.md)) |
 | [`sample/`](sample/) | `harness-demos-sample` | ACP-4: cl-stack-code 0.10.1 through the lisp-workspace launcher (`scripts/cl-stack-code.sh`, downloaded, built into a fresh cache) on a fresh clone of cl-stack-sample: its README section 4 `-p` session (add a `w` unit with tests, `acceptEdits` + the project `.cl-stack-code/settings.json`) on a live model, checked by an independent `cl-repo test` ([README](sample/README.md)) |
+| [`zed-sample/`](zed-sample/) | `harness-demos-zed-sample` | The Zed demo, rehearsed headless: cl-stack-code 0.12.3 `--acp` (through a wire-logging wrapper) in a fresh cl-stack-sample clone at `demo/zed-seeded-bug`, driven by harness/acp's scripted ACP client on a live model: Context card, `skill`, "Rule loaded", lisp `edit-replace`, permission prompts, `cl-repo test` in client terminals, live streaming; checked by an independent `cl-repo test`. Plus the Zed recording steps ([README](zed-sample/README.md)) |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval, canvas, sample
+cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval, canvas, sample (zed-sample: ./rehearse.sh)
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1
