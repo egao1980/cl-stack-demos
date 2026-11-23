@@ -33,7 +33,7 @@ Without `HARNESS_DEMOS_BASE_URL` and `HARNESS_DEMOS_MODEL`, Demo 6 is skipped. `
 In every case `nil`, `0` or env `none` means no limit.
 
 1. **Settings.** The table above in practice: the defaults, then initargs and env vars, where an initarg wins and a bad env value is an `llm-error`. It also shows the http-protocol plists sent on the wire: `(:connect 30 :read 300)` for a stream, `(:connect 30 :total 600)` otherwise.
-2. **A slow, steady stream outlives the cap.** 24 tokens 0.5 s apart (12 s) arrive under `:request-timeout 3 :stream-idle-timeout 2`, and the stream finishes with `:stop`. The `on-part` times show the sync HTTP facade still delivering the stream at the end, not token by token (filed as http-backend-async#70).
+2. **A slow, steady stream outlives the cap.** 24 tokens 0.5 s apart (12 s) arrive under `:request-timeout 3 :stream-idle-timeout 2`, and the stream finishes with `:stop`. The `on-part` times show the sync HTTP facade still delivering the stream at the end, not token by token (http-backend-async#70, fixed in 0.2.27: see [llm-live-stream](../llm-live-stream/)).
 3. **A silent stream fails.** After two tokens the origin goes quiet, and the request fails in about 2 s with `http-timeout-error` "read timed out: no data for 2.0 s".
 4. **Non-streaming.** The answer takes 4 s. `:request-timeout 2` times out; `10` and `nil` get the whole answer.
 5. **No blind retry.** Even on a client that retries 3 times, a timed-out stream is sent once: it is a POST, and `http-retry` retries only idempotent methods.
