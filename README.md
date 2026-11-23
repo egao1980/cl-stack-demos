@@ -26,7 +26,7 @@ Provenance: **[SOURCES.md](SOURCES.md)**. Failures: **[ISSUES.md](ISSUES.md)** â
 
 ## Harness demos
 
-Runnable demos of the coding-agent harness packages (revision / diff protocols, git and jj backends, sql-migrate 0.2, pathlib snapshots and areas, agent-tools, TUI widgets and the tty backend, permissions, prompt cache, the cl-stack-code CLI and its interactive mode, lisp-mcp/agent image tools and image events, the product's `--lisp-image`, the supervisor-protocol process supervisor and its unit logs, the unkernel sandbox backend) against the published GHCR versions, with captured output: [`harness/`](harness/README.md).
+Runnable demos of the coding-agent harness packages (revision / diff protocols, git and jj backends, sql-migrate 0.2, pathlib snapshots and areas, agent-tools, TUI widgets and the tty backend, permissions, prompt cache, the cl-stack-code CLI and its interactive mode, lisp-mcp/agent image tools and image events, the product's `--lisp-image`, the supervisor-protocol process supervisor and its unit logs, the unkernel sandbox backend; sat-protocol 0.2 cardinality, optimisation strategies and cores) against the published GHCR versions, with captured output: [`harness/`](harness/README.md).
 
 ## Run Lisp
 
