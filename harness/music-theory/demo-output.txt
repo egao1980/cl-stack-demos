@@ -8,8 +8,9 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-music-theory 0.2.0: spelled pitches, the line of fifths and intervals (slice MT0,
-sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11)
+music-theory 0.3.0: spelled pitches, the line of fifths and intervals (slice MT0,
+sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale
+degrees and Roman numerals (slice MT2, sections 12-16)
 
 ========================================================================
 == 1. Spelled pitches: letter, accidental, octave
@@ -251,11 +252,20 @@ function returns. Here HANDLER-BIND answers NIL for every input it cannot read:
   "G#10"   octave out of range
   "F#4x"   trailing characters
   ""       empty
-  "Cbbb4"  missing octave
-  => C4 nil nil nil Bb3 nil nil nil C#4
+  "Cbbb4"  too many or mixed accidentals
+  "C♯♭4"   too many or mixed accidentals
+  => C4 nil nil nil Bb3 nil nil nil nil C#4
 
-"Cbbb4" has an octave; its fault is the third flat. The reason should say so
-(egao1980/music-theory#4).
+"Cbbb4" has an octave; its fault is the third flat. Since 0.3.0 the reason says
+so, for three accidentals and for a mix of sharps and flats alike (it used to be
+"missing octave", egao1980/music-theory#4). PARSE-PITCH-CLASS and PARSE-KEY
+share the scanner:
+
+  (parse-pitch "Cbbb4")                -> too many or mixed accidentals
+  (parse-pitch "C♯♭4")                 -> too many or mixed accidentals
+  (parse-pitch "Cx#4")                 -> too many or mixed accidentals
+  (parse-pitch-class "Ebbb")           -> too many or mixed accidentals
+  (parse-key "F#b minor")              -> too many or mixed accidentals
 
 The innermost restart of "H4" is USE-VALUE:
   Supply a value to return instead of parsing "H4".
@@ -292,7 +302,7 @@ One handler on MUSIC-THEORY-ERROR catches all of them:
   (parse-pitch "H4")
     -> invalid-pitch "H4": unknown letter
   (parse-pitch-class "Ebbb")
-    -> invalid-pitch "Ebbb": trailing characters
+    -> invalid-pitch "Ebbb": too many or mixed accidentals
   (parse-interval "P3")
     -> invalid-interval "P3": quality does not fit the interval number
   (parse-interval "-P1")
@@ -408,11 +418,15 @@ its two beats do not pair up.
 
 More meters, weights only. In 3/4 nothing pairs up (three beats is odd), 12/8
 has its half bar on beat 3, and in 2/2 the beat is a half note, so the eighths
-weigh 4 and the 16ths 5:
+weigh 4 and the 16ths 5. A beat of n units (n > 1) splits into its n units: the
+dotted beats above into three, and the five-eighth group of 3+5/8 into five
+eighths, all weighing 3. Before 0.3.0 that group was halved at 5/16 and its
+eighths weighed 9 (egao1980/music-theory#7):
 
   3/4               0 4 3 4 2 4 3 4 2 4 3 4
   12/8              0 4 3 4 3 4 2 4 3 4 3 4 1 4 3 4 3 4 2 4 3 4 3 4
   2/2               0 5 4 5 3 5 4 5 2 5 4 5 3 5 4 5
+  3+5/8             0 4 3 4 3 4 1 4 3 4 3 4 3 4 3 4
 
 The same offset means different things in different meters. The offset is taken
 modulo the bar, so later bars and pickups need no arithmetic:
@@ -533,9 +547,10 @@ the bar, or before it for a pickup, counts from the barline before it.
   (split-duration 1/2 :meter (parse-meter "2+3/8") :offset 1/8) => (1/8 3/8)
 
 Every onset on the 1/16 grid of one bar, with every duration from 1/16 to 2, in
-4/4, 3/4, 2/2, 6/8, 9/8, 12/8, 2+3/8 and 3+2+2/8 (3904 notes): the pieces add up
-to the duration, each is one written value with at most one dot, none crosses
-a barline, and nothing inside a piece is stronger than its start (3904 of 3904).
+4/4, 3/4, 2/2, 6/8, 9/8, 12/8, 2+3/8, 3+2+2/8 and 3+5/8
+(4416 notes): the pieces add up to the duration, each is one written value with
+at most one dot, none crosses a barline, and nothing inside a piece is stronger
+than its start (4416 of 4416).
 
 SPLIT-DURATION writes plain values only. A tuplet length cannot be cut into
 them, so it signals MUSIC-THEORY-ERROR:
@@ -543,14 +558,25 @@ them, so it signals MUSIC-THEORY-ERROR:
   (split-duration 1/12)
     -> music-theory-error: not notatable without a tuplet
 
-Rough edge: a beat group of five eighths gets no eighth grid. METRIC-WEIGHT
-halves a beat unless its numerator is 3, so the 5/8 group of 3+5/8 is cut at
-5/16 and its eighths weigh 9, off every grid. SPLIT-DURATION then rejects a
-plain eighth on the eighth grid (egao1980/music-theory#7):
+Two bars of 3+5/8. Since 0.3.0 the five-eighth group has an eighth grid (section
+8), so an eighth inside it is one note; in 0.2.0 SPLIT-DURATION rejected it as
+"not notatable without a tuplet" (egao1980/music-theory#7). The quarter that
+crosses the start of the group is tied there; the half note that starts on it
+stays whole:
 
-  3+5/8   0 4 3 4 3 4 1 9 9 9 9 3 9 9 9 9
-  (split-duration 1/8 :meter (parse-meter "3+5/8") :offset 1/2)
-    -> music-theory-error: not notatable without a tuplet
+  3+5/8     |0 4 3 4 3 4 1 4 3 4 3 4 3 4 3 4 |0 4 3 4 3 4 1 4 3 4 3 4 3 4 3 4 |
+  as given  |o-------o-------o---o-----------|o-----------o---------------o---|
+  tied      |o-------o---~---o---o-----------|o-----------o---------------o---|
+
+  offset  duration  tied pieces        written as
+  0       1/4       1/4                quarter
+  1/4     1/4       1/8 + 1/8          eighth ~ eighth
+  1/2     1/8       1/8                eighth
+  5/8     3/8       3/8                dotted quarter
+  1       3/8       3/8                dotted quarter
+  11/8    1/2       1/2                half
+  15/8    1/8       1/8                eighth
+
 
 ========================================================================
 == 11. Tempo and phrase windows
@@ -608,7 +634,390 @@ The same 8-second window at other tempi, on the eighth-note grid:
   144   19/4    38       4 + 6            7.9167
 
 ========================================================================
+== 12. Keys, key signatures and scales
+========================================================================
+Sections 12-16 are slice MT2, new in 0.3.0. A KEY is a TONIC, a PITCH-CLASS-NAME,
+and a MODE, :MAJOR or :MINOR. PARSE-KEY reads "Eb major" or "F# minor", and
+KEY-NAME prints that form, in ASCII or in Unicode:
+
+  (parse-key "Eb major")
+    => #S(key :tonic #S(pitch-class-name :letter 2 :alter -1) :mode :major)   ; Eb major
+  (key-name (parse-key "F# minor")) => "F# minor"
+  (key-name (parse-key "F# minor") :accidentals :unicode) => "F♯ minor"
+
+Short forms: with no mode word an uppercase letter is major and a lowercase one
+minor, and a trailing "m" is minor. With a mode word neither the letter's case
+nor the word's matters:
+
+  text          key
+  "G"           G major
+  "g"           G minor
+  "f#"          F# minor
+  "bb"          Bb minor
+  "Gm"          G minor
+  "Ebm"         Eb minor
+  "eb MAJOR"    Eb major
+  "B♭ minor"    Bb minor
+  " a  minor "  A minor
+
+KEY-SIGNATURE counts sharps (positive) or flats (negative). It is the tonic's
+position on the line of fifths for a major key, and three less for a minor key:
+A is at 3, so A minor has no sharps, like C major. The last column lists the
+altered notes of each scale; they are the run of the line of fifths from F# up,
+or from Bb down, that a key signature shows:
+
+  sig  major      minor      sharps or flats
+   -7  Cb major   Ab minor   Bb Eb Ab Db Gb Cb Fb
+   -6  Gb major   Eb minor   Bb Eb Ab Db Gb Cb
+   -5  Db major   Bb minor   Bb Eb Ab Db Gb
+   -4  Ab major   F minor    Bb Eb Ab Db
+   -3  Eb major   C minor    Bb Eb Ab
+   -2  Bb major   G minor    Bb Eb
+   -1  F major    D minor    Bb
+    0  C major    A minor
+    1  G major    E minor    F#
+    2  D major    B minor    F# C#
+    3  A major    F# minor   F# C# G#
+    4  E major    C# minor   F# C# G# D#
+    5  B major    G# minor   F# C# G# D# A#
+    6  F# major   D# minor   F# C# G# D# A# E#
+    7  C# major   A# minor   F# C# G# D# A# E# B#
+
+All 30 keys parse back from their names, ASCII and Unicode (30 of 30).
+
+These 30 are the valid keys. Anything else signals INVALID-KEY (a
+MUSIC-THEORY-ERROR) with a reason, inside the USE-VALUE restart of the other
+parsers. G# major would need eight sharps (F## among them), Fb major eight flats:
+
+  "G#"          signature beyond seven sharps or flats
+  "Fb"          signature beyond seven sharps or flats
+  "e# minor"    signature beyond seven sharps or flats
+  "Gmaj"        trailing characters
+  "G maj"       unknown mode
+  "Gminor"      trailing characters
+  "GM"          trailing characters
+  "H minor"     unknown letter
+  "Cbbb major"  too many or mixed accidentals
+  ""            empty
+  => Eb major, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
+
+  (handler-bind ((invalid-key (lambda (c) (use-value (parse-key "Ab") c))))
+    (key-name (parse-key "G#")))
+    => "Ab major"
+
+MAKE-KEY builds any key, and the functions of sections 13-15 accept it, because
+an applied chord can tonicize one (V/V in C# major is V of G# major). Only
+KEY-SIGNATURE refuses:
+
+  (mapcar #'pitch-class-string (scale-degrees (make-key :tonic (parse-pitch-class "G#"))))
+    => ("G#" "A#" "B#" "C#" "D#" "E#" "F##")
+  (key-signature (make-key :tonic (parse-pitch-class "G#")))
+    -> invalid-key: signature beyond seven sharps or flats
+
+SCALE-DEGREES lists degrees 1-7 of a key, one letter per degree. A major key has
+one scale. A minor key has three: :NATURAL (the default), :HARMONIC with a raised
+7th, and :MELODIC, the ascending form with a raised 6th and 7th.
+
+  (mapcar #'pitch-class-string (scale-degrees (parse-key "Eb")))
+    => ("Eb" "F" "G" "Ab" "Bb" "C" "D")
+  (mapcar #'pitch-class-string (scale-degrees (parse-key "C#")))
+    => ("C#" "D#" "E#" "F#" "G#" "A#" "B#")
+
+  key       variant   1    2    3    4    5    6    7
+  A minor   natural   A    B    C    D    E    F    G
+            harmonic  A    B    C    D    E    F    G#
+            melodic   A    B    C    D    E    F#   G#
+  C minor   natural   C    D    Eb   F    G    Ab   Bb
+            harmonic  C    D    Eb   F    G    Ab   B
+            melodic   C    D    Eb   F    G    A    B
+  F# minor  natural   F#   G#   A    B    C#   D    E
+            harmonic  F#   G#   A    B    C#   D    E#
+            melodic   F#   G#   A    B    C#   D#   E#
+
+All 15 minor keys: the harmonic scale is the natural one with degree 7 raised a
+semitone, and the melodic scale is the parallel major with degree 3 lowered a
+semitone (15 of 15).
+
+Church modes are reserved for later. Any other variant is a TYPE-ERROR:
+
+  (scale-degrees (parse-key "C") :variant :dorian)
+    -> type-error, expected type (member :natural :harmonic :melodic)
+
+========================================================================
+== 13. Scale degrees
+========================================================================
+DEGREE-OF gives a note's scale degree in a key, its ALTERATION against the scale
+(0 for a note of the scale) and, for a SPELLED-PITCH, the octave of the tonic at
+or below it. The letter decides the degree: F#4 and Gb4 sound the same, but in
+D major F# is degree 3 and Gb is degree 4 lowered.
+
+  (degree-of (parse-pitch "F#4") (parse-key "D")) => (values 3 0 4)
+  (degree-of (parse-pitch "Gb4") (parse-key "D")) => (values 4 -1 4)
+  (degree-of (parse-pitch "C#5") (parse-key "B"))
+    => (values 2 0 4)   ; the tonic below is B4
+  (degree-of (parse-pitch "B#3") (parse-key "C"))
+    => (values 7 1 3)   ; the tonic below is C3
+  (degree-of (parse-pitch-class "Fb") (parse-key "F#"))
+    => (values 1 -2 nil)   ; a class has no octave
+
+The alteration is measured against the scale of the variant: G# is a raised 7th
+in natural A minor and the plain 7th in harmonic A minor.
+
+  (degree-of (parse-pitch "G#4") (parse-key "a")) => (values 7 1 3)
+  (degree-of (parse-pitch "G#4") (parse-key "a") :variant :harmonic)
+    => (values 7 0 3)
+
+So every chromatic note is an altered degree. The chromatic scale in C major,
+spelled with sharps going up and with flats coming down, then in A minor against
+each variant:
+
+  C major    C    C#   D    D#   E    F    F#   G    G#   A    A#   B
+             1    #1   2    #2   3    4    #4   5    #5   6    #6   7
+             C    B    Bb   A    Ab   G    Gb   F    E    Eb   D    Db
+             1    7    b7   6    b6   5    b5   4    3    b3   2    b2
+
+  A minor    A    A#   B    C    C#   D    D#   E    F    F#   G    G#
+  natural    1    #1   2    3    #3   4    #4   5    6    #6   7    #7
+  harmonic   1    #1   2    3    #3   4    #4   5    6    #6   b7   7
+  melodic    1    #1   2    3    #3   4    #4   5    b6   6    b7   7
+
+PITCH-OF-DEGREE is the inverse: a degree, moved by an optional ALTERATION, as a
+PITCH-CLASS-NAME, or with OCTAVE as a SPELLED-PITCH in the scale that starts on
+the tonic in that octave. Degree 2 of B major in octave 4 is C#5, above B4:
+
+  (pitch-of-degree 2 (parse-key "B") :octave 4)
+    => #S(spelled-pitch :letter 0 :alter 1 :octave 5)   ; C#5
+  (pitch-of-degree 7 (parse-key "C#") :octave 4)
+    => #S(spelled-pitch :letter 6 :alter 1 :octave 4)   ; B#4
+  (pitch-of-degree 4 (parse-key "C") :alteration 1)
+    => #S(pitch-class-name :letter 3 :alter 1)   ; F#
+  (pitch-of-degree 6 (parse-key "c") :alteration 1)
+    => #S(pitch-class-name :letter 5 :alter 0)   ; A
+  (pitch-of-degree 7 (parse-key "a") :variant :harmonic)
+    => #S(pitch-class-name :letter 4 :alter 1)   ; G#
+
+Degree 7 of C# major is B#. Raised two more semitones it would be B###, with
+three sharps, so PITCH-OF-DEGREE signals INVALID-PITCH:
+
+  (pitch-of-degree 7 (parse-key "C#") :alteration 2)
+    -> invalid-pitch: needs more than two accidentals
+
+All 30 keys, the three variants, and the 35 spellings as classes and in octaves
+2-5 (15750 cases): PITCH-OF-DEGREE of the three values of DEGREE-OF gives the
+note back (15750 of 15750).
+
+========================================================================
+== 14. Roman numerals
+========================================================================
+A ROMAN-NUMERAL names a triad or seventh chord by the scale degree of its root.
+It is data with no key: DEGREE 1-7, a prefix ALTERATION (b is -1, # is +1),
+QUALITY, INVERSION 0-3, and APPLIED-TO, the target of an applied chord such as
+V/V. PARSE-ROMAN reads the usual text. The case gives major or minor, a marker
+o or ° diminished, /o or ø half-diminished, + augmented, M a major seventh, and
+the figure the inversion: 6 and 64 for triads, 7 65 43 42 for sevenths. N is
+the Neapolitan, bII.
+
+  (parse-roman "ii6")
+    => #S(roman-numeral :degree 2 :alteration 0 :quality :minor :inversion 1 :applied-to nil)   ; ii6
+
+  text      degree  alteration  quality             inversion  applied-to
+  V7        5       0           :dominant-7         0          nil
+  vii°7/V   7       0           :diminished-7       0          V
+  bVI       6       -1          :major              0          nil
+  N6        2       -1          :major              1          nil
+  iiø65     2       0           :half-diminished-7  1          nil
+  V42/IV    5       0           :dominant-7         3          IV
+
+CHORD-FOR spells the chord of a numeral in a key: ROOT, QUALITY and, for an
+inversion, BASS. Below, the tones are listed from the root, with /bass for an
+inversion. An applied numeral is read in the key its target tonicizes: V/V in
+C major is V of G major. ROMAN-NAME prints the canonical text, ASCII or Unicode:
+
+  text      ASCII     Unicode   in C major    in A minor
+  I         I         I         C E G         A C# E
+  ii6       ii6       ii6       D F A /F      B D F# /D
+  V7        V7        V7        G B D F       E G# B D
+  vii°7     viio7     vii°7     B D F Ab      G# B D F
+  V/V       V/V       V/V       D F# A        B D# F#
+  vii°7/V   viio7/V   vii°7/V   F# A C Eb     D# F# A C
+  bVI       bVI       ♭VI       Ab C Eb       Fb Ab Cb
+  N6        bII6      ♭II6      Db F Ab /F    Bb D F /D
+
+In a minor key the case of the numeral decides degrees 6 and 7: vi, vii° and
+vii°7 sit on the raised notes (F# and G# in A minor), VI and VII on the natural
+ones (F and G). A prefix accidental moves that default root, so bVI in A minor
+is Fb major; F major is plain VI. The other degrees follow the natural scale:
+ii in A minor is B minor, and the diatonic triad there is ii° (B D F).
+
+  VI    F A C           vi    F# A C#
+  VII   G B D           viio  G# B D
+  v     E G B           V     E G# B
+  iio6  B D F /D        bVI   Fb Ab Cb
+
+PARSE-ROMAN takes other spellings of the same numeral. ROMAN-NAME prints the
+canonical one, and both of its forms parse back to the same value:
+
+  text       ASCII      Unicode
+  V6/5       V65        V65
+  V2         V42        V42
+  V4/2       V42        V42
+  iiø7       ii/o7      iiø7
+  viio7      viio7      vii°7
+  ♭VI        bVI        ♭VI
+  #ivo7      #ivo7      ♯iv°7
+  N          bII        ♭II
+  N64        bII64      ♭II64
+  IM7        IM7        IM7
+  IVM65      IVM65      IVM65
+  III+       III+       III+
+  vii/o7/V   vii/o7/V   viiø7/V
+  V6/5/V     V65/V      V65/V
+
+Other text signals INVALID-ROMAN-NUMERAL with a reason, in the same USE-VALUE
+restart. There is no ninth (V9) and no applied chord of an applied chord
+(V/V/V); a target is a plain major or minor triad, not viio or V7; augmented
+sixths (Ger65) are not numerals:
+
+  "VIII"    trailing characters
+  "Vi"      trailing characters
+  "Io"      no quality for this case, marker and figure
+  "v+"      no quality for this case, marker and figure
+  "IM"      no quality for this case, marker and figure
+  "iiø"     no quality for this case, marker and figure
+  "V9"      trailing characters
+  "N7"      the Neapolitan is a triad
+  "V/V/V"   trailing characters
+  "V/viio"  trailing characters
+  "V7/V7"   trailing characters
+  "V/"      expected a numeral
+  "Ger65"   expected a numeral
+  " V 7"    trailing characters
+  ""        empty
+  => V65/V nil nil nil nil nil nil nil nil nil nil nil nil nil nil nil
+
+ROMAN-FOR goes back from a chord to a numeral. It reads the chord literally: a
+chromatic chord gets a prefix accidental and never an applied reading, because
+choosing one is analysis. With :APPLIED-TO it reads the chord in the key that
+target tonicizes. CHORD below is this demo's shorthand for MAKE-CHORD-SYMBOL
+(a third argument names the BASS):
+  (chord "F#" :diminished-7)
+  = (make-chord-symbol :root (parse-pitch-class "F#") :quality :diminished-7)
+In C major:
+
+  (roman-name (roman-for (chord "F#" :diminished-7) (parse-key "C"))) => "#ivo7"
+  (roman-name (roman-for (chord "F#" :diminished-7) (parse-key "C") :applied-to (parse-roman "V")))
+    => "viio7/V"
+
+More chords in C major, read literally and as applied chords:
+
+  chord             tones          literal  applied to  reading
+  D major           D F# A         II       V           V/V
+  D dominant-7      D F# A C       II7      V           V7/V
+  D dominant-7 /F#  D F# A C /F#   II65     V           V65/V
+  F# diminished-7   F# A C Eb      #ivo7    V           viio7/V
+  E dominant-7      E G# B D       III7     vi          V7/vi
+  A dominant-7 /C#  A C# E G /C#   VI65     ii          V65/ii
+  C dominant-7 /Bb  C E G Bb /Bb   I42      IV          V42/IV
+
+A chord that no numeral names signals MUSIC-THEORY-ERROR:
+
+  (roman-for (chord "C" :major "D") (parse-key "C"))
+    -> music-theory-error: the bass is not a chord tone
+  (roman-for (chord "C" :major-6) (parse-key "C"))
+    -> music-theory-error: the quality has no Roman numeral
+  (roman-for (make-chord-symbol :no-chord-p t) (parse-key "C"))
+    -> music-theory-error: N.C. has no Roman numeral
+  (roman-for (chord "D" :dominant-7) (parse-key "C") :applied-to (parse-roman "V7"))
+    -> invalid-roman-numeral: a target is a major or minor triad
+
+Every well-formed numeral: 7 degrees x 5 alterations x 44 qualities and
+inversions (1540), alone or applied to one of 70 targets (109340 in all). Each
+parses back from its ASCII and its Unicode name (109340 of 109340).
+
+In all 30 keys, ROMAN-FOR of CHORD-FOR gives each of those 1540 numerals back
+(35232 of 46200), except where a chord tone would need three accidentals and
+CHORD-FOR signals INVALID-PITCH (10968, such as #III in C# major: E## G### B##).
+
+Applied chords, in C major and A minor: each of the 1540 numerals on each of
+the 70 targets (215600) comes back from ROMAN-FOR with :APPLIED-TO (127352), or
+cannot be spelled (88248).
+
+========================================================================
+== 15. Mixture: chords borrowed from the parallel key
+========================================================================
+Mixture is not a slot of the numeral: iv is borrowed in C major but diatonic in
+C minor. ROMAN-MIXTURE-P is true when the numeral's chord is not diatonic to the
+key but is diatonic to the parallel key, the same tonic in the other mode. The
+diatonic chords of minor include the harmonic minor's V, V7, vii° and vii°7.
+
+  (roman-mixture-p (parse-roman "bVI") (parse-key "C"))
+    => t   ; Ab C Eb, VI of C minor
+  (roman-mixture-p (parse-roman "iv") (parse-key "C"))
+    => t   ; F Ab C, iv of C minor
+  (roman-mixture-p (parse-roman "bVII") (parse-key "C"))
+    => t   ; Bb D F, VII of C minor
+  (roman-mixture-p (parse-roman "IV") (parse-key "C")) => nil   ; diatonic
+  (roman-mixture-p (parse-roman "N6") (parse-key "C"))
+    => nil   ; Db: not in C minor either
+  (roman-mixture-p (parse-roman "V/V") (parse-key "C")) => nil   ; V of G major
+  (roman-mixture-p (parse-roman "iv/V") (parse-key "C"))
+    => t   ; C minor, borrowed in G major
+
+bVI, iv and bVII in each major key, spelled by CHORD-FOR. Each one is VI, iv or
+VII of the parallel minor, which is what makes it mixture:
+
+  key       bVI          iv           bVII         mixture
+  Cb major  Abb Cb Ebb   Fb Abb Cb    Bbb Db Fb    yes
+  Gb major  Ebb Gb Bbb   Cb Ebb Gb    Fb Ab Cb     yes
+  Db major  Bbb Db Fb    Gb Bbb Db    Cb Eb Gb     yes
+  Ab major  Fb Ab Cb     Db Fb Ab     Gb Bb Db     yes
+  Eb major  Cb Eb Gb     Ab Cb Eb     Db F Ab      yes
+  Bb major  Gb Bb Db     Eb Gb Bb     Ab C Eb      yes
+  F major   Db F Ab      Bb Db F      Eb G Bb      yes
+  C major   Ab C Eb      F Ab C       Bb D F       yes
+  G major   Eb G Bb      C Eb G       F A C        yes
+  D major   Bb D F       G Bb D       C E G        yes
+  A major   F A C        D F A        G B D        yes
+  E major   C E G        A C E        D F# A       yes
+  B major   G B D        E G B        A C# E       yes
+  F# major  D F# A       B D F#       E G# B       yes
+  C# major  A C# E       F# A C#      B D# F#      yes
+
+In a minor key the borrowing runs the other way. In C minor, I, ii, IV, vi and
+viiø7 come from C major; V and vii° belong to the harmonic minor, so they are
+not mixture:
+
+  not mixture  i iio III iv v V VI VII viio viio7
+  mixture      I ii IV vi vii/o7
+
+========================================================================
+== 16. A progression, to chords and back
+========================================================================
+A small round trip: I-vi-ii6-V7-I in G major. CHORD-FOR turns each numeral into
+a chord, and ROMAN-FOR reads each chord back. ii6 puts C, the third of A minor,
+in the bass, so the bass line is G E C D G, degrees 1 6 4 5 1.
+
+  numeral  root  quality     bass  tones      ROMAN-FOR
+  I        G     major       -     G B D      I
+  vi       E     minor       -     E G B      vi
+  ii6      A     minor       C     A C E      ii6
+  V7       D     dominant-7  -     D F# A C   V7
+  I        G     major       -     G B D      I
+
+  bass line  G E C D G   degrees 1 6 4 5 1
+
+The numerals hold no key, so the same list is the same progression in any major
+key. In minor the same functions are i-VI-iio6-V7-i:
+
+  Eb major  I-vi-ii6-V7-I
+            Eb G Bb | C Eb G | F Ab C /Ab | Bb D F Ab | Eb G Bb
+  F# major  I-vi-ii6-V7-I
+            F# A# C# | D# F# A# | G# B D# /B | C# E# G# B | F# A# C#
+  E minor   i-VI-iio6-V7-i
+            E G B | C E G | F# A C /A | B D# F# A | E G B
+
+========================================================================
 == Summary
 ========================================================================
-220 results checked against their expected values: 0 mismatched.
+398 results checked against their expected values: 0 mismatched.
 Every section ran to the end.

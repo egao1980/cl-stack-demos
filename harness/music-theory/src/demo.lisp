@@ -1,10 +1,11 @@
 (in-package #:harness-demos-music-theory)
 
-;;;; A short tour of music-theory 0.2.0. Sections 1-6 cover slice MT0 (spelled
+;;;; A short tour of music-theory 0.3.0. Sections 1-6 cover slice MT0 (spelled
 ;;;; pitches, the line of fifths and intervals), sections 7-11 slice MT1 (meters,
-;;;; the metric hierarchy, dots and tuplets, tie splitting, tempo). Every result
-;;;; with a known answer is also checked: RUN-DEMOS returns NIL when one differs
-;;;; or a section stops on an error.
+;;;; the metric hierarchy, dots and tuplets, tie splitting, tempo), sections 12-16
+;;;; slice MT2 (keys and scales, scale degrees, Roman numerals, mixture, a
+;;;; progression). Every result with a known answer is also checked: RUN-DEMOS
+;;;; returns NIL when one differs or a section stops on an error.
 
 ;;; Output and checks ---------------------------------------------------------
 
@@ -45,12 +46,15 @@
                (dotimes (i columns) (write-char #\Space s))))))
 
 (defun value-text (value)
-  "VALUE as printed, with the name of a pitch, pitch class, interval or meter after it."
+  "VALUE as printed, with the name of a pitch, pitch class, interval, meter, key or
+Roman numeral after it."
   (let ((name (typecase value
                 (spelled-pitch (pitch-name value))
                 (pitch-class-name (pitch-class-string value))
                 (interval (ignore-errors (interval-name value)))
-                (meter (meter-string value)))))
+                (meter (meter-string value))
+                (key (key-name value))
+                (roman-numeral (ignore-errors (roman-name value))))))
     (if name
         (format nil "~a   ; ~a" (code-text value) name)
         (code-text value))))
@@ -460,7 +464,7 @@ mismatch if it returns instead."
   (para "Bad text signals INVALID-PITCH or INVALID-INTERVAL (both MUSIC-THEORY-ERROR) with"
         "the text and a short reason, inside a USE-VALUE restart whose value the parse"
         "function returns. Here HANDLER-BIND answers NIL for every input it cannot read:")
-  (let* ((inputs '("C4" "H4" "Eb" "G#10" "Bb3" "F#4x" "" "Cbbb4" "C♯4"))
+  (let* ((inputs '("C4" "H4" "Eb" "G#10" "Bb3" "F#4x" "" "Cbbb4" "C♯♭4" "C♯4"))
          (parsed (handler-bind ((invalid-pitch
                                   (lambda (c)
                                     (format t "  ~8s ~a~%" (music-theory-error-text c)
@@ -469,9 +473,22 @@ mismatch if it returns instead."
                    (mapcar #'parse-pitch inputs))))
     (format t "  => ~{~a~^ ~}~%~%" (mapcar (lambda (p) (if p (pitch-name p) "nil")) parsed))
     (check (mapcar (lambda (p) (and p (pitch-name p))) parsed)
-           '("C4" nil nil nil "Bb3" nil nil nil "C#4") "parsed with use-value"))
-  (para "\"Cbbb4\" has an octave; its fault is the third flat. The reason should say so"
-        "(egao1980/music-theory#4).")
+           '("C4" nil nil nil "Bb3" nil nil nil nil "C#4") "parsed with use-value"))
+  (para "\"Cbbb4\" has an octave; its fault is the third flat. Since 0.3.0 the reason says"
+        "so, for three accidentals and for a mix of sharps and flats alike (it used to be"
+        "\"missing octave\", egao1980/music-theory#4). PARSE-PITCH-CLASS and PARSE-KEY"
+        "share the scanner:")
+  (loop for (form thunk)
+          in (list (list '(parse-pitch "Cbbb4") (lambda () (parse-pitch "Cbbb4")))
+                   (list '(parse-pitch "C♯♭4") (lambda () (parse-pitch "C♯♭4")))
+                   (list '(parse-pitch "Cx#4") (lambda () (parse-pitch "Cx#4")))
+                   (list '(parse-pitch-class "Ebbb") (lambda () (parse-pitch-class "Ebbb")))
+                   (list '(parse-key "F#b minor") (lambda () (parse-key "F#b minor"))))
+        for reason = (handler-case (progn (funcall thunk) :returned)
+                       (music-theory-error (c) (music-theory-error-reason c)))
+        do (out "  ~36a -> ~a~%" (code-text form) reason)
+           (check reason "too many or mixed accidentals" (code-text form)))
+  (terpri)
   (block restart
     (handler-bind ((invalid-pitch
                      (lambda (c)
@@ -655,10 +672,14 @@ first: a position has a dot in the row of its weight and every row above it."
         ""
         "More meters, weights only. In 3/4 nothing pairs up (three beats is odd), 12/8"
         "has its half bar on beat 3, and in 2/2 the beat is a half note, so the eighths"
-        "weigh 4 and the 16ths 5:")
+        "weigh 4 and the 16ths 5. A beat of n units (n > 1) splits into its n units: the"
+        "dotted beats above into three, and the five-eighth group of 3+5/8 into five"
+        "eighths, all weighing 3. Before 0.3.0 that group was halved at 5/16 and its"
+        "eighths weighed 9 (egao1980/music-theory#7):")
   (loop for (text expected) in '(("3/4" (0 4 3 4 2 4 3 4 2 4 3 4))
                                  ("12/8" (0 4 3 4 3 4 2 4 3 4 3 4 1 4 3 4 3 4 2 4 3 4 3 4))
-                                 ("2/2" (0 5 4 5 3 5 4 5 2 5 4 5 3 5 4 5)))
+                                 ("2/2" (0 5 4 5 3 5 4 5 2 5 4 5 3 5 4 5))
+                                 ("3+5/8" (0 4 3 4 3 4 1 4 3 4 3 4 3 4 3 4)))
         for weights = (bar-weights (parse-meter text))
         do (out "  ~18a~{~d ~}~%" text weights)
            (check weights expected (format nil "weights of ~a" text)))
@@ -863,24 +884,26 @@ of TEXTS. Returns the notes whose pieces pass every check, and the notes tried."
   (show (split-duration 1/2 :offset -1/4) '(1/4 1/4) "a pickup")
   (show (split-duration 9/8 :meter (parse-meter "12/8")) '(3/4 3/8))
   (show (split-duration 1/2 :meter (parse-meter "2+3/8") :offset 1/8) '(1/8 3/8))
-  (let ((meters '("4/4" "3/4" "2/2" "6/8" "9/8" "12/8" "2+3/8" "3+2+2/8")))
+  (let ((meters '("4/4" "3/4" "2/2" "6/8" "9/8" "12/8" "2+3/8" "3+2+2/8" "3+5/8")))
     (multiple-value-bind (ok total) (split-sweep meters)
       (format t "~%Every onset on the 1/16 grid of one bar, with every duration from 1/16 to 2, in~%~
-                 ~{~a~#[~; and ~:;, ~]~} (~d notes): the pieces add up~%~
-                 to the duration, each is one written value with at most one dot, none crosses~%~
-                 a barline, and nothing inside a piece is stronger than its start (~d of ~d).~%~%"
+                 ~{~a~#[~; and ~:;, ~]~}~%~
+                 (~d notes): the pieces add up to the duration, each is one written value with~%~
+                 at most one dot, none crosses a barline, and nothing inside a piece is stronger~%~
+                 than its start (~d of ~d).~%~%"
               meters total ok total)
       (check ok total "split sweep")))
   (para "SPLIT-DURATION writes plain values only. A tuplet length cannot be cut into"
         "them, so it signals MUSIC-THEORY-ERROR:")
   (show-signal (split-duration 1/12))
   (terpri)
-  (para "Rough edge: a beat group of five eighths gets no eighth grid. METRIC-WEIGHT"
-        "halves a beat unless its numerator is 3, so the 5/8 group of 3+5/8 is cut at"
-        "5/16 and its eighths weigh 9, off every grid. SPLIT-DURATION then rejects a"
-        "plain eighth on the eighth grid (egao1980/music-theory#7):")
-  (out "  ~8a~{~d ~}~%" "3+5/8" (bar-weights (parse-meter "3+5/8")))
-  (show-signal (split-duration 1/8 :meter (parse-meter "3+5/8") :offset 1/2) :checked nil))
+  (para "Two bars of 3+5/8. Since 0.3.0 the five-eighth group has an eighth grid (section"
+        "8), so an eighth inside it is one note; in 0.2.0 SPLIT-DURATION rejected it as"
+        "\"not notatable without a tuplet\" (egao1980/music-theory#7). The quarter that"
+        "crosses the start of the group is tied there; the half note that starts on it"
+        "stays whole:")
+  (show-rhythm "3+5/8" '((0 1/4) (1/4 1/4) (1/2 1/8) (5/8 3/8) (1 3/8) (11/8 1/2) (15/8 1/8))
+               '((1/4) (1/8 1/8) (1/8) (3/8) (3/8) (1/2) (1/8))))
 
 ;;; 11. Tempo and phrase windows --------------------------------------------------
 
@@ -948,13 +971,620 @@ of TEXTS. Returns the notes whose pieces pass every check, and the notes tried."
                        (> (duration-seconds (+ window 1/8) tempo) 8))
                   t (format nil "window at ~a is the longest" bpm))))
 
+;;; 12. Keys, key signatures and scales (MT2) ---------------------------------------
+
+(defun class-names (classes)
+  (mapcar #'pitch-class-string classes))
+
+(defun thirty-keys ()
+  "The 30 keys with signatures -7..7: each major key, then its relative minor."
+  (loop for f from -7 to 7
+        collect (make-key :tonic (fifths-pitch-class f) :mode :major)
+        collect (make-key :tonic (fifths-pitch-class (+ f 3)) :mode :minor)))
+
+(defun signature-accidentals (key)
+  "The altered notes of KEY's natural scale in key-signature order: sharps up the
+line of fifths (F# C# G# ...), flats down it (Bb Eb Ab ...)."
+  (class-names (sort (remove 0 (scale-degrees key) :key #'pitch-class-name-alter)
+                     (if (plusp (key-signature key)) #'< #'>)
+                     :key #'pitch-fifths)))
+
+(defun fifths-run (signature)
+  "The accidentals of SIGNATURE read off the line of fifths: SIGNATURE sharps from
+F# (position 6) up, or -SIGNATURE flats from Bb (position -2) down."
+  (loop for k below (abs signature)
+        collect (pitch-class-string
+                 (fifths-pitch-class (if (plusp signature) (+ 6 k) (- -2 k))))))
+
+(defun differ-only-at (scale other degree alter)
+  "True when OTHER is SCALE with degree DEGREE moved by ALTER semitones, letter kept."
+  (loop for d from 1
+        for a in scale
+        for b in other
+        always (if (= d degree)
+                   (and (= (pitch-class-name-letter a) (pitch-class-name-letter b))
+                        (= alter (- (pitch-class-name-alter b) (pitch-class-name-alter a))))
+                   (equalp a b))))
+
+(defparameter *key-forms*
+  ;; (text key-name)
+  '(("G" "G major") ("g" "G minor") ("f#" "F# minor") ("bb" "Bb minor") ("Gm" "G minor")
+    ("Ebm" "Eb minor") ("eb MAJOR" "Eb major") ("B♭ minor" "Bb minor")
+    (" a  minor " "A minor")))
+
+(defparameter *signature-rows*
+  ;; (signature major minor)
+  '((-7 "Cb major" "Ab minor") (-6 "Gb major" "Eb minor") (-5 "Db major" "Bb minor")
+    (-4 "Ab major" "F minor") (-3 "Eb major" "C minor") (-2 "Bb major" "G minor")
+    (-1 "F major" "D minor") (0 "C major" "A minor") (1 "G major" "E minor")
+    (2 "D major" "B minor") (3 "A major" "F# minor") (4 "E major" "C# minor")
+    (5 "B major" "G# minor") (6 "F# major" "D# minor") (7 "C# major" "A# minor")))
+
+(defparameter *scale-rows*
+  ;; (key variant degrees)
+  '(("A minor" :natural ("A" "B" "C" "D" "E" "F" "G"))
+    ("A minor" :harmonic ("A" "B" "C" "D" "E" "F" "G#"))
+    ("A minor" :melodic ("A" "B" "C" "D" "E" "F#" "G#"))
+    ("C minor" :natural ("C" "D" "Eb" "F" "G" "Ab" "Bb"))
+    ("C minor" :harmonic ("C" "D" "Eb" "F" "G" "Ab" "B"))
+    ("C minor" :melodic ("C" "D" "Eb" "F" "G" "A" "B"))
+    ("F# minor" :natural ("F#" "G#" "A" "B" "C#" "D" "E"))
+    ("F# minor" :harmonic ("F#" "G#" "A" "B" "C#" "D" "E#"))
+    ("F# minor" :melodic ("F#" "G#" "A" "B" "C#" "D#" "E#"))))
+
+(defun demo-keys ()
+  (para "Sections 12-16 are slice MT2, new in 0.3.0. A KEY is a TONIC, a PITCH-CLASS-NAME,"
+        "and a MODE, :MAJOR or :MINOR. PARSE-KEY reads \"Eb major\" or \"F# minor\", and"
+        "KEY-NAME prints that form, in ASCII or in Unicode:")
+  (show (parse-key "Eb major")
+        (make-key :tonic (make-pitch-class-name :letter 2 :alter -1) :mode :major))
+  (show (key-name (parse-key "F# minor")) "F# minor")
+  (show (key-name (parse-key "F# minor") :accidentals :unicode) "F♯ minor")
+  (terpri)
+  (para "Short forms: with no mode word an uppercase letter is major and a lowercase one"
+        "minor, and a trailing \"m\" is minor. With a mode word neither the letter's case"
+        "nor the word's matters:")
+  (format t "  ~14a~a~%" "text" "key")
+  (loop for (text name) in *key-forms*
+        for key = (parse-key text)
+        do (format t "  ~14a~a~%" (prin1-to-string text) (key-name key))
+           (check (key-name key) name (format nil "key ~s" text)))
+  (terpri)
+  (para "KEY-SIGNATURE counts sharps (positive) or flats (negative). It is the tonic's"
+        "position on the line of fifths for a major key, and three less for a minor key:"
+        "A is at 3, so A minor has no sharps, like C major. The last column lists the"
+        "altered notes of each scale; they are the run of the line of fifths from F# up,"
+        "or from Bb down, that a key signature shows:")
+  (format t "  ~5a~11a~11a~a~%" "sig" "major" "minor" "sharps or flats")
+  (loop for (sig major minor) in *signature-rows*
+        for major-key = (parse-key major)
+        for minor-key = (parse-key minor)
+        for accidentals = (signature-accidentals major-key)
+        do (out "  ~3@a  ~11a~11a~{~a~^ ~}~%" sig (key-name major-key) (key-name minor-key)
+                accidentals)
+           (check (list (key-signature major-key) (key-signature minor-key)) (list sig sig) major)
+           (check accidentals (fifths-run sig) (format nil "accidentals of ~a" major))
+           (check (signature-accidentals minor-key) accidentals
+                  (format nil "accidentals of ~a" minor)))
+  (let ((ok (count-if (lambda (key)
+                        (and (equalp key (parse-key (key-name key)))
+                             (equalp key (parse-key (key-name key :accidentals :unicode)))))
+                      (thirty-keys))))
+    (format t "~%All 30 keys parse back from their names, ASCII and Unicode (~d of 30).~%~%" ok)
+    (check ok 30 "key name round trips"))
+  (para "These 30 are the valid keys. Anything else signals INVALID-KEY (a"
+        "MUSIC-THEORY-ERROR) with a reason, inside the USE-VALUE restart of the other"
+        "parsers. G# major would need eight sharps (F## among them), Fb major eight flats:")
+  (let* ((inputs '("Eb major" "G#" "Fb" "e# minor" "Gmaj" "G maj" "Gminor" "GM" "H minor"
+                   "Cbbb major" ""))
+         (parsed (handler-bind ((invalid-key
+                                  (lambda (c)
+                                    (format t "  ~13s ~a~%" (music-theory-error-text c)
+                                            (music-theory-error-reason c))
+                                    (use-value nil c))))
+                   (mapcar #'parse-key inputs))))
+    (format t "  => ~{~a~^, ~}~%~%" (mapcar (lambda (k) (if k (key-name k) "nil")) parsed))
+    (check (mapcar (lambda (k) (and k (key-name k))) parsed)
+           (cons "Eb major" (make-list 10)) "keys parsed with use-value"))
+  (show (handler-bind ((invalid-key (lambda (c) (use-value (parse-key "Ab") c))))
+          (key-name (parse-key "G#")))
+        "Ab major")
+  (terpri)
+  (para "MAKE-KEY builds any key, and the functions of sections 13-15 accept it, because"
+        "an applied chord can tonicize one (V/V in C# major is V of G# major). Only"
+        "KEY-SIGNATURE refuses:")
+  (show (mapcar #'pitch-class-string (scale-degrees (make-key :tonic (parse-pitch-class "G#"))))
+        '("G#" "A#" "B#" "C#" "D#" "E#" "F##"))
+  (show-signal (key-signature (make-key :tonic (parse-pitch-class "G#"))))
+  (terpri)
+  (para "SCALE-DEGREES lists degrees 1-7 of a key, one letter per degree. A major key has"
+        "one scale. A minor key has three: :NATURAL (the default), :HARMONIC with a raised"
+        "7th, and :MELODIC, the ascending form with a raised 6th and 7th.")
+  (show (mapcar #'pitch-class-string (scale-degrees (parse-key "Eb")))
+        '("Eb" "F" "G" "Ab" "Bb" "C" "D"))
+  (show (mapcar #'pitch-class-string (scale-degrees (parse-key "C#")))
+        '("C#" "D#" "E#" "F#" "G#" "A#" "B#"))
+  (terpri)
+  (out "  ~10a~10a~{~5a~}~%" "key" "variant" '(1 2 3 4 5 6 7))
+  (loop for (name variant degrees) in *scale-rows*
+        for previous = nil then current
+        for current = name
+        for row = (class-names (scale-degrees (parse-key name) :variant variant))
+        do (out "  ~10a~10a~{~5a~}~%" (if (equal name previous) "" name)
+                (string-downcase (symbol-name variant)) row)
+           (check row degrees (format nil "~a ~(~a~)" name variant)))
+  (let ((ok (count-if (lambda (key)
+                        (let ((natural (scale-degrees key))
+                              (harmonic (scale-degrees key :variant :harmonic))
+                              (melodic (scale-degrees key :variant :melodic))
+                              (major (scale-degrees (make-key :tonic (key-tonic key)))))
+                          (and (differ-only-at natural harmonic 7 1)
+                               (differ-only-at major melodic 3 -1))))
+                      (remove :major (thirty-keys) :key #'key-mode))))
+    (format t "~%All 15 minor keys: the harmonic scale is the natural one with degree 7 raised a~%~
+               semitone, and the melodic scale is the parallel major with degree 3 lowered a~%~
+               semitone (~d of 15).~%~%" ok)
+    (check ok 15 "minor scale variants"))
+  (para "Church modes are reserved for later. Any other variant is a TYPE-ERROR:")
+  (let ((expected (handler-case (progn (scale-degrees (parse-key "C") :variant :dorian) :returned)
+                    (type-error (c) (type-error-expected-type c)))))
+    (format t "  ~a~%    -> type-error, expected type ~a~%"
+            (code-text '(scale-degrees (parse-key "C") :variant :dorian)) (code-text expected))
+    (check expected '(member :natural :harmonic :melodic) "variant type")))
+
+;;; 13. Scale degrees ---------------------------------------------------------------
+
+(defun degree-label (degree alteration)
+  "DEGREE with ALTERATION written as an accidental before it: 4, #4, b6, bb7."
+  (format nil "~a~d"
+          (subseq (pitch-class-string (make-pitch-class-name :letter 0 :alter alteration)) 1)
+          degree))
+
+(defun degree-labels (texts key &optional (variant :natural))
+  "The DEGREE-LABEL of each pitch class in TEXTS, in KEY and VARIANT."
+  (mapcar (lambda (text)
+            (multiple-value-bind (degree alteration)
+                (degree-of (parse-pitch-class text) key :variant variant)
+              (degree-label degree alteration)))
+          texts))
+
+(defun demo-degrees ()
+  (para "DEGREE-OF gives a note's scale degree in a key, its ALTERATION against the scale"
+        "(0 for a note of the scale) and, for a SPELLED-PITCH, the octave of the tonic at"
+        "or below it. The letter decides the degree: F#4 and Gb4 sound the same, but in"
+        "D major F# is degree 3 and Gb is degree 4 lowered.")
+  (show-values (degree-of (parse-pitch "F#4") (parse-key "D")) '(3 0 4))
+  (show-values (degree-of (parse-pitch "Gb4") (parse-key "D")) '(4 -1 4))
+  (show-values (degree-of (parse-pitch "C#5") (parse-key "B")) '(2 0 4) "the tonic below is B4")
+  (show-values (degree-of (parse-pitch "B#3") (parse-key "C")) '(7 1 3) "the tonic below is C3")
+  (show-values (degree-of (parse-pitch-class "Fb") (parse-key "F#")) '(1 -2 nil)
+               "a class has no octave")
+  (terpri)
+  (para "The alteration is measured against the scale of the variant: G# is a raised 7th"
+        "in natural A minor and the plain 7th in harmonic A minor.")
+  (show-values (degree-of (parse-pitch "G#4") (parse-key "a")) '(7 1 3))
+  (show-values (degree-of (parse-pitch "G#4") (parse-key "a") :variant :harmonic) '(7 0 3))
+  (terpri)
+  (para "So every chromatic note is an altered degree. The chromatic scale in C major,"
+        "spelled with sharps going up and with flats coming down, then in A minor against"
+        "each variant:")
+  (let* ((c (parse-key "C"))
+         (a (parse-key "a"))
+         (up '("C" "C#" "D" "D#" "E" "F" "F#" "G" "G#" "A" "A#" "B"))
+         (down '("C" "B" "Bb" "A" "Ab" "G" "Gb" "F" "E" "Eb" "D" "Db"))
+         (minor '("A" "A#" "B" "C" "C#" "D" "D#" "E" "F" "F#" "G" "G#"))
+         (rows (list (list "C major" up nil)
+                     (list "" (degree-labels up c)
+                           '("1" "#1" "2" "#2" "3" "4" "#4" "5" "#5" "6" "#6" "7"))
+                     (list "" down nil)
+                     (list "" (degree-labels down c)
+                           '("1" "7" "b7" "6" "b6" "5" "b5" "4" "3" "b3" "2" "b2"))
+                     nil
+                     (list "A minor" minor nil)
+                     (list "natural" (degree-labels minor a)
+                           '("1" "#1" "2" "3" "#3" "4" "#4" "5" "6" "#6" "7" "#7"))
+                     (list "harmonic" (degree-labels minor a :harmonic)
+                           '("1" "#1" "2" "3" "#3" "4" "#4" "5" "6" "#6" "b7" "7"))
+                     (list "melodic" (degree-labels minor a :melodic)
+                           '("1" "#1" "2" "3" "#3" "4" "#4" "5" "b6" "6" "b7" "7")))))
+    (dolist (row rows)
+      (destructuring-bind (&optional (label "") cells expected) row
+        (out "  ~11a~{~5a~}~%" label cells)
+        (when expected
+          (check cells expected (format nil "degrees of ~{~a~^ ~}" cells))))))
+  (terpri)
+  (para "PITCH-OF-DEGREE is the inverse: a degree, moved by an optional ALTERATION, as a"
+        "PITCH-CLASS-NAME, or with OCTAVE as a SPELLED-PITCH in the scale that starts on"
+        "the tonic in that octave. Degree 2 of B major in octave 4 is C#5, above B4:")
+  (show (pitch-of-degree 2 (parse-key "B") :octave 4) (parse-pitch "C#5"))
+  (show (pitch-of-degree 7 (parse-key "C#") :octave 4) (parse-pitch "B#4"))
+  (show (pitch-of-degree 4 (parse-key "C") :alteration 1) (parse-pitch-class "F#"))
+  (show (pitch-of-degree 6 (parse-key "c") :alteration 1) (parse-pitch-class "A"))
+  (show (pitch-of-degree 7 (parse-key "a") :variant :harmonic) (parse-pitch-class "G#"))
+  (para ""
+        "Degree 7 of C# major is B#. Raised two more semitones it would be B###, with"
+        "three sharps, so PITCH-OF-DEGREE signals INVALID-PITCH:")
+  (show-signal (pitch-of-degree 7 (parse-key "C#") :alteration 2))
+  (terpri)
+  (let ((total 0) (ok 0))
+    (dolist (key (thirty-keys))
+      (dolist (variant '(:natural :harmonic :melodic))
+        (dolist (pc (all-spellings))
+          (incf total)
+          (multiple-value-bind (d a o) (degree-of pc key :variant variant)
+            (when (and (null o)
+                       (equalp pc (pitch-of-degree d key :alteration a :variant variant)))
+              (incf ok)))
+          (loop for octave from 2 to 5
+                for p = (at-octave pc octave)
+                do (incf total)
+                   (multiple-value-bind (d a o) (degree-of p key :variant variant)
+                     (when (equalp p (pitch-of-degree d key :alteration a :octave o
+                                                            :variant variant))
+                       (incf ok)))))))
+    (format t "All 30 keys, the three variants, and the 35 spellings as classes and in octaves~%~
+               2-5 (~d cases): PITCH-OF-DEGREE of the three values of DEGREE-OF gives the~%~
+               note back (~d of ~d).~%" total ok total)
+    (check (list total ok) '(15750 15750) "degree round trips")))
+
+;;; 14. Roman numerals --------------------------------------------------------------
+
+(defparameter *roman-qualities*
+  '(:major :minor :diminished :augmented
+    :dominant-7 :major-7 :minor-7 :minor-major-7 :half-diminished-7 :diminished-7
+    :augmented-7 :augmented-major-7)
+  "The twelve qualities a Roman numeral can name: four triads, then eight sevenths.")
+
+(defun triad-p (roman)
+  (member (roman-numeral-quality roman) (subseq *roman-qualities* 0 4)))
+
+(defun revised (roman &key (inversion (roman-numeral-inversion roman))
+                           (applied-to (roman-numeral-applied-to roman)))
+  "ROMAN with another INVERSION or APPLIED-TO."
+  (make-roman-numeral :degree (roman-numeral-degree roman)
+                      :alteration (roman-numeral-alteration roman)
+                      :quality (roman-numeral-quality roman)
+                      :inversion inversion :applied-to applied-to))
+
+(defun roman-tones (roman key)
+  "The tones of ROMAN's chord in KEY, root first. CHORD-FOR puts the third, fifth
+or seventh in the bass for inversions 1-3, so they are the root and those basses."
+  (class-names (cons (chord-symbol-root (chord-for roman key))
+                     (loop for inversion from 1 to (if (triad-p roman) 2 3)
+                           collect (chord-symbol-bass
+                                    (chord-for (revised roman :inversion inversion) key))))))
+
+(defun chord-text (roman key)
+  "ROMAN's chord in KEY as its tones from the root, then /bass for an inversion."
+  (let ((bass (chord-symbol-bass (chord-for roman key))))
+    (format nil "~{~a~^ ~}~@[ /~a~]" (roman-tones roman key) (and bass (pitch-class-string bass)))))
+
+(defun chord (root quality &optional bass)
+  "A CHORD-SYMBOL with ROOT, QUALITY and BASS (pitch-class text), the slots a Roman
+numeral uses."
+  (make-chord-symbol :root (parse-pitch-class root) :quality quality
+                     :bass (and bass (parse-pitch-class bass))))
+
+(defun all-numerals ()
+  "Every well-formed ROMAN-NUMERAL without a target: 7 degrees x 5 alterations x 44
+qualities and inversions (4 triads in 3 positions, 8 sevenths in 4)."
+  (loop for degree from 1 to 7
+        nconc (loop for alteration from -2 to 2
+                    nconc (loop for quality in *roman-qualities*
+                                for top = (if (member quality (subseq *roman-qualities* 0 4))
+                                              2 3)
+                                nconc (loop for inversion from 0 to top
+                                            collect (make-roman-numeral
+                                                     :degree degree :alteration alteration
+                                                     :quality quality :inversion inversion))))))
+
+(defun all-targets ()
+  "Every target an applied numeral can have: a root-position major or minor triad
+on any degree, with any alteration (70)."
+  (loop for degree from 1 to 7
+        nconc (loop for alteration from -2 to 2
+                    nconc (loop for quality in '(:major :minor)
+                                collect (make-roman-numeral :degree degree :alteration alteration
+                                                            :quality quality)))))
+
+(defparameter *roman-rows*
+  ;; (text ascii unicode in-c-major in-a-minor)
+  '(("I" "I" "I" "C E G" "A C# E")
+    ("ii6" "ii6" "ii6" "D F A /F" "B D F# /D")
+    ("V7" "V7" "V7" "G B D F" "E G# B D")
+    ("vii°7" "viio7" "vii°7" "B D F Ab" "G# B D F")
+    ("V/V" "V/V" "V/V" "D F# A" "B D# F#")
+    ("vii°7/V" "viio7/V" "vii°7/V" "F# A C Eb" "D# F# A C")
+    ("bVI" "bVI" "♭VI" "Ab C Eb" "Fb Ab Cb")
+    ("N6" "bII6" "♭II6" "Db F Ab /F" "Bb D F /D")))
+
+(defparameter *minor-rows*
+  ;; (text chord-in-a-minor), printed in pairs
+  '(("VI" "F A C") ("vi" "F# A C#") ("VII" "G B D") ("viio" "G# B D")
+    ("v" "E G B") ("V" "E G# B") ("iio6" "B D F /D") ("bVI" "Fb Ab Cb")))
+
+(defparameter *roman-spellings*
+  ;; (text ascii unicode)
+  '(("V6/5" "V65" "V65") ("V2" "V42" "V42") ("V4/2" "V42" "V42") ("iiø7" "ii/o7" "iiø7")
+    ("viio7" "viio7" "vii°7") ("♭VI" "bVI" "♭VI") ("#ivo7" "#ivo7" "♯iv°7")
+    ("N" "bII" "♭II") ("N64" "bII64" "♭II64") ("IM7" "IM7" "IM7") ("IVM65" "IVM65" "IVM65")
+    ("III+" "III+" "III+") ("vii/o7/V" "vii/o7/V" "viiø7/V") ("V6/5/V" "V65/V" "V65/V")))
+
+(defparameter *reading-rows*
+  ;; (root quality bass tones literal target applied), in C major
+  '(("D" :major nil "D F# A" "II" "V" "V/V")
+    ("D" :dominant-7 nil "D F# A C" "II7" "V" "V7/V")
+    ("D" :dominant-7 "F#" "D F# A C /F#" "II65" "V" "V65/V")
+    ("F#" :diminished-7 nil "F# A C Eb" "#ivo7" "V" "viio7/V")
+    ("E" :dominant-7 nil "E G# B D" "III7" "vi" "V7/vi")
+    ("A" :dominant-7 "C#" "A C# E G /C#" "VI65" "ii" "V65/ii")
+    ("C" :dominant-7 "Bb" "C E G Bb /Bb" "I42" "IV" "V42/IV")))
+
+(defun demo-roman ()
+  (para "A ROMAN-NUMERAL names a triad or seventh chord by the scale degree of its root."
+        "It is data with no key: DEGREE 1-7, a prefix ALTERATION (b is -1, # is +1),"
+        "QUALITY, INVERSION 0-3, and APPLIED-TO, the target of an applied chord such as"
+        "V/V. PARSE-ROMAN reads the usual text. The case gives major or minor, a marker"
+        "o or ° diminished, /o or ø half-diminished, + augmented, M a major seventh, and"
+        "the figure the inversion: 6 and 64 for triads, 7 65 43 42 for sevenths. N is"
+        "the Neapolitan, bII.")
+  (show (parse-roman "ii6") (make-roman-numeral :degree 2 :quality :minor :inversion 1))
+  (terpri)
+  (format t "  ~10a~8a~12a~20a~11a~a~%"
+          "text" "degree" "alteration" "quality" "inversion" "applied-to")
+  (loop for (text expected) in '(("V7" (5 0 :dominant-7 0 nil))
+                                 ("vii°7/V" (7 0 :diminished-7 0 "V"))
+                                 ("bVI" (6 -1 :major 0 nil))
+                                 ("N6" (2 -1 :major 1 nil))
+                                 ("iiø65" (2 0 :half-diminished-7 1 nil))
+                                 ("V42/IV" (5 0 :dominant-7 3 "IV")))
+        for r = (parse-roman text)
+        for target = (roman-numeral-applied-to r)
+        for row = (list (roman-numeral-degree r) (roman-numeral-alteration r)
+                        (roman-numeral-quality r) (roman-numeral-inversion r)
+                        (and target (roman-name target)))
+        do (out "  ~10a~8a~12a~20a~11a~a~%" text (first row) (second row)
+                (code-text (third row)) (fourth row) (or (fifth row) "nil"))
+           (check row expected text))
+  (terpri)
+  (para "CHORD-FOR spells the chord of a numeral in a key: ROOT, QUALITY and, for an"
+        "inversion, BASS. Below, the tones are listed from the root, with /bass for an"
+        "inversion. An applied numeral is read in the key its target tonicizes: V/V in"
+        "C major is V of G major. ROMAN-NAME prints the canonical text, ASCII or Unicode:")
+  (format t "  ~10a~10a~10a~14a~a~%" "text" "ASCII" "Unicode" "in C major" "in A minor")
+  (loop for (text ascii unicode in-c in-a) in *roman-rows*
+        for r = (parse-roman text)
+        for row = (list (roman-name r) (roman-name r :accidentals :unicode)
+                        (chord-text r (parse-key "C")) (chord-text r (parse-key "a")))
+        do (out "  ~10a~10a~10a~14a~a~%" text (first row) (second row) (third row) (fourth row))
+           (check row (list ascii unicode in-c in-a) text))
+  (terpri)
+  (para "In a minor key the case of the numeral decides degrees 6 and 7: vi, vii° and"
+        "vii°7 sit on the raised notes (F# and G# in A minor), VI and VII on the natural"
+        "ones (F and G). A prefix accidental moves that default root, so bVI in A minor"
+        "is Fb major; F major is plain VI. The other degrees follow the natural scale:"
+        "ii in A minor is B minor, and the diatonic triad there is ii° (B D F).")
+  (let ((a (parse-key "a")))
+    (loop for ((text-1 expected-1) (text-2 expected-2)) on *minor-rows* by #'cddr
+          for chord-1 = (chord-text (parse-roman text-1) a)
+          for chord-2 = (chord-text (parse-roman text-2) a)
+          do (out "  ~6a~16a~6a~a~%" text-1 chord-1 text-2 chord-2)
+             (check (list chord-1 chord-2) (list expected-1 expected-2)
+                    (format nil "~a and ~a in A minor" text-1 text-2))))
+  (terpri)
+  (para "PARSE-ROMAN takes other spellings of the same numeral. ROMAN-NAME prints the"
+        "canonical one, and both of its forms parse back to the same value:")
+  (format t "  ~11a~11a~a~%" "text" "ASCII" "Unicode")
+  (loop for (text ascii unicode) in *roman-spellings*
+        for r = (parse-roman text)
+        for row = (list (roman-name r) (roman-name r :accidentals :unicode))
+        do (out "  ~11a~11a~a~%" text (first row) (second row))
+           (check row (list ascii unicode) text)
+           (check (list (parse-roman ascii) (parse-roman unicode)) (list r r)
+                  (format nil "~a parsed back" text)))
+  (terpri)
+  (para "Other text signals INVALID-ROMAN-NUMERAL with a reason, in the same USE-VALUE"
+        "restart. There is no ninth (V9) and no applied chord of an applied chord"
+        "(V/V/V); a target is a plain major or minor triad, not viio or V7; augmented"
+        "sixths (Ger65) are not numerals:")
+  (let* ((inputs '("V65/V" "VIII" "Vi" "Io" "v+" "IM" "iiø" "V9" "N7" "V/V/V" "V/viio"
+                   "V7/V7" "V/" "Ger65" " V 7" ""))
+         (parsed (handler-bind ((invalid-roman-numeral
+                                  (lambda (c)
+                                    (format t "  ~9s ~a~%" (music-theory-error-text c)
+                                            (music-theory-error-reason c))
+                                    (use-value nil c))))
+                   (mapcar #'parse-roman inputs))))
+    (format t "  => ~{~a~^ ~}~%~%" (mapcar (lambda (r) (if r (roman-name r) "nil")) parsed))
+    (check (mapcar (lambda (r) (and r (roman-name r))) parsed)
+           (cons "V65/V" (make-list 15)) "numerals parsed with use-value"))
+  (para "ROMAN-FOR goes back from a chord to a numeral. It reads the chord literally: a"
+        "chromatic chord gets a prefix accidental and never an applied reading, because"
+        "choosing one is analysis. With :APPLIED-TO it reads the chord in the key that"
+        "target tonicizes. CHORD below is this demo's shorthand for MAKE-CHORD-SYMBOL"
+        "(a third argument names the BASS):"
+        "  (chord \"F#\" :diminished-7)"
+        "  = (make-chord-symbol :root (parse-pitch-class \"F#\") :quality :diminished-7)"
+        "In C major:")
+  (check (chord "F#" :diminished-7 "A")
+         (make-chord-symbol :root (parse-pitch-class "F#") :quality :diminished-7
+                            :bass (parse-pitch-class "A"))
+         "the CHORD shorthand")
+  (check (roman-for (chord "F#" :diminished-7) (parse-key "C"))
+         (make-roman-numeral :degree 4 :alteration 1 :quality :diminished-7)
+         "F# diminished-7 in C major")
+  (show (roman-name (roman-for (chord "F#" :diminished-7) (parse-key "C"))) "#ivo7")
+  (show (roman-name (roman-for (chord "F#" :diminished-7) (parse-key "C")
+                               :applied-to (parse-roman "V")))
+        "viio7/V")
+  (terpri)
+  (para "More chords in C major, read literally and as applied chords:")
+  (format t "  ~18a~15a~9a~12a~a~%" "chord" "tones" "literal" "applied to" "reading")
+  (let ((c (parse-key "C")))
+    (loop for (root quality bass tones literal target applied) in *reading-rows*
+          for chord = (chord root quality bass)
+          for plain = (roman-for chord c)
+          for reading = (roman-for chord c :applied-to (parse-roman target))
+          for row = (list (chord-text plain c) (roman-name plain) (roman-name reading))
+          do (out "  ~18a~15a~9a~12a~a~%" (format nil "~a ~(~a~)~@[ /~a~]" root quality bass)
+                  (first row) (second row) target (third row))
+             (check row (list tones literal applied) (format nil "~a ~a" root quality))))
+  (terpri)
+  (para "A chord that no numeral names signals MUSIC-THEORY-ERROR:")
+  (show-signal (roman-for (chord "C" :major "D") (parse-key "C")))
+  (show-signal (roman-for (chord "C" :major-6) (parse-key "C")))
+  (show-signal (roman-for (make-chord-symbol :no-chord-p t) (parse-key "C")))
+  (show-signal (roman-for (chord "D" :dominant-7) (parse-key "C") :applied-to (parse-roman "V7")))
+  (terpri)
+  (let* ((plain (all-numerals))
+         (targets (all-targets))
+         (numerals (append plain
+                           (loop for r in plain
+                                 nconc (mapcar (lambda (target) (revised r :applied-to target))
+                                               targets))))
+         (ok (count-if (lambda (r)
+                         (and (equalp r (parse-roman (roman-name r)))
+                              (equalp r (parse-roman (roman-name r :accidentals :unicode)))))
+                       numerals)))
+    (format t "Every well-formed numeral: 7 degrees x 5 alterations x 44 qualities and~%~
+               inversions (~d), alone or applied to one of ~d targets (~d in all). Each~%~
+               parses back from its ASCII and its Unicode name (~d of ~d).~%~%"
+            (length plain) (length targets) (length numerals) ok (length numerals))
+    (check (list (length plain) (length targets) ok) (list 1540 70 (length numerals))
+           "numeral text round trips")
+    (let ((total 0) (back 0) (unspellable 0))
+      (dolist (key (thirty-keys))
+        (dolist (r plain)
+          (incf total)
+          (handler-case (let ((chord (chord-for r key)))
+                          (when (equalp r (ignore-errors (roman-for chord key)))
+                            (incf back)))
+            (invalid-pitch () (incf unspellable)))))
+      (format t "In all 30 keys, ROMAN-FOR of CHORD-FOR gives each of those ~d numerals back~%~
+                 (~d of ~d), except where a chord tone would need three accidentals and~%~
+                 CHORD-FOR signals INVALID-PITCH (~d, such as #III in C# major: E## G### B##).~%~%"
+              (length plain) back total unspellable)
+      (check (+ back unspellable) total "chord round trips"))
+    (let ((total 0) (back 0) (unspellable 0))
+      (dolist (key (list (parse-key "C") (parse-key "a")))
+        (dolist (r plain)
+          (dolist (target targets)
+            (let ((applied (revised r :applied-to target)))
+              (incf total)
+              (handler-case (let ((chord (chord-for applied key)))
+                              (when (equalp applied
+                                            (ignore-errors (roman-for chord key :applied-to target)))
+                                (incf back)))
+                (invalid-pitch () (incf unspellable)))))))
+      (format t "Applied chords, in C major and A minor: each of the ~d numerals on each of~%~
+                 the ~d targets (~d) comes back from ROMAN-FOR with :APPLIED-TO (~d), or~%~
+                 cannot be spelled (~d).~%" (length plain) (length targets) total back unspellable)
+      (check (+ back unspellable) total "applied chord round trips"))))
+
+;;; 15. Mixture -------------------------------------------------------------------
+
+(defun demo-mixture ()
+  (para "Mixture is not a slot of the numeral: iv is borrowed in C major but diatonic in"
+        "C minor. ROMAN-MIXTURE-P is true when the numeral's chord is not diatonic to the"
+        "key but is diatonic to the parallel key, the same tonic in the other mode. The"
+        "diatonic chords of minor include the harmonic minor's V, V7, vii° and vii°7.")
+  (show (roman-mixture-p (parse-roman "bVI") (parse-key "C")) t "Ab C Eb, VI of C minor")
+  (show (roman-mixture-p (parse-roman "iv") (parse-key "C")) t "F Ab C, iv of C minor")
+  (show (roman-mixture-p (parse-roman "bVII") (parse-key "C")) t "Bb D F, VII of C minor")
+  (show (roman-mixture-p (parse-roman "IV") (parse-key "C")) nil "diatonic")
+  (show (roman-mixture-p (parse-roman "N6") (parse-key "C")) nil "Db: not in C minor either")
+  (show (roman-mixture-p (parse-roman "V/V") (parse-key "C")) nil "V of G major")
+  (show (roman-mixture-p (parse-roman "iv/V") (parse-key "C")) t "C minor, borrowed in G major")
+  (terpri)
+  (para "bVI, iv and bVII in each major key, spelled by CHORD-FOR. Each one is VI, iv or"
+        "VII of the parallel minor, which is what makes it mixture:")
+  (format t "  ~10a~13a~13a~13a~a~%" "key" "bVI" "iv" "bVII" "mixture")
+  (let ((borrowed (mapcar #'parse-roman '("bVI" "iv" "bVII")))
+        (sources (mapcar #'parse-roman '("VI" "iv" "VII")))
+        (ok 0))
+    (dolist (key (remove :minor (thirty-keys) :key #'key-mode))
+      (let ((minor (make-key :tonic (key-tonic key) :mode :minor))
+            (texts (mapcar (lambda (r) (chord-text r key)) borrowed))
+            (flags (mapcar (lambda (r) (roman-mixture-p r key)) borrowed)))
+        (out "  ~10a~{~13a~}~a~%" (key-name key) texts (if (every #'identity flags) "yes" "no"))
+        (when (and (every #'identity flags)
+                   (equal texts (mapcar (lambda (r) (chord-text r minor)) sources)))
+          (incf ok))))
+    (check ok 15 "mixture in major keys")
+    (check (mapcar (lambda (r) (chord-text r (parse-key "C"))) borrowed)
+           '("Ab C Eb" "F Ab C" "Bb D F") "borrowed in C major")
+    (check (mapcar (lambda (r) (chord-text r (parse-key "Eb"))) borrowed)
+           '("Cb Eb Gb" "Ab Cb Eb" "Db F Ab") "borrowed in Eb major"))
+  (terpri)
+  (para "In a minor key the borrowing runs the other way. In C minor, I, ii, IV, vi and"
+        "viiø7 come from C major; V and vii° belong to the harmonic minor, so they are"
+        "not mixture:")
+  (let* ((c-minor (parse-key "c"))
+         (texts '("i" "iio" "III" "iv" "v" "V" "VI" "VII" "viio" "viio7"
+                  "I" "ii" "IV" "vi" "vii/o7"))
+         (mixture (remove-if-not (lambda (s) (roman-mixture-p (parse-roman s) c-minor)) texts))
+         (diatonic (remove-if (lambda (s) (roman-mixture-p (parse-roman s) c-minor)) texts)))
+    (out "  ~13a~{~a~^ ~}~%  ~13a~{~a~^ ~}~%" "not mixture" diatonic "mixture" mixture)
+    (check (list diatonic mixture)
+           '(("i" "iio" "III" "iv" "v" "V" "VI" "VII" "viio" "viio7")
+             ("I" "ii" "IV" "vi" "vii/o7"))
+           "mixture in C minor")))
+
+;;; 16. A progression, to chords and back -------------------------------------------
+
+(defun progression-line (texts key)
+  "The chords of the numerals TEXTS in KEY, separated by |."
+  (format nil "~{~a~^ | ~}" (mapcar (lambda (text) (chord-text (parse-roman text) key)) texts)))
+
+(defun demo-progression ()
+  (para "A small round trip: I-vi-ii6-V7-I in G major. CHORD-FOR turns each numeral into"
+        "a chord, and ROMAN-FOR reads each chord back. ii6 puts C, the third of A minor,"
+        "in the bass, so the bass line is G E C D G, degrees 1 6 4 5 1.")
+  (let* ((key (parse-key "G"))
+         (numerals (mapcar #'parse-roman '("I" "vi" "ii6" "V7" "I")))
+         (chords (mapcar (lambda (r) (chord-for r key)) numerals))
+         (back (mapcar (lambda (chord) (roman-for chord key)) chords))
+         (basses (mapcar (lambda (chord) (or (chord-symbol-bass chord) (chord-symbol-root chord)))
+                         chords))
+         (degrees (mapcar (lambda (bass) (degree-label (degree-of bass key) 0)) basses)))
+    (format t "  ~9a~6a~12a~6a~11a~a~%" "numeral" "root" "quality" "bass" "tones" "ROMAN-FOR")
+    (loop for r in numerals
+          for chord in chords
+          for b in back
+          do (out "  ~9a~6a~12a~6a~11a~a~%" (roman-name r)
+                  (pitch-class-string (chord-symbol-root chord))
+                  (string-downcase (symbol-name (chord-symbol-quality chord)))
+                  (if (chord-symbol-bass chord) (pitch-class-string (chord-symbol-bass chord)) "-")
+                  (format nil "~{~a~^ ~}" (roman-tones r key))
+                  (roman-name b)))
+    (format t "~%  bass line  ~{~a~^ ~}   degrees ~{~a~^ ~}~%~%" (class-names basses) degrees)
+    (check (mapcar (lambda (r) (roman-tones r key)) numerals)
+           '(("G" "B" "D") ("E" "G" "B") ("A" "C" "E") ("D" "F#" "A" "C") ("G" "B" "D"))
+           "progression tones")
+    (check (list (class-names basses) degrees)
+           '(("G" "E" "C" "D" "G") ("1" "6" "4" "5" "1")) "bass line")
+    (check back numerals "progression read back"))
+  (para "The numerals hold no key, so the same list is the same progression in any major"
+        "key. In minor the same functions are i-VI-iio6-V7-i:")
+  (let ((rows (list (list "Eb major" '("I" "vi" "ii6" "V7" "I")
+                          "Eb G Bb | C Eb G | F Ab C /Ab | Bb D F Ab | Eb G Bb")
+                    (list "F# major" '("I" "vi" "ii6" "V7" "I")
+                          "F# A# C# | D# F# A# | G# B D# /B | C# E# G# B | F# A# C#")
+                    (list "E minor" '("i" "VI" "iio6" "V7" "i")
+                          "E G B | C E G | F# A C /A | B D# F# A | E G B"))))
+    (loop for (name texts expected) in rows
+          for line = (progression-line texts (parse-key name))
+          do (out "  ~10a~{~a~^-~}~%  ~10a~a~%" name texts "" line)
+             (check line expected (format nil "progression in ~a" name)))))
+
 ;;; Entry point -----------------------------------------------------------------
 
 (defun run-demos ()
   "Print the tour. Returns T when every check matched and no section failed."
   (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '()))
     (format t "~&music-theory ~a: spelled pitches, the line of fifths and intervals (slice MT0,~%~
-               sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11)~%"
+               sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale~%~
+               degrees and Roman numerals (slice MT2, sections 12-16)~%"
             (asdf:component-version (asdf:find-system "music-theory")))
     (section "1. Spelled pitches: letter, accidental, octave" (demo-pitches))
     (section "2. MIDI numbers and the scientific octave" (demo-midi))
@@ -967,6 +1597,11 @@ of TEXTS. Returns the notes whose pieces pass every check, and the notes tried."
     (section "9. Dots and tuplets" (demo-dots))
     (section "10. Tie splitting" (demo-ties))
     (section "11. Tempo and phrase windows" (demo-tempo))
+    (section "12. Keys, key signatures and scales" (demo-keys))
+    (section "13. Scale degrees" (demo-degrees))
+    (section "14. Roman numerals" (demo-roman))
+    (section "15. Mixture: chords borrowed from the parallel key" (demo-mixture))
+    (section "16. A progression, to chords and back" (demo-progression))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
