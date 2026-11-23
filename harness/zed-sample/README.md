@@ -16,7 +16,7 @@ The session uses:
 | | |
 |-|-|
 | Headless rehearsal | done on cl-stack-code 0.12.3, `Checks failed: 0`: [`rehearsal/`](rehearsal/) (below) |
-| Recording in Zed | **not recorded yet**: the Mac's screen was locked. The steps are in "Record in Zed" below |
+| Recording in Zed | done 2026-11-23 on cl-stack-code **0.13.2** with Claude Opus 5.5: [`recording/`](recording/) (below) |
 
 ## Headless rehearsal
 
@@ -48,11 +48,32 @@ Run 6, 2026-11-23, cl-stack-code **0.12.3** (lisp-workspace launcher, pre-built 
 
 Earlier runs: run 4 never reached the model, because `src/rehearsal.lisp` had an extra close paren (a reader error the old output filter hid; fixed, and the filter now keeps compiler errors). Run 5 reached a server with no model loaded: its 400 answer surfaced as `NO-APPLICABLE-METHOD stream-element-type` on http-protocol's buffered body stream ([http-protocol#48](https://github.com/egao1980/http-protocol/issues/48), fixed in http-protocol 0.4.2; the same gap in http-backend-async: [#74](https://github.com/egao1980/http-backend-async/issues/74)).
 
+## Recording
+
+[`recording/zed-demo.mp4`](recording/zed-demo.mp4) (80 s, 1600×900). Zed 1.29.3 on macOS, a 1920×1080 window on the sample at `demo/zed-seeded-bug`. cl-stack-code **0.13.2** (the lisp-workspace launcher) with `--model anthropic:claude-opus-5-5`, cl-repo client 0.27.31. The prompt: "the tests fail, find and fix the bug".
+
+| s | |
+|-|-|
+| 8 | `session/new`: the thread opens with the Context card `Context: AGENTS.md · skills: duration-units · rules: 1` |
+| 17 | prompt sent |
+| … | `cl-repo test` twice in Zed's terminal (one failure: `parse-duration-reads-units/3`, `"1H"`); `skill` duration-units; `glob`; `source-read` of `%parse-duration` (lisp-mcp, the session's Lisp image); **Rule loaded**: `.claude/rules/lisp.md`; `edit-replace` twice as a dry run (the locator), then for real with `expected_hash`; `cl-repo test` and `cl-repo test --system cl-stack-sample/agent`: all pass |
+| 73 | the turn ends (`end_turn`) with the cause, the fix and the test result |
+
+The fix is [`recording/fix.diff`](recording/fix.diff): `char-downcase` before the lookup. Also [`recording/zed-wire-log.txt`](recording/zed-wire-log.txt) (every JSON-RPC line, redacted as the rehearsal's), [`recording/events.tsv`](recording/events.tsv) and [`recording/keyframes/`](recording/keyframes/). No permission prompt this time: the sample's settings allow every call the agent made.
+
+What the recording needed fixed first:
+
+- cl-stack-code [#43](https://github.com/egao1980/cl-stack-code/issues/43) (0.13.1): Zed hands its crash reporter's Mach exception port to the agent; SBCL's `brk` traps then repeat forever and the agent never answers `session/new`. The binary clears the port at start.
+- lisp-workspace [#172](https://github.com/egao1980/lisp-workspace/pull/172): the launcher ran `ros config show` (an SBCL, same trap) before reaching the executable; it reads Roswell's config file now.
+- cl-stack-ssl [#23](https://github.com/egao1980/cl-stack-ssl/issues/23) (3.5.9.4, cl-stack-code 0.13.2): a dumped image kept the build process's `SSL_CTX` and faulted on the first HTTPS request (the Anthropic provider).
+- cl-repository [#152](https://github.com/egao1980/cl-repository/issues/152) (0.27.31): `cl-repo test` in Zed's terminal hung on the same trap; the client's launcher clears the port before Roswell starts.
+- Open: http-backend-async [#75](https://github.com/egao1980/http-backend-async/issues/75) (a POST on a long-idle pooled connection fails with "incomplete HTTP response": restart the agent before a take), Zed [#60389](https://github.com/zed-industries/zed/issues/60389) upstream.
+
 ## Record in Zed
 
 The Zed side follows lisp-workspace [`editors/zed/`](https://github.com/egao1980/lisp-workspace/tree/main/editors/zed) (its README and [`agent_servers.json`](https://github.com/egao1980/lisp-workspace/blob/main/editors/zed/agent_servers.json)); this demo only puts the wire-logging wrapper in front of the launcher. Zed 1.29.3 on macOS.
 
-1. **Build the executable** (Zed gets the `initialize` reply in about a second): `lisp-workspace/scripts/cl-stack-code.sh --build`. `--which` prints it: `~/.cache/cl-stack-code/cl-stack-code-0.12.3-<lisp>`.
+1. **Build the executable** (Zed gets the `initialize` reply in about a second): `lisp-workspace/scripts/cl-stack-code.sh --build`. `--which` prints it: `~/.cache/cl-stack-code/cl-stack-code-0.13.2-<lisp>`.
 2. **Clone and sync** the sample at the demo branch, then load the model on the server (see above):
 
    ```bash
@@ -82,7 +103,7 @@ The Zed side follows lisp-workspace [`editors/zed/`](https://github.com/egao1980
    }
    ```
 
-   Without the wire log, `command` is the launcher itself and the last three entries go.
+   Without the wire log, `command` is the launcher itself and the last three entries go. With Anthropic (the recording above), `args` is `["--acp", "--model", "anthropic:claude-opus-5-5"]` and the env has `ANTHROPIC_API_KEY` instead of the `OPENAI_*` entries. Needs cl-stack-code 0.13.2 (TLS in the built binary) and cl-repo 0.27.31 (the client's launcher, for `cl-repo test` in Zed's terminal: re-run cl-repository's `install.sh`).
 4. **Start Zed with the key in its environment only** (never in `settings.json`, never on screen). Quit Zed first; a running Zed keeps its old environment:
 
    ```bash
@@ -91,10 +112,11 @@ The Zed side follows lisp-workspace [`editors/zed/`](https://github.com/egao1980
    ```
 
 5. **Record.** The screen must be unlocked; System Events needs the Accessibility permission and `screencapture` the Screen Recording permission for the terminal that runs it.
-   - Move Zed's window to a fixed region (here 60,40, 1800 × 1150) and start `screencapture -v -V <max seconds> -R60,40,1800,1150 -x zed.mov`.
-   - In Zed: Agent panel (cmd-?) → **+** → **cl-stack-code** (or the command palette: `agent: new external agent thread`). The Context card appears first.
+   - Move Zed's window to a fixed region (here 0,30, 1920 × 1080) and record it with ffmpeg: `ffmpeg -f avfoundation -capture_cursor 1 -framerate 15 -i "0:none" -vf "crop=3840:2160:0:60,scale=1920:1080" -c:v libx264 -preset ultrafast -pix_fmt yuv420p zed.mov` (crop in pixels: twice the points on a Retina screen), stopped with SIGINT. Not `screencapture -v`: without a terminal it ignores the stop key, and every signal discards the movie.
+   - Restart the agent first (a long-idle pooled connection fails the first request, #75 above).
+   - In Zed: Agent panel (cmd-?) → **+** → **cl-stack-code** (Zed 1.29.3 has no palette entry for an external agent). The Context card appears first. Click into the message box before typing.
    - Type `the tests fail, find and fix the bug`, Enter. Approve each permission prompt (Allow once), slowly enough to read the diff of the `edit-replace`.
-   - Stop when the turn ends: the reply to `session/prompt` in the wire log (`<- {"id":N,…"stopReason":"end_turn"}`).
+   - Stop when the turn ends: the reply to `session/prompt` in the wire log (its `"id"`, a UUID from Zed, with `"result"` or `"error"`).
    - `ffmpeg -i zed.mov -vf "scale=1600:-2,fps=15" -c:v libx264 -crf 30 -preset slow -pix_fmt yuv420p -movflags +faststart -an zed-demo.mp4`; keyframes with `ffmpeg -ss <t> -i zed-demo.mp4 -frames:v 1 keyframes/<n>.png` at the Context card, the `skill` / Rule loaded calls, the `edit-replace` permission prompt, the terminal's `cl-repo test` and the end of the turn.
    - Commit `zed-demo.mp4`, `keyframes/` and the wire log here; check the log for the user name and e-mail addresses first (the wrapper redacts the project path, `$HOME`, `$USER` and addresses).
 
