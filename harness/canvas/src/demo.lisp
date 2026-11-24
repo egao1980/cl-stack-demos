@@ -36,14 +36,14 @@
 
 ;;; ---- Canvases: plain functions ---------------------------------------------
 
-(defun test-table (&key sort page)
-  "The header links carry sort= and page= (canvas-protocol TABLE, also unpaged:
-canvas-protocol#13), and rpc-backend-htmx 0.3.0 answers a param the canvas does not
-take with a 400, so the canvas takes both."
+(defun test-table (&key sort)
+  "The header links carry sort= alone: the table has no :page-size, so canvas-protocol
+0.2.2 leaves page= out (canvas-protocol#13), and the canvas takes only the param its
+links send (rpc-backend-htmx 0.3.0 answers any other with a 400)."
   (canvas:table *tests*
                 (list (canvas:column "System" :system :name "system" :sortable t)
                       (canvas:column "Assertions" :tests :name "tests" :sortable t :align :end))
-                :id "tests" :link (canvas:canvas-link 'test-table) :sort sort :page page
+                :id "tests" :link (canvas:canvas-link 'test-table) :sort sort
                 :caption "Assertions per system (click a header to sort)"))
 
 (defun test-chart (&key min)
@@ -698,6 +698,7 @@ keyword. FIND-SYMBOL only: making them interns nothing."
         (check :zero-arg-200 (and (status= r 200) (search "<main>" (body r)))))
       (let* ((table (body (send "GET TEST-TABLE (HX-Request)" (page-path 'test-table) :headers cookie)))
              (link (attribute-value table "hx-get")))
+        (check :header-link-no-page (not (search "page=" link)))
         (check :header-click-200
                (status= (send (format nil "its first header button, clicked: GET ~a" link) link :headers cookie) 200)))
       (let ((r (send "GET TEST-TABLE?srot=tests (a typo: no keyword has that name)" (page-path 'test-table "?srot=tests")
