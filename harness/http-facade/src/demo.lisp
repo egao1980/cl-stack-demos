@@ -258,20 +258,28 @@
   '("https_proxy" "HTTPS_PROXY" "http_proxy" "HTTP_PROXY"
     "all_proxy" "ALL_PROXY" "no_proxy" "NO_PROXY"))
 
-(defun %call-with-https-proxy-env (proxy thunk)
-  "Call THUNK with https_proxy=PROXY the only proxy variable set."
+(defun %call-with-proxy-env (thunk &key http https)
+  "Call THUNK with http_proxy=HTTP and https_proxy=HTTPS (each when given)
+   the only proxy variables set."
   (let ((saved (mapcar (lambda (name) (cons name (uiop:getenv name))) *proxy-variables*)))
     (unwind-protect
         (progn
           (dolist (name *proxy-variables*)
             (setf (uiop:getenv name) ""))
-          (setf (uiop:getenv "https_proxy") proxy)
+          (when http
+            (setf (uiop:getenv "http_proxy") http))
+          (when https
+            (setf (uiop:getenv "https_proxy") https))
           (funcall thunk))
       (dolist (name *proxy-variables*)
         (setf (uiop:getenv name) ""))
       (loop for (name . value) in saved
             when (plusp (length value))
               do (setf (uiop:getenv name) value)))))
+
+(defun %call-with-https-proxy-env (proxy thunk)
+  "Call THUNK with https_proxy=PROXY the only proxy variable set."
+  (%call-with-proxy-env thunk :https proxy))
 
 (defun %via-https-proxy (backend url &key verify)
   "SESSION-GET of URL on BACKEND in a trust-env session, with a fresh
@@ -386,6 +394,85 @@
     (note "~%  CA not trusted     https://origin.test/demo => ~A (~,2F s)" (%result-text res) secs)
     (%show-proxy-view record)))
 
+(defparameter +demo-origin-credentials+ "YWxpY2U6bWFkZS11cA=="
+  "alice:made-up in base64: the made-up Authorization of demo 4's redirects.")
+
+(defun %redirect-via (kinds from status to)
+  "SESSION-GET of FROM on http-backend-async in a trust-env session, with
+   made-up Authorization, through fresh loopback proxies of KINDS named by
+   http_proxy and https_proxy: one proxy for both, or with (:http :https)
+   the plain one for http:// and the TLS one for https://. FROM answers
+   STATUS with Location TO. → (values result ((proxy . hops) …) seconds)"
+  (let* ((routes (list (list from status to)))
+         (proxies (mapcar (lambda (kind) (start-redirect-proxy kind routes)) kinds))
+         (http (redirect-proxy-url (first proxies)))
+         (https (redirect-proxy-url (car (last proxies)))))
+    (multiple-value-bind (secs res)
+        (%call-with-proxy-env
+         (lambda ()
+           (timed (http:with-session (s :backend :async :verify nil :timeout 10)
+                    (http:session-get s from :auth '(:basic "alice" "made-up")))))
+         :http http :https https)
+      (values res
+              (mapcar (lambda (proxy) (cons proxy (stop-redirect-proxy proxy))) proxies)
+              secs))))
+
+(defun %credentials-text (head)
+  (format nil "~A, ~A"
+          (or (%proxy-auth-line head) "no Proxy-Authorization")
+          (if (search +demo-origin-credentials+ head) "Authorization" "no Authorization")))
+
+(defun %show-redirect-hop (proxy hop)
+  (let ((who (format nil "the ~(~A~):// proxy" (rp-kind proxy))))
+    (cond
+     ((hop-connect hop)
+      (note "      ~A reads: ~A  (~A)" who (first (%head-lines (hop-connect hop)))
+            (or (%proxy-auth-line (hop-connect hop)) "no Proxy-Authorization"))
+      (note "        the origin reads in the tunnel: ~A  (~A)"
+            (first (%head-lines (hop-head hop))) (%credentials-text (hop-head hop))))
+     (t
+      (note "      ~A reads: ~A  (~A)" who (first (%head-lines (hop-head hop)))
+            (%credentials-text (hop-head hop)))))))
+
+(defun demo-4-redirects ()
+  (banner "Demo 4, continued: a redirect through the proxy (http-backend-async#82)")
+  (note "Each run follows one 301 on http-backend-async in a trust-env session. http_proxy and")
+  (note "https_proxy name loopback proxies (redirect-proxy.lisp) that play origin.test themselves:")
+  (note "one https:// or http:// proxy for both, or a plain one for http:// and a TLS one for https://.")
+  (note "The proxy URLs carry user:secret, the request :auth alice:made-up (both made up). The proxy")
+  (note "logs the head it reads, and the head the origin reads inside a CONNECT tunnel. Each hop is")
+  (note "built for its own URL: http:// in absolute-form with Proxy-Authorization, https:// through")
+  (note "CONNECT with none inside the tunnel, the proxy picked again, Authorization dropped on another")
+  (note "origin (here, another scheme).")
+  (note "Before: 0.2.29 sent the https:// hop into the tunnel as GET https://origin.test/b with")
+  (note "Proxy-Authorization and Authorization, the http:// hop to the proxy as GET /b without")
+  (note "Proxy-Authorization (a proxy cannot route that: 400), and kept the first hop's proxy.")
+  (dolist (run '(((:https) "http://origin.test/a" 301 "https://origin.test/b")
+                 ((:https) "https://origin.test/a" 301 "http://origin.test/b")
+                 ((:http) "http://origin.test/a" 301 "https://origin.test/b")
+                 ((:http) "https://origin.test/a" 301 "http://origin.test/b")
+                 ((:http :https) "http://origin.test/a" 301 "https://origin.test/b")
+                 ((:http :https) "https://origin.test/a" 301 "http://origin.test/b")))
+    (destructuring-bind (kinds from status to) run
+      (multiple-value-bind (res seen secs) (%redirect-via kinds from status to)
+        (note "~%  ~A -> ~D -> ~A, ~A => ~A (~,2F s)"
+              from status to
+              (if (rest kinds)
+                  "http_proxy=http://… https_proxy=https://…"
+                  (format nil "both proxies ~(~A~)://…" (first kinds)))
+              (%result-text res) secs)
+        (when (typep res 'hp:http-response)
+          (note "      history: ~{~A~^, ~}"
+                (mapcar #'hp:response-url (hp:response-history res))))
+        (let ((hops (loop for (proxy . hops) in seen
+                          append (mapcar (lambda (hop) (cons proxy hop)) hops))))
+          (loop for (proxy . hop) in (sort hops #'< :key (lambda (pair) (hop-at (cdr pair))))
+                do (%show-redirect-hop proxy hop))
+          (loop for (proxy) in seen
+                when (rp-errors proxy)
+                  do (note "      ~(~A~):// proxy errors: ~{~A~^; ~}" (rp-kind proxy)
+                           (rp-errors proxy))))))))
+
 (defun run-demos ()
   (setf *maker-at-start* http-backend-async:*event-backend-maker*)
   (note "cl-stack-http ~A, http-protocol ~A, event-protocol ~A, http-backend-dexador ~A, http-backend-async ~A, event-backend-libuv ~A, dexador ~A"
@@ -407,7 +494,7 @@
             (ignore-errors
               (http:with-backend (:dexador) (http:get (url "/warm-up")))))
           (note "(a warm-up request on dexador loaded the optional content-encoding codecs)")
-          (demo-1) (demo-2) (demo-3) (demo-4))
+          (demo-1) (demo-2) (demo-3) (demo-4) (demo-4-redirects))
       (funcall stop)))
   (banner "done")
   t)
