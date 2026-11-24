@@ -1,6 +1,6 @@
 (in-package #:harness-demos-musicxml)
 
-;;;; A tour of score-backend-musicxml 0.1.0, slice SC2 of the score family:
+;;;; A tour of score-backend-musicxml 0.1.1, slice SC2 of the score family:
 ;;;; MusicXML 4.0 partwise scores read into score-protocol scores and written
 ;;;; back, as text (.musicxml) or as a compressed archive (.mxl). Two
 ;;;; public-domain hymns, re-encoded by hand for this demo, are the input:
@@ -10,7 +10,9 @@
 ;;;; by Louis Bourgeois, 1551; words by William Kethe, 1561; the lower parts
 ;;;; written for the demo). The sections cover reading (1), hymnal voices (2),
 ;;;; chord symbols (3), content outside the model (4), writing (5), an optional
-;;;; schema check (6) and external entities (7). Every result with a known
+;;;; schema check (6), external entities (7) and the two fixes of 0.1.1 (8), the
+;;;; first on scores/minuet-in-g.musicxml (the first two bars of the Minuet in G
+;;;; major, BWV Anh. 114, by Christian Petzold, 1725). Every result with a known
 ;;;; answer is also checked: RUN-DEMOS returns NIL when one differs or a
 ;;;; section stops on an error.
 
@@ -770,10 +772,15 @@ signalled, in order. Warnings among them are muffled."
       (check (score-equal score *hymn*) t ":skip score"))
     (show-signal (read-musicxml *trill* :unsupported :ignore) type-error)
     (para ""
-          "Through serdes-protocol the error arrives as SERDES-DECODE-ERROR (serdes-protocol"
-          "translates errors with HANDLER-CASE, so SKIP-ELEMENT is gone by then). Call"
-          "READ-MUSICXML to handle unsupported content.")
-    (show-signal (serdes-protocol:decode *trill* :format :musicxml) serdes-protocol:serdes-decode-error)))
+          "Through serdes-protocol the error arrives as SERDES-DECODE-ERROR. Since"
+          "serdes-protocol 0.3.0 it is signalled in place: its SERDES-ERROR-CAUSE is the"
+          "reader's condition, and a handler outside DECODE can still take SKIP-ELEMENT"
+          "(the serdes demo shows this at length):")
+    (show-signal (serdes-protocol:decode *trill* :format :musicxml) serdes-protocol:serdes-decode-error)
+    (show (score-equal (handler-bind ((serdes-protocol:serdes-decode-error #'skip-element))
+                         (serdes-protocol:decode *trill* :format :musicxml))
+                       *hymn*)
+          t "SKIP-ELEMENT from a handler around DECODE")))
 
 ;;; 5. Writing -------------------------------------------------------------------------
 
@@ -1006,6 +1013,119 @@ the <part> reference, with a measure's slice id M.P read as M."
     (check (xml-protocol:xml-element-local-name (xml-protocol:document-root-element document))
            "score-partwise" "decoded anyway")))
 
+;;; 8. The 0.1.1 fixes -----------------------------------------------------------------
+;;; Two reader rules changed in 0.1.1. CLOSING (score-backend-musicxml#3): a
+;;; slur or wedge stop closes the open spanner of its number whose start is in
+;;; the stop's voice, and only when there is none the one opened last. Unison
+;;; bars (#4): once SPLIT-VOICES splits a staff, it splits every bar of it
+;;; whose lower voice is empty, not only the bars that hold a chord.
+
+(defun spanner-line (score spanner)
+  "SPANNER as KIND FROM -> TO, each end as voice:event."
+  (flet ((end-text (id)
+           (let* ((event (find-element score id))
+                  (voice (element-parent score id)))
+             (format nil "~a (~a, voice ~a)" (event-text event) id (element-id voice)))))
+    (format nil "~(~a~) ~a -> ~a" (spanner-kind spanner)
+            (end-text (spanner-start spanner)) (end-text (spanner-end spanner)))))
+
+(defun same-voice-p (score spanner)
+  (eq (element-parent score (spanner-start spanner)) (element-parent score (spanner-end spanner))))
+
+(defun without-alto-in-bar-2 (text)
+  "TEXT, the SATB excerpt, with the alto's own notes in bar 2 removed (voice 2
+and the <backup> before it): soprano and alto now sing bar 2 in unison, printed
+as the soprano's single notes."
+  (let* ((lines (text-lines text))
+         (first-alto (position-if (lambda (line) (search "<voice>2</voice>" line)) lines)))
+    (format nil "~{~a~%~}"
+            (loop for line in lines
+                  for k from 0
+                  unless (or (search "<voice>2</voice>" line) (= k (1- first-alto)))
+                    collect line))))
+
+(defun demo-fixes ()
+  (para "score-backend-musicxml 0.1.1 fixes two reader rules. Each case below gives the"
+        "input, what 0.1.0 read (from the 0.1.1 contract and its issue), and what this"
+        "release reads."
+        ""
+        "(a) Spanner stops close their own voice first (score-backend-musicxml#3)."
+        "MusicXML numbers slurs per part, and asks for distinct numbers while two"
+        "overlap, but some programs number them per staff or per voice. Then two open"
+        "slurs share a number. scores/minuet-in-g.musicxml has the first two bars of the"
+        "Minuet in G major, BWV Anh. 114 (Christian Petzold, 1725; left hand simplified),"
+        "with a slur in each hand, both number 1. The right hand's opens in bar 1"
+        "(voice 1), the left hand's opens after the <backup> (voice 5). Each closes in bar"
+        "2, the right hand first:")
+  (let ((text (file-text (score-file "minuet-in-g.musicxml"))))
+    (print-lines text :from 23 :to 23)
+    (print-lines text :from 28 :to 28)
+    (format t "    ...~%")
+    (print-lines text :from 32 :to 32)
+    (print-lines text :from 36 :to 36)
+    (format t "~%")
+    (let* ((score (read-musicxml text))
+           (spanners (lst (score-spanners score))))
+      (format t "  (read-musicxml (score-file \"minuet-in-g.musicxml\"))~%~%")
+      (voice-lines score)
+      (format t "~%")
+      (dolist (sp spanners) (out "  ~a~%" (spanner-line score sp)))
+      (format t "~%")
+      (show (length spanners) 2)
+      (show (mapcar (lambda (sp) (same-voice-p score sp)) spanners) '(t t) "each slur within one hand")
+      (show (mapcar (lambda (sp) (list (event-text (find-element score (spanner-start sp)))
+                                       (event-text (find-element score (spanner-end sp)))))
+                    spanners)
+            '(("G4:e" "D5:q") ("G3:h" "B3:h.")))
+      (show (check-score score) nil)
+      (para ""
+            "0.1.0 paired each stop with the slur of its number opened last, whatever its"
+            "voice. The right hand's stop (D5, bar 2) closed the left hand's slur, and the"
+            "left hand's stop (B3) closed the right hand's:"
+            "  0.1.0  slur  G3:h (left hand) -> D5:q (right hand)"
+            "         slur  G4:e (right hand) -> B3:h. (left hand)"
+            "The same cross-wiring put the soprano's crescendo in OLD HUNDREDTH's corpus"
+            "file onto the bass. Wedges follow the same rule as slurs. A stop with no open"
+            "spanner of its number in its own voice still closes the one opened last, as"
+            "before. Written back, the slurs keep their ends:")
+      (let ((again (read-musicxml (write-musicxml score))))
+        (show (score-equal again score) t "read, write, read"))))
+  (format t "~%")
+  (para "(b) Unison bars are split too (score-backend-musicxml#4). In hymnal layout, a"
+        "bar in which soprano and alto sing the same notes is printed as single notes:"
+        "one notehead, no chord, and no second voice. The SATB excerpt of section 2 is"
+        "changed so: WITHOUT-ALTO-IN-BAR-2 drops the alto's own notes in bar 2 (voice 2"
+        "and its <backup>), so the treble staff of bar 2 holds only G4 A4 B4. Bars 0 and"
+        "1 still have shared-stem chords, so the staff splits:")
+  (let* ((text (without-alto-in-bar-2 (file-text (score-file "old-hundredth-satb.musicxml"))))
+         (as-written (read-musicxml text)))
+    (show (count-if (lambda (line) (search "<voice>2</voice>" line)) (text-lines text)) 0)
+    (show (length (part-voices (first (lst (score-parts as-written))))) 2 "as written: voices 1 and 5")
+    (multiple-value-bind (split guesses)
+        (signals-of (lambda () (read-musicxml text :split-voices :auto)) 'low-confidence-guess)
+      (format t "~%  (read-musicxml (without-alto-in-bar-2 ...) :split-voices :auto)~%~%")
+      (voice-lines split)
+      (format t "~%")
+      (show (voice-pitches split 1) '(("D4:h") ("D4:q" "D4:q" "B3:q" "D4:q") ("G4:q" "A4:q" "B4:h"))
+            "the alto: bar 2 in unison with the soprano")
+      (show (voice-pitches split 0) '(("G4:h") ("G4:q" "F#4:q" "E4:q" "D4:q") ("G4:q" "A4:q" "B4:h")))
+      (show (mapcar (lambda (g) (list (element-position split (low-confidence-guess-element-id g))
+                                      (low-confidence-guess-what g) (low-confidence-guess-confidence g)))
+                    guesses)
+            '(((1 . 3/4) "unison" 1/2) ((2 . 0) "unison" 1/2) ((2 . 1/4) "unison" 1/2) ((2 . 1/2) "unison" 1/2))
+            "each unison copy is a guess")
+      (show (length (uncertain-elements split)) 4)
+      (show (check-score split) nil)
+      (show (score-equal (split-voices as-written) split) t "the same through SPLIT-VOICES")
+      (para ""
+            "0.1.0 split only the bars whose lower voice was empty and whose upper voice held"
+            "a chord, so bar 2 stayed with the soprano, and the alto had no notes there:"
+            "  0.1.0  A  | D4:h | D4:q D4:q B3:q D4:q | (empty) |"
+            "A tie into such a bar was lost with it. The tenor and bass staff, chords in"
+            "every bar, reads the same in both releases. The original excerpt, with its"
+            "two-voice bar 2, reads as in section 2:")
+      (show (score-equal (read-musicxml (score-file "old-hundredth-satb.musicxml") :split-voices :auto) *satb*) t))))
+
 ;;; The tour -------------------------------------------------------------------------
 
 (defun run-demos ()
@@ -1030,6 +1150,7 @@ the <part> reference, with a measure's slice id M.P read as M."
            (section "5. Writing: .musicxml, .mxl and serdes formats" (demo-writing))
            (section "6. Schema check (optional)" (demo-schema))
            (section "7. External entities are refused" (demo-entities))
+           (section "8. The 0.1.1 fixes: spanner stops, unison bars" (demo-fixes))
            (banner "Summary")
            (format t "~d results checked against expected values: ~d mismatched.~%~
                       ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
