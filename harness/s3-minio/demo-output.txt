@@ -1,0 +1,150 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: wrote cl-repo.lock (64 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+
+; compiling file "~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/package.lisp" (written 24 NOV 2026 10:46:44 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/package-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/hmac.lisp" (written 24 NOV 2026 10:46:44 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/hmac-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/sigv4.lisp" (written 24 NOV 2026 10:46:44 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/sigv4-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.028
+; compiling file "~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/backend.lisp" (written 24 NOV 2026 10:46:44 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/backend-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.046
+; compiling file "~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/credentials.lisp" (written 24 NOV 2026 10:46:44 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/object-store-backend-s3/0.2.1/src/credentials-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.004
+; compiling file "~/.local/share/cl-repository/systems/http-backend-dexador/0.2.5/src/package.lisp" (written 24 NOV 2026 10:46:54 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-dexador/0.2.5/src/package-tmp9V47YWQF.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/http-backend-dexador/0.2.5/src/backend.lisp" (written 24 NOV 2026 10:46:54 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/http-backend-dexador/0.2.5/src/backend-tmp9BN22RMA.fasl
+; compilation finished in 0:00:00.054
+; compiling file "~/Projects/cl-workspace/.worktrees/cfg10-demos/cl-stack-demos/harness/s3-minio/src/package.lisp" (written 24 NOV 2026 05:25:32 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/.worktrees/cfg10-demos/cl-stack-demos/harness/s3-minio/src/package-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/Projects/cl-workspace/.worktrees/cfg10-demos/cl-stack-demos/harness/s3-minio/src/demo.lisp" (written 24 NOV 2026 10:30:41 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/.worktrees/cfg10-demos/cl-stack-demos/harness/s3-minio/src/demo-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.061
+object-store-backend-s3 0.2.1, cl-stack-config 0.3.1, cl-stack-http 0.2.1 (SBCL 2.6.9, Darwin)
+MinIO: minio version RELEASE.2026-11-23T00-10-37Z (commit-id=dd3f3fa63fc9195fcd5b4d6d7e6f8524bc33c2b8); HTTP backend for blocking calls: dexador-backend
+
+==============================================================================
+== 1. Credentials from the environment: put, get, head, list, presigned GET
+==============================================================================
+  Endpoint http://127.0.0.1:<port>, bucket "cl-stack-demo". AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY hold
+  the throwaway credentials scripts/run.sh made up for this container. The
+  secret: 38 characters, # at index 4, ; at index 21. AWS_SHARED_CREDENTIALS_FILE and
+  AWS_CONFIG_FILE name files that do not exist yet, so ~/.aws is never read.
+
+  (make-s3-backend :endpoint ... :bucket ...), no keys passed:
+    first provider with keys: environment-credentials
+  put-object env/hello.txt (26 octets) -> etag "d2b656fc5d3ed7f80ba49ab734de50e9"
+  get-object env/hello.txt -> "hello from the environment"
+  head-object -> size 26, content-type text/plain, Last-Modified an HTTP date (29 characters)
+    (object-store-backend-s3#10, 0.2.1: 0.2.0 gave size 0 and no Last-Modified)
+  list-objects :prefix "env/" -> ("env/hello.txt")
+  presign-url env/hello.txt :expires 300, fetched with no credentials (#7):
+    /cl-stack-demo/env/hello.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&...&X-Amz-Signature=<64 hex>
+    -> HTTP 200 "hello from the environment"
+
+==============================================================================
+== 2. Credentials from an ~/.aws-style file with # and ; in the secret (cl-stack-config#10)
+==============================================================================
+  The credentials file, with the container's key and secret written as <KEY> and <SECRET>:
+
+    | # throwaway credentials made up for this MinIO container
+    | [Default]
+    | aws_access_key_id = not-this-one
+    | aws_secret_access_key = not-this-one-either
+    | 
+    | [default]
+    | AWS_ACCESS_KEY_ID = <KEY>
+    | aws_secret_access_key = <SECRET>
+    | 
+
+  cl-stack-config 0.3.1 parse-ini, as botocore reads the file:
+    sections ("Default" "default") (names keep their case)
+    [default] options ("aws_access_key_id" "aws_secret_access_key") (names lowercased)
+    aws_secret_access_key: 38 characters, # at index 4, ; at index 21, equal to the container's secret: yes
+  parse-ini 0.3.0 cut every line at its first # or ; and kept name case: it read
+    aws_secret_access_key as the 4 characters before the #, and found no
+    aws_access_key_id (the file says AWS_ACCESS_KEY_ID).
+
+  Python's configparser.RawConfigParser() on the same file (uv run --isolated
+  --no-project python -I), each value as its length and SHA-256:
+    [Default] aws_access_key_id: 12 characters, sha256 41e5aef725dd...
+    [Default] aws_secret_access_key: 19 characters, sha256 7d407e41d2d9...
+    [default] aws_access_key_id: 16 characters, sha256 39c308cda0a0...
+    [default] aws_secret_access_key: 38 characters, sha256 c54af2c0bf7c...
+    -> the same as parse-ini, value for value
+
+  Signed with the 0.3.0 reading of the secret (the 4 characters before the #):
+    put-object -> object-store-error: HTTP 403 SignatureDoesNotMatch
+
+  Now the chain alone: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY cleared,
+  AWS_SHARED_CREDENTIALS_FILE set to this file.
+    first provider with keys: shared-credentials-file-credentials
+    put-object then get-object file/from-credentials-file.txt -> "signed with the secret from the file"
+
+==============================================================================
+== 3. Multipart upload: a 5 MiB part and a tail; EntityTooSmall; abort
+==============================================================================
+  Credentials from the file of section 2. Part 1 is 5 MiB, the S3 minimum for every
+  part but the last; part 2 is 1 MiB + 123 octets.
+  create-multipart-upload multipart/blob.bin :content-type application/octet-stream -> an upload id (124 characters)
+    (the signed Content-Type of this bodyless POST reaches MinIO since http-backend-dexador 0.2.5, #36)
+  upload-part 1 -> etag "055f33828ed05c3ef59500bb7f726b11"
+  upload-part 2 -> etag "ad66eac33717690edbece5e8a3eb932c"
+  complete-multipart-upload -> etag "3323630a24d923914849a9bf71da75e0-2"
+  head-object -> size 6291579
+  get-object -> 6291579 octets, the two parts in order: yes
+
+  Two 1 KiB parts: MinIO refuses to complete, the upload is aborted, and a part
+  sent after the abort finds no upload:
+    complete-multipart-upload -> object-store-error: HTTP 400 EntityTooSmall
+    abort-multipart-upload -> done
+    upload-part after the abort -> object-not-found object not found "multipart/too-small.bin": S3 404 multipart/too-small.bin
+  list-objects :prefix "multipart/" -> ("multipart/blob.bin")
+
+==============================================================================
+== 4. Paged listings
+==============================================================================
+  Five objects page/0.txt .. page/4.txt, listed :max-keys 2 at a time:
+    page 1: ("page/0.txt" "page/1.txt"), truncated yes
+    page 2: ("page/2.txt" "page/3.txt"), truncated yes
+    page 3: ("page/4.txt"), truncated no
+
+==============================================================================
+== 5. Delete
+==============================================================================
+  delete-object env/hello.txt, then get-object env/hello.txt:
+    -> object-not-found: object not found "env/hello.txt": S3 404 env/hello.txt
+
+==============================================================================
+== Summary
+==============================================================================
+25 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
