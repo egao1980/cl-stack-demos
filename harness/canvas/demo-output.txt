@@ -15,11 +15,6 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
 WARNING:
    cl+ssl was loaded before cl-stack-ssl; it keeps the OpenSSL it found, not ~/.local/share/cl-repository/systems/cl-stack-ssl/3.5.9.4/native/libssl.3.dylib
 WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
-
-; compiling file "<demo>/src/demo.lisp" (written 24 NOV 2026 01:48:59 AM):
-
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<demo>/src/demo-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.166
 canvas-protocol 0.2.0, theme :ENGELS, chart backend CANVAS-BACKEND-SVG:SVG-BACKEND, htmx 2.0.11 + sse 2.2.4
 token: 32 hex chars (printed as <token>)
 
@@ -136,12 +131,18 @@ key-chord spells a binding the way canvas-keys.js reports the key press:
 the editor as served: the <section> holds the bindings, the queue and the target
   <section id="editor" aria-label="Grid editor" hx-post="/canvas/HARNESS-DEMOS-CANVAS::GRID-KEY" hx-target="#grid" hx-swap="outerHTML" hx-trigger="canvas:key" hx-sync="this:queue all" data-canvas-keys="ArrowUp ArrowDown ArrowLeft ArrowRight Backspace a b c d e f g h i j k l m n o p q r s t u v w x y z"><table id="grid" role="grid" aria-label="4 by 4 cells"><tbody><tr><td aria-selected="true"><mark>·</mark></td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr></tbody></table><p id="status" role="status">Row 1, column 1 · 0 of 16 cells set</p><ol id="log" aria-label="Key log"></ol></section>
 csp-violations of the editor tree: NIL
-(page body :keys t) loads canvas-keys.js after htmx and the SSE extension:
+the server's transport: (make-canvas-htmx-transport :page-title "canvas demo" :page-keys '(grid-editor))
+  canvas-transport-page-keys → ("HARNESS-DEMOS-CANVAS::GRID-EDITOR")
+GET grid-editor as a full page (no HX-Request) → its <head> loads, from the asset prefix /canvas-assets/:
   <script src="/canvas-assets/htmx.min.js"></script>
   <script src="/canvas-assets/htmx-ext-sse.min.js"></script>
   <script src="/canvas-assets/canvas-keys.js"></script>
+the same GET through a transport made without :page-keys (the page 0.1.0 served):
+  <script src="/canvas-assets/htmx.min.js"></script>
+  <script src="/canvas-assets/htmx-ext-sse.min.js"></script>
+  = the keyed page without that one <script>: T
+GET dashboard (not in page-keys) → canvas-keys.js in it: NIL; byte-identical to the page without :page-keys: T
 GET the asset canvas-keys.js → 200 text/javascript; charset=utf-8, 3628 bytes, from 'self'
-GET grid-editor as a full page (rpc-backend-htmx's page): canvas-keys.js in it: NIL (no :keys option yet, rpc-backend-htmx#6)
 
 three key presses, as htmx sends them after canvas-keys.js fires canvas:key on #editor:
 POST GRID-KEY key=ArrowRight (HX-Request: true, HX-Trigger: editor, HX-Target: grid) → 200
@@ -274,36 +275,60 @@ freeze 'diagram → wrote diagram.html: 19791 chars, deterministic: T
   (the one <style> is the page stylesheet in <head>)
 
 ========================================================================
-== 7. Uploads: file-input, a multipart form, coerce-param :file (0.2.0)
+== 7. Uploads end to end: file-input, a multipart form, coerce-param :file (0.2.0)
 ========================================================================
 the form (a file input inside → enctype="multipart/form-data", which htmx sends as FormData):
-  <form id="upload" hx-post="/canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES" hx-target="#upload" hx-swap="outerHTML" enctype="multipart/form-data"><label>Images (PNG or SVG, at most 2 KiB each)<input type="file" name="images" accept="image/png,.svg" multiple="" required=""></label><button type="submit">Upload</button></form>
-three parts, parsed by mime-protocol from a browser-shaped body (the input's image/png,.svg, max-size 2048):
-  name "images" filename "../../chart.png" image/png, 70 bytes
-  name "images" filename "photos/holiday.png" image/png, 6070 bytes
-  name "images" filename "spinner.gif" image/gif, 42 bytes
-../../chart.png → CANVAS-PROTOCOL:UPLOADED-FILE
-  filename "chart.png" (the last path segment), media type "image/png", size 70, octets (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (70)), path NIL
-photos/holiday.png →
-  signals CANVAS-UPLOAD-TOO-LARGE: images must be at most 2048 bytes
-    expected :MAX-SIZE, detail 2048, size 6070
+  <form id="upload" hx-post="/canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES" hx-target="#upload" hx-swap="outerHTML" enctype="multipart/form-data"><label>Images (PNG or SVG, at most 4 KiB each)<input type="file" name="images" accept="image/png,.svg" multiple="" required=""></label><button type="submit">Upload</button></form>
+
+the request htmx-client sends (:post :multipart; text fields first, then one raw part per file, no base64):
+  POST /canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES
+  Content-Type: multipart/form-data; boundary=----cl-stack-646213512988971
+  Content-Length: 2445
+    ------cl-stack-646213512988971\r\n
+    Content-Disposition: form-data; name="images"; filename="../../chart.png"\r\n
+    Content-Type: image/png\r\n
+    \r\n
+    \x89PNG\r\n
+    \x1A\n
+    \x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1F\x15\xC4\x89\x00\x00\x00\rIDATx\xDAcd`\xF8_\x0F\x00\x02\x87\x01\x80\xEBG\xBA\x92\x00\x00\x00\x00IEND\xAEB`\x82\r\n
+    ------cl-stack-646213512988971\r\n
+    Content-Disposition: form-data; name="images"; filename="pipeline.svg"\r\n
+    Content-Type: image/svg+xml\r\n
+    \r\n
+    <?xml version="1.0" encoding="UTF-8"?>\n
+    <!-- generated by a layout engine -->\n
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="400" height="100" viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">\n
+      … [2445 octets in all]
+POST UPLOAD-IMAGES images=../../chart.png + pipeline.svg → 200
+  the handler got IMAGES = a list of 2 MIME-PROTOCOL:MIME-ENTITY, in part order
+  <ul id="upload"><li>chart.png: image/png, 70 bytes, 89 50 4E 47 0D 0A 1A 0A …</li><li>pipeline.svg: image/svg+xml, 2068 bytes, 3C 3F 78 6D 6C 20 76 65 …</li></ul>
+  the parts, as the codec decoded them (MIME-CONTENT octet for octet as sent):
+    filename "../../chart.png", image/png, 70 octets, intact: T
+    filename "pipeline.svg", image/svg+xml, 2068 octets, intact: T
+  coerce-param :file kept only the last path segment of ../../chart.png; the PNG's CR LF, NUL and 1A octets survive
+POST UPLOAD-IMAGES images=photos/holiday.png (6070 octets) → 422
+  the handler got IMAGES = one MIME-PROTOCOL:MIME-ENTITY, not a list
+  <p role="alert">images must be at most 4096 bytes</p>
+  HX-Retarget #canvas-error, HX-Reswap innerHTML
+POST UPLOAD-IMAGES images=an empty file input (filename "", no content) → 422
+  the handler got IMAGES = NIL: the param is missing
+  <p role="alert">images is required</p>
+POST UPLOAD-IMAGES images=spinner.gif → 422
+  the handler got IMAGES = one MIME-PROTOCOL:MIME-ENTITY, not a list
+  <p role="alert">images must be a file of type: image/png, .svg</p>
+
+the same decoded parts in the image, through coerce-param with restarts (the handler has none):
+photos/holiday.png (filename "photos/holiday.png", image/png, 6070 octets) →
+  signals CANVAS-UPLOAD-TOO-LARGE: images must be at most 4096 bytes
+    expected :MAX-SIZE, detail 4096, size 6070
     restarts: use-value use-default
   use-default → :NO-IMAGE
-spinner.gif →
+spinner.gif (filename "spinner.gif", image/gif, 42 octets) →
   signals CANVAS-COERCION-ERROR: images must be a file of type: image/png, .svg
     expected :ACCEPT, detail ("image/png" ".svg")
     restarts: use-value use-default
     the error fragment next to the input: <small id="images-error" role="alert">images must be a file of type: image/png, .svg</small>
   use-value :skipped → :SKIPPED
-the form's handler, UPLOAD-IMAGES (:multiple t, the first failure wins; coerce-form takes use-default):
-  all three parts →
-  <form id="upload" hx-post="/canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES" hx-target="#upload" hx-swap="outerHTML" enctype="multipart/form-data"><label>Images (PNG or SVG, at most 2 KiB each)<input type="file" name="images" accept="image/png,.svg" multiple="" required="" aria-invalid="true" aria-describedby="images-error"><small id="images-error" role="alert">images must be at most 2048 bytes</small></label><button type="submit">Upload</button></form>
-  chart.png only  →
-  <ul id="upload"><li>chart.png: image/png, 70 bytes</li></ul>
-the same three files POSTed through the app as a browser sends them (6587 bytes) → 400
-  <p role="alert">htmx error 400: Invalid UTF-8 in multipart body</p>
-  rpc-backend-htmx 0.1.0's codec reads every multipart part as UTF-8 text, so a binary file never reaches
-  the handler; the parts above come straight from mime-protocol. End to end is rpc-backend-htmx#5.
 
-self-check (0.2.0): keys-bound T, queue-all T, editor-csp-clean T, keys-script T, oob-panels T, cell-set T, unbound-422 T, filter-refused T, unsafe-svg T, ids-camel-kept T, stripped T, round-trip T, page-csp-clean T, freeze-deterministic T, multipart-enctype T, upload-ok T, too-large T, wrong-type T
-all 18 true: T
+self-check (0.2.0): keys-bound T, queue-all T, editor-csp-clean T, keys-script T, plain-page-unchanged T, unlisted-unchanged T, oob-panels T, cell-set T, unbound-422 T, filter-refused T, unsafe-svg T, ids-camel-kept T, stripped T, round-trip T, page-csp-clean T, freeze-deterministic T, multipart-enctype T, upload-ok T, several-a-list T, octets-intact T, too-large-422 T, empty-missing T, accept-422 T, too-large T, wrong-type T
+all 25 true: T

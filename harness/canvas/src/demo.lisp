@@ -7,7 +7,9 @@
 ;;; Sections 5-7 cover canvas-protocol 0.2.0: key bindings without eval
 ;;; (KEY-CHORD, :keys, canvas-keys.js), :sync and HX-SWAP-OOB; engine-generated
 ;;; SVG through SVG-FRAGMENT's allowlist; file uploads (FILE-INPUT, multipart
-;;; forms, COERCE-PARAM :file).
+;;; forms, COERCE-PARAM :file). rpc-backend-htmx 0.2.0 carries both to the
+;;; browser: the grid editor's full page loads canvas-keys.js (:page-keys), and
+;;; binary file parts reach the handler as mime-protocol entities.
 
 ;;; ---- Image state -----------------------------------------------------------
 
@@ -194,27 +196,32 @@
 ;;; ---- 0.2.0: file uploads -----------------------------------------------------
 
 (defparameter +image-accept+ "image/png,.svg")
-(defparameter +max-image-bytes+ 2048)
+(defparameter +max-image-bytes+ 4096)
 
-(defun %upload-form (error)
-  (canvas:form (list (canvas:file-input "images" :label "Images (PNG or SVG, at most 2 KiB each)"
-                                                 :accept +image-accept+ :multiple t :required t :error error)
+(defvar *last-images* nil
+  "The IMAGES value UPLOAD-IMAGES was last called with, kept so the demo can print what arrived.")
+
+(defun upload-form (&key)
+  (canvas:form (list (canvas:file-input "images" :label "Images (PNG or SVG, at most 4 KiB each)"
+                                                 :accept +image-accept+ :multiple t :required t)
                      (canvas:submit-button "Upload"))
                :id "upload" :link (canvas:canvas-link 'upload-images)))
 
-(defun upload-form (&key) (%upload-form nil))
+(defun hex-head (octets &optional (n 8))
+  "The first N octets of OCTETS in hex."
+  (format nil "~{~2,'0X~^ ~}~:[~; …~]" (coerce (subseq octets 0 (min n (length octets))) 'list) (> (length octets) n)))
 
 (defun upload-images (&key images)
-  "The form's handler: the parts through COERCE-PARAM :file; an error renders next to the input."
-  (multiple-value-bind (form errors)
-      (canvas:coerce-form (list :images images)
-                          `((:images :file :max-size ,+max-image-bytes+ :accept ,+image-accept+ :multiple t :required t)))
-    (if errors
-        (%upload-form (canvas:find-field-error errors "images"))
-        (canvas:el :ul '(:id "upload")
-          (loop for f in (getf form :images)
-                collect (canvas:el :li nil (format nil "~a: ~a, ~d bytes" (canvas:uploaded-file-filename f)
-                                                   (canvas:uploaded-file-media-type f) (canvas:uploaded-file-size f))))))))
+  "The form's handler. IMAGES is what the codec decoded: one STACK-MIME:MIME-ENTITY, a
+list of them (several files under one name) or NIL (missing). COERCE-PARAM :file
+signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with 422."
+  (setf *last-images* images)
+  (canvas:el :ul '(:id "upload")
+    (loop for f in (canvas:coerce-param images :file :field "images" :required t :multiple t
+                                        :max-size +max-image-bytes+ :accept +image-accept+)
+          collect (canvas:el :li nil (format nil "~a: ~a, ~d bytes, ~a" (canvas:uploaded-file-filename f)
+                                             (canvas:uploaded-file-media-type f) (canvas:uploaded-file-size f)
+                                             (hex-head (canvas:uploaded-file-octets f)))))))
 
 ;;; ---- Server: allowlist, token, CSP ------------------------------------------
 
@@ -222,7 +229,10 @@
 (defparameter *handlers*
   (rh:make-htmx-handlers 'dashboard 'test-table 'test-chart 'threshold-form '(ticker :mode :call-stream)
                          'grid-editor 'grid-key 'diagram 'upload-form 'upload-images))
-(defvar *transport* (rhc:make-canvas-htmx-transport :page-title "canvas demo"))
+(defvar *transport* (rhc:make-canvas-htmx-transport :page-title "canvas demo" :page-keys '(grid-editor))
+  "The server's transport. Only the grid editor binds keys, so only its full page loads canvas-keys.js.")
+(defvar *plain-transport* (rhc:make-canvas-htmx-transport :page-title "canvas demo")
+  "The same transport without :page-keys, for comparison in section 5.")
 
 (defun with-csp (response)              ; a (status headers body) list or a streaming function
   (flet ((add (r) (list* (first r) (list* :content-security-policy +csp+ (second r)) (cddr r))))
@@ -333,6 +343,13 @@
   (let ((canvas:*canvas-resolver* (rhc:make-htmx-resolver *transport* *handlers*))) (funcall fn)))
 
 (defun count-of (needle s) (loop for i = (search needle s) then (search needle s :start2 (1+ i)) while i count t))
+(defun scripts-of (html)
+  "Each <script …></script> element of HTML, as text, in order."
+  (loop for i = (search "<script" html) then (search "<script" html :start2 (1+ i)) while i
+        collect (subseq html i (+ 9 (search "</script>" html :start2 i)))))
+(defun without (needle s)
+  "S with its first NEEDLE removed."
+  (let ((i (search needle s))) (if i (concatenate 'string (subseq s 0 i) (subseq s (+ i (length needle)))) s)))
 (defun lines-after (s &rest closers)
   "S with a newline after each CLOSER, for printing a response of several panels."
   (with-output-to-string (o)
@@ -359,17 +376,30 @@
     (let ((v (app-resolved (lambda () (canvas:csp-violations (grid-editor))))))
       (format t "csp-violations of the editor tree: ~s~%" v)
       (check :editor-csp-clean (null v)))
-    (let ((head (app-resolved (lambda () (canvas:to-html (canvas:page (grid-editor) :title "grid editor" :keys t))))))
-      (format t "(page body :keys t) loads canvas-keys.js after htmx and the SSE extension:~%")
-      (loop for i = (search "<script" head) then (search "<script" head :start2 (1+ i)) while i
-            do (format t "  ~a~%" (subseq head i (+ 9 (search "</script>" head :start2 i)))))
-      (check :keys-script (search "canvas-keys.js" head)))
+    (flet ((full-page (client name &optional headers) ; a plain browser GET: no HX-Request, the whole page
+             (text (rh:htmx-reply-body (rh:htmx-request client (rh:htmx-method-name name) nil :hx-request nil :headers headers)))))
+      (let* ((plain (rh:make-htmx-client (rh:htmx-app *plain-transport* *handlers*) :codec (rh:htmx-transport-codec *plain-transport*)))
+             (page (full-page c 'grid-editor cookie))
+             (plain-page (full-page plain 'grid-editor))
+             (tag (format nil "<script src=\"~acanvas-keys.js\"></script>" (rhc:canvas-transport-asset-prefix *transport*))))
+        (format t "~&the server's transport: (make-canvas-htmx-transport :page-title \"canvas demo\" :page-keys '(grid-editor))~%  canvas-transport-page-keys → ~s~%"
+                (rhc:canvas-transport-page-keys *transport*))
+        (format t "GET grid-editor as a full page (no HX-Request) → its <head> loads, from the asset prefix ~a:~%"
+                (rhc:canvas-transport-asset-prefix *transport*))
+        (dolist (s (scripts-of page)) (format t "  ~a~%" s))
+        (check :keys-script (search (format nil "~a</head>" tag) page))
+        (format t "the same GET through a transport made without :page-keys (the page 0.1.0 served):~%")
+        (dolist (s (scripts-of plain-page)) (format t "  ~a~%" s))
+        (format t "  = the keyed page without that one <script>: ~s~%"
+                (check :plain-page-unchanged (string= plain-page (without tag page))))
+        (let ((dash (full-page c 'dashboard cookie)))
+          (format t "GET dashboard (not in page-keys) → canvas-keys.js in it: ~s; byte-identical to the page without :page-keys: ~s~%"
+                  (and (search "canvas-keys.js" dash) t)
+                  (check :unlisted-unchanged (string= dash (full-page plain 'dashboard)))))))
     (let ((r (rh:htmx-request-url c (app-resolved (lambda () (canvas:resolve-asset-url canvas:*canvas-resolver* "canvas-keys.js")))
                                   :hx-request nil :headers cookie)))
       (format t "GET the asset canvas-keys.js → ~d ~a, ~d bytes, from 'self'~%" (rh:htmx-reply-status r)
               (rh:htmx-reply-header r "content-type") (length (rh:htmx-reply-body r))))
-    (let ((page (text (rh:htmx-reply-body (rh:htmx-request c (rh:htmx-method-name 'grid-editor) nil :hx-request nil :headers cookie)))))
-      (format t "GET grid-editor as a full page (rpc-backend-htmx's page): canvas-keys.js in it: ~s (no :keys option yet, rpc-backend-htmx#6)~%" (and (search "canvas-keys.js" page) t)))
     (format t "~&~%three key presses, as htmx sends them after canvas-keys.js fires canvas:key on #editor:~%")
     (dolist (key '("ArrowRight" "ArrowDown" "k"))
       (let ((r (rh:htmx-request c (rh:htmx-method-name 'grid-key) (list :key key) :http-method :post
@@ -443,20 +473,17 @@
 (defparameter +gif+ (stack-encoding:decode "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" :encoding :base64)
   "A 1x1 GIF.")
 
-(defun browser-body (boundary parts &key header-block)
-  "multipart/form-data octets shaped as a browser sends them. HEADER-BLOCK prepends the
-Content-Type header naming the boundary (the shape rpc-backend-htmx's codec hands
-STACK-MIME:PARSE-MIME). PARTS: (name filename content-type octets)."
-  (let ((crlf (format nil "~c~c" #\Return #\Linefeed)))
-    (flet ((octets (s) (stack-encoding:encode s :encoding :utf-8)))
-      (apply #'concatenate '(vector (unsigned-byte 8))
-             (if header-block (octets (format nil "Content-Type: multipart/form-data; boundary=~a~a~a" boundary crlf crlf)) #())
-             (append (loop for (name filename type content) in parts
-                           collect (octets (format nil "--~a~aContent-Disposition: form-data; name=\"~a\"; filename=\"~a\"~aContent-Type: ~a~a~a"
-                                                   boundary crlf name filename crlf type crlf crlf))
-                           collect content
-                           collect (octets crlf))
-                     (list (octets (format nil "--~a--~a" boundary crlf))))))))
+(defun file-value (filename content-type content)
+  "A file value as HTMX-REQUEST takes it (:post :multipart): one file of an <input type=file>."
+  (list :filename filename :content content :content-type content-type))
+
+(defparameter +chart-png+ (file-value "../../chart.png" "image/png" +png+))
+(defparameter +holiday-png+
+  (file-value "photos/holiday.png" "image/png"
+              (concatenate '(vector (unsigned-byte 8)) +png+ (make-array 6000 :initial-element 0))))
+(defparameter +spinner-gif+ (file-value "spinner.gif" "image/gif" +gif+))
+(defparameter +empty-input+ (list :filename "")
+  "A file input left empty: the browser sends a part with filename \"\" and no content.")
 
 (defun report-coercion (c)
   (format t "  signals ~a: ~a~%    expected ~s, detail ~s~@[, size ~d~]~%    restarts: ~{~(~a~)~^ ~}~%"
@@ -465,70 +492,93 @@ STACK-MIME:PARSE-MIME). PARTS: (name filename content-type octets)."
           (remove-if-not (lambda (n) (member n '(use-value canvas:use-default)))
                          (mapcar #'restart-name (compute-restarts c)))))
 
-(defparameter +upload-boundary+ "----formdata-demo-7")
-(defparameter +upload-files+
-  (list (list "images" "../../chart.png" "image/png" +png+)
-        (list "images" "photos/holiday.png" "image/png"
-              (concatenate '(vector (unsigned-byte 8)) +png+ (make-array 6000 :initial-element 0)))
-        (list "images" "spinner.gif" "image/gif" +gif+))
-  "Three files under one name, as <input type=file multiple> sends them.")
+(defun wire (octets &optional (limit 600))
+  "The first LIMIT of OCTETS as printable text: ASCII as is, CR as \\r, LF as \\n and a
+line break, any other octet as \\xNN."
+  (with-output-to-string (o)
+    (write-string "    " o)
+    (loop for i below (min limit (length octets))
+          for b = (aref octets i)
+          do (case b
+               (13 (write-string "\\r" o))
+               (10 (format o "\\n~%    "))
+               (t (if (<= 32 b 126) (write-char (code-char b) o) (format o "\\x~2,'0X" b)))))
+    (when (> (length octets) limit) (format o " … [~d octets in all]" (length octets)))))
 
-(defun browser-post-env (path-info body content-type cookie)
-  "A Clack env shaped as a browser's htmx POST of BODY (the shape the htmx client builds)."
-  (let ((headers (make-hash-table :test 'equal)))
-    (setf (gethash "hx-request" headers) "true" (gethash "cookie" headers) cookie
-          (gethash "content-type" headers) content-type
-          (gethash "content-length" headers) (princ-to-string (length body)))
-    (list :request-method :post :script-name "" :path-info path-info :request-uri path-info :query-string nil
-          :server-name "localhost" :server-port 80 :server-protocol :http/1.1 :url-scheme "http"
-          :remote-addr "127.0.0.1" :headers headers
-          :content-type content-type :content-length (length body) :raw-body (hp:make-octet-input-stream body))))
+(defun received (v)
+  "What UPLOAD-IMAGES was called with, in words."
+  (cond ((eq v :not-called) "(not called)")
+        ((null v) "NIL: the param is missing")
+        ((listp v) (format nil "a list of ~d ~s, in part order" (length v) (type-of (first v))))
+        (t (format nil "one ~s, not a list" (type-of v)))))
+
+(defun part-line (part)
+  (format nil "filename ~s, ~a, ~d octets" (stack-mime:disposition-filename (stack-mime:mime-content-disposition part))
+          (stack-mime:media-type-essentials (stack-mime:mime-content-type part)) (length (stack-mime:mime-content part))))
 
 (defun demo-upload (token)
-  (banner "7. Uploads: file-input, a multipart form, coerce-param :file (0.2.0)")
+  (banner "7. Uploads end to end: file-input, a multipart form, coerce-param :file (0.2.0)")
   (let ((html (app-resolved (lambda () (canvas:to-html (upload-form))))))
     (format t "the form (a file input inside → enctype=\"multipart/form-data\", which htmx sends as FormData):~%  ~a~%" html)
     (check :multipart-enctype (search "enctype=\"multipart/form-data\"" html)))
-  (let* ((parts (stack-mime:mime-parts
-                 (stack-mime:parse-mime (browser-body +upload-boundary+ +upload-files+ :header-block t))))
-         (field (list :field "images" :max-size +max-image-bytes+ :accept +image-accept+)))
-    (format t "~&three parts, parsed by mime-protocol from a browser-shaped body (the input's ~a, max-size ~d):~%"
-            +image-accept+ +max-image-bytes+)
-    (dolist (p parts)
-      (format t "  name ~s filename ~s ~a, ~d bytes~%"
-              (stack-mime:disposition-name (stack-mime:mime-content-disposition p))
-              (stack-mime:disposition-filename (stack-mime:mime-content-disposition p))
-              (stack-mime:media-type-essentials (stack-mime:mime-content-type p)) (length (stack-mime:mime-content p))))
-    (destructuring-bind (ok big gif) parts
-      (let ((f (apply #'canvas:coerce-param ok :file field)))
-        (format t "~&../../chart.png → ~s~%  filename ~s (the last path segment), media type ~s, size ~d, octets ~s, path ~s~%" (type-of f)
-                (canvas:uploaded-file-filename f) (canvas:uploaded-file-media-type f) (canvas:uploaded-file-size f)
-                (type-of (canvas:uploaded-file-octets f)) (canvas:uploaded-file-path f))
-        (check :upload-ok (and (canvas:uploaded-file-p f) (= (length +png+) (canvas:uploaded-file-size f)))))
-      (format t "photos/holiday.png →~%")
-      (let ((v (handler-bind ((canvas:canvas-coercion-error
-                                (lambda (c) (report-coercion c) (check :too-large (typep c 'canvas:canvas-upload-too-large))
-                                  (invoke-restart 'canvas:use-default))))
-                 (apply #'canvas:coerce-param big :file :default :no-image field))))
-        (format t "  use-default → ~s~%" v))
-      (format t "spinner.gif →~%")
-      (let ((v (handler-bind ((canvas:canvas-coercion-error
-                                (lambda (c) (report-coercion c) (check :wrong-type (eq :accept (canvas:coercion-error-expected c)))
-                                  (format t "    the error fragment next to the input: ~a~%" (canvas:to-html (canvas:error-fragment c)))
-                                  (invoke-restart 'use-value :skipped))))
-                 (apply #'canvas:coerce-param gif :file field))))
-        (format t "  use-value :skipped → ~s~%" v))
-      (format t "~&the form's handler, UPLOAD-IMAGES (:multiple t, the first failure wins; coerce-form takes use-default):~%")
-      (format t "  all three parts →~%  ~a~%" (app-resolved (lambda () (canvas:to-html (upload-images :images parts)))))
-      (format t "  chart.png only  →~%  ~a~%" (app-resolved (lambda () (canvas:to-html (upload-images :images (list ok))))))))
-  (let* ((body (browser-body +upload-boundary+ +upload-files+))
-         (r (rh:htmx-request-env (rh:make-htmx-client (guarded-app token) :codec (rh:htmx-transport-codec *transport*))
-                                 (browser-post-env (format nil "/canvas/~a" (rh:htmx-method-name 'upload-images)) body
-                                                   (format nil "multipart/form-data; boundary=~a" +upload-boundary+)
-                                                   (format nil "canvas-token=~a" token)))))
-    (format t "~&the same three files POSTed through the app as a browser sends them (~d bytes) → ~d~%  ~a~%"
-            (length body) (rh:htmx-reply-status r) (text (rh:htmx-reply-body r)))
-    (format t "  rpc-backend-htmx 0.1.0's codec reads every multipart part as UTF-8 text, so a binary file never reaches~%  the handler; the parts above come straight from mime-protocol. End to end is rpc-backend-htmx#5.~%")))
+  (let* ((codec (rh:htmx-transport-codec *transport*))
+         (c (rh:make-htmx-client (guarded-app token) :codec codec))
+         (cookie `(("cookie" . ,(format nil "canvas-token=~a" token))))
+         (svg-text (engine-svg))
+         (svg (file-value "pipeline.svg" "image/svg+xml" svg-text)))
+    (labels ((post (label images &key show-wire)
+               ;; HTMX-REQUEST in its two steps (ENCODE-REQUEST-USING-CODEC, then HTMX-REQUEST-ENV),
+               ;; so the body can be printed first.
+               (let* ((env (rpc:encode-request-using-codec codec (rh:htmx-method-name 'upload-images) (list :images images)
+                                                           :http-method :post :encoding :multipart
+                                                           :metadata '(:request t :target "upload") :headers cookie))
+                      (body (make-array (getf env :content-length) :element-type '(unsigned-byte 8))))
+                 (read-sequence body (getf env :raw-body))
+                 (setf (getf env :raw-body) (hp:make-octet-input-stream body)
+                       *last-images* :not-called)
+                 (when show-wire
+                   (format t "~&~%the request htmx-client sends (:post :multipart; text fields first, then one raw part per file, no base64):~%  POST ~a~%  Content-Type: ~a~%  Content-Length: ~d~%~a~%"
+                           (getf env :path-info) (getf env :content-type) (length body) (wire body)))
+                 (let ((r (rh:htmx-request-env c env)))
+                   (format t "~&POST UPLOAD-IMAGES images=~a → ~d~%  the handler got IMAGES = ~a~%  ~a~%"
+                           label (rh:htmx-reply-status r) (received *last-images*) (text (rh:htmx-reply-body r)))
+                   r)))
+             (status-and (r needle)
+               (and (= 422 (rh:htmx-reply-status r)) (search needle (text (rh:htmx-reply-body r))))))
+      (let* ((r (post "../../chart.png + pipeline.svg" (list +chart-png+ svg) :show-wire t))
+             (parts *last-images*))
+        (check :upload-ok (and (= 200 (rh:htmx-reply-status r)) (= 2 (count-of "<li>" (text (rh:htmx-reply-body r))))))
+        (check :several-a-list (and (listp parts) (= 2 (length parts))
+                                    (every (lambda (p) (typep p 'stack-mime:mime-entity)) parts)))
+        (format t "  the parts, as the codec decoded them (MIME-CONTENT octet for octet as sent):~%")
+        (loop for p in parts
+              for sent in (list +png+ (stack-encoding:encode svg-text :encoding :utf-8))
+              do (format t "    ~a, intact: ~s~%" (part-line p) (check :octets-intact (equalp (stack-mime:mime-content p) sent))))
+        (format t "  coerce-param :file kept only the last path segment of ../../chart.png; the PNG's CR LF, NUL and 1A octets survive~%"))
+      (let* ((r (post "photos/holiday.png (6070 octets)" +holiday-png+))
+             (big *last-images*))
+        (format t "  HX-Retarget ~a, HX-Reswap ~a~%" (rh:htmx-reply-header r "hx-retarget") (rh:htmx-reply-header r "hx-reswap"))
+        (check :too-large-422 (status-and r (format nil "images must be at most ~d bytes" +max-image-bytes+)))
+        (let ((r (post "an empty file input (filename \"\", no content)" +empty-input+)))
+          (check :empty-missing (and (null *last-images*) (= 422 (rh:htmx-reply-status r)))))
+        (let* ((r (post "spinner.gif" +spinner-gif+))
+               (gif *last-images*)
+               (field (list :field "images" :max-size +max-image-bytes+ :accept +image-accept+)))
+          (check :accept-422 (status-and r "images must be a file of type"))
+          (format t "~&~%the same decoded parts in the image, through coerce-param with restarts (the handler has none):~%")
+          (format t "photos/holiday.png (~a) →~%" (part-line big))
+          (let ((v (handler-bind ((canvas:canvas-coercion-error
+                                    (lambda (c) (report-coercion c) (check :too-large (typep c 'canvas:canvas-upload-too-large))
+                                      (invoke-restart 'canvas:use-default))))
+                     (apply #'canvas:coerce-param big :file :default :no-image field))))
+            (format t "  use-default → ~s~%" v))
+          (format t "spinner.gif (~a) →~%" (part-line gif))
+          (let ((v (handler-bind ((canvas:canvas-coercion-error
+                                    (lambda (c) (report-coercion c) (check :wrong-type (eq :accept (canvas:coercion-error-expected c)))
+                                      (format t "    the error fragment next to the input: ~a~%" (canvas:to-html (canvas:error-fragment c)))
+                                      (invoke-restart 'use-value :skipped))))
+                     (apply #'canvas:coerce-param gif :file field))))
+            (format t "  use-value :skipped → ~s~%" v)))))))
 
 (defun run-demos (&key (port 18467) (dir (uiop:getcwd)))
   (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend
