@@ -1,0 +1,471 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: dependencies from cl-repo.lock (15 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+engrave-protocol 0.1.0 (slice EN0) on score-protocol 0.3.0 and xml-protocol 0.1.0
+
+========================================================================
+== 1. Engines: the reference engine, availability, *ENGRAVE-ENGINE*
+========================================================================
+An engine is an instance of a subclass of ENGRAVE-ENGINE. It implements one
+generic function, ENGINE-RENDER-PAGES; RENDER-SVG, RENDER-TIMEMAP and RENDER-PDF
+are the protocol's methods around it, so every engine gets the same checks,
+views and id translation. Real engines live in backends over native libraries.
+None is published yet, so this demo uses NULL-ENGINE, the reference engine:
+deterministic placeholder SVG, one group per element, no music layout. It is
+what consumers and backends test the protocol with.
+
+  (engine-name engine) => "null"
+  (engine-available-p engine) => t
+  (eq (ensure-engine engine) engine)
+    => t   ; an available engine is returned as it is
+  (null-engine-unsupported engine) => nil   ; it draws every element
+
+*ENGRAVE-ENGINE* is the engine a render function uses when it is given NIL.
+It is NIL by default, and no backend sets it when loaded. ENSURE-ENGINE then
+signals ENGINE-UNAVAILABLE inside a USE-VALUE restart, whose value is checked
+the same way:
+
+  *engrave-engine* => nil
+  (ensure-engine nil)
+    -> engine-unavailable: No engraving engine available: no engine given and *ENGRAVE-ENGINE* is NIL
+  (engine-name
+   (handler-bind ((engine-unavailable (lambda (c) (use-value (make-null-engine) c))))
+     (ensure-engine nil)))
+    => "null"   ; USE-VALUE with a null engine
+  (let ((*engrave-engine* (make-null-engine)))
+    (engine-name (ensure-engine nil)))
+    => "null"   ; bound around the call
+
+An engine over a native library whose library did not load answers NIL to
+ENGINE-AVAILABLE-P. UNLOADED-ENGINE (demo.lisp) plays one: rendering with it
+signals ENGINE-UNAVAILABLE before anything is drawn, and USE-VALUE swaps in
+another engine for the whole call:
+
+  (ensure-engine (make-instance 'unloaded-engine))
+    -> engine-unavailable: No engraving engine available (unloaded): the engine cannot render here (ENGINE-AVAILABLE-P is false)
+  (render-svg (make-instance 'unloaded-engine) *score*)
+    -> engine-unavailable: No engraving engine available (unloaded): the engine cannot render here (ENGINE-AVAILABLE-P is false)
+  (length
+   (handler-bind ((engine-unavailable (lambda (c) (use-value (make-null-engine) c))))
+     (render-svg (make-instance 'unloaded-engine) *score*)))
+    => 1   ; pages, from the null engine
+  (ensure-engine "verovio")
+    -> type-error: The value "verovio" is not of type (or null engrave-protocol:engrave-engine)
+
+========================================================================
+== 2. Layout: page size, margins, scale, system breaks
+========================================================================
+A LAYOUT holds the page size, the margins (millimetres, whole tenths), the
+scale in percent and the system breaks. MAKE-LAYOUT checks each argument;
+ENSURE-LAYOUT takes NIL, a layout or a plist:
+
+  (list (layout-page-size layout) (layout-margins layout) (layout-scale layout)
+        (layout-system-breaks layout))
+    => ((210 297) (10 10 10 10) 100 :auto)   ; the defaults: A4
+  (mapcar #'first +page-sizes+) => (:a3 :a4 :a5 :b4 :b5 :letter :legal :tabloid)
+  (layout-page-size (make-layout :page-size :letter))
+    => (2159/10 1397/5)   ; 215.9 x 279.4 mm
+  (layout-margins (make-layout :margins '(15 10 15 10)))
+    => (15 10 15 10)   ; top right bottom left
+  (layout-scale (ensure-layout '(:page-size :a5 :scale 200))) => 200
+
+Each refusal is an INVALID-RENDER-OPTION naming the option and the value:
+
+  (make-layout :page-size :quarto)
+    -> invalid-render-option: Invalid :page-size :quarto
+  (make-layout :page-size '(210 1/3))
+    -> invalid-render-option: Invalid :page-size (210 1/3)
+  (make-layout :margins 10.5)
+    -> invalid-render-option: Invalid :margins 10.5
+  (make-layout :margins '(10 110 10 100))
+    -> invalid-render-option: Invalid :margins (10 110 10 100)
+  (make-layout :scale 0)
+    -> invalid-render-option: Invalid :scale 0
+  (make-layout :system-breaks '("m-1" "m-1"))
+    -> invalid-render-option: Invalid :system-breaks ("m-1" "m-1")
+  (ensure-layout '(:scale))
+    -> invalid-render-option: Invalid :layout (:scale)
+  (ensure-layout '(:colour :blue))
+    -> invalid-render-option: Invalid :layout (:colour :blue)
+
+========================================================================
+== 3. Pages: RENDER-SVG and the SVG it returns
+========================================================================
+The score: the first line of OLD HUNDREDTH ("All people that on earth do
+dwell") as an open score of four parts, one staff each, built in code
+(MAKE-CHORALE). G major, 4/4, a half-note pickup, Moderato with a quarter
+note at 96; the last chord is slower ("rit.", a quarter at 72) and has a
+fermata in every part. The soprano carries the words.
+
+  P1 Soprano  G4:h G4:q F#4:q E4:q D4:q G4:q A4:q B4:h
+  P2 Alto     D4:h D4:q D4:q B3:q B3:q D4:q D4:q D4:h
+  P3 Tenor    B3:h B3:q A3:q G3:q G3:q G3:q F#3:q G3:h
+  P4 Bass     G2:h B2:q D3:q E3:q G2:q B2:q D3:q G2:h
+
+  (length (score-elements *score*))
+    => 61   ; 3 measures, 2 tempo marks, 4 parts, staves and voices, 32 notes, 4 fermatas, 8 lyrics
+  (check-score *score*) => nil
+
+RENDER-SVG engine score &key view page layout parts returns the pages and the
+id map. With the default layout (A4, 10 mm margins, scale 100) the null engine
+fits four 40 mm measures in a 190 mm line, and six systems of four staves on a
+page, so the three bars make one system on one page:
+
+  (length pages) => 1
+  (svg-page-number page) => 1
+  (svg-page-systems page) => (("m-1" "m-3" "m-4"))   ; systems: measure ids
+  (xml:xml-document-p (svg-page-document page))
+    => t   ; an xml-protocol tree, not a string
+  (xml:xml-element-namespace-uri (svg-page-root page))
+    => "http://www.w3.org/2000/svg"
+  (list (attr (svg-page-root page) "viewBox") (attr (svg-page-root page) "width")
+        (attr (svg-page-root page) "height"))
+    => ("0 0 2100 2970" "210mm" "297mm")   ; user units of 1/10 mm
+
+The page as a tree (PRINT-TREE in demo.lisp; the first 40 of its elements).
+Page 1 opens with the parts, each with its name, staff and voice; then each
+system, holding its measures, and in each measure its marks and the events
+of every voice, each event holding its marks and lyrics:
+
+  <svg viewBox="0 0 2100 2970" width="210mm" height="297mm" class="engrave-page" data-page="1">
+    <g class="parts">
+      <g id="P1" class="part">
+        <text>
+          "Soprano"
+        <g id="st-6" class="staff">
+        <g id="v-7" class="voice">
+      <g id="P2" class="part">
+        <text>
+          "Alto"
+        <g id="st-p" class="staff">
+        <g id="v-q" class="voice">
+      <g id="P3" class="part">
+        <text>
+          "Tenor"
+        <g id="st-10" class="staff">
+        <g id="v-11" class="voice">
+      <g id="P4" class="part">
+        <text>
+          "Bass"
+        <g id="st-1b" class="staff">
+        <g id="v-1c" class="voice">
+    <g id="system.1" class="system" transform="translate(100,100)">
+      <g id="m-1" class="measure" transform="translate(0,0)">
+        <rect width="400" height="400">
+        <g id="tm-2" class="tempo-mark">
+        <g id="e-8" class="note">
+          <g id="ly-9" class="lyric">
+        <g id="e-r" class="note">
+        <g id="e-12" class="note">
+        <g id="e-1d" class="note">
+      <g id="m-3" class="measure" transform="translate(400,0)">
+        <rect width="400" height="400">
+        <g id="e-a" class="note">
+          <g id="ly-b" class="lyric">
+        <g id="e-c" class="note">
+          <g id="ly-d" class="lyric">
+        <g id="e-e" class="note">
+          <g id="ly-f" class="lyric">
+        <g id="e-g" class="note">
+          <g id="ly-h" class="lyric">
+        <g id="e-s" class="note">
+        <g id="e-t" class="note">
+        <g id="e-u" class="note">
+  ...
+
+  (count-elements (svg-page-root page))
+    => 71   ; the root, the parts group, a system, 61 element groups, 4 name texts, 3 rects
+  (length ids) => 62   ; id attributes: 61 elements and system.1
+  (length (remove-duplicates ids :test #'string=)) => 62   ; all unique
+  (every #'valid-svg-id-p ids) => t   ; all ASCII NCNames
+  (find "system.1" ids :test #'string=)
+    => "system.1"   ; an id the engine made up: no element id has a dot
+  (list (xml:xml-element-local-name group) (attr group "id") (attr group "class"))
+    => ("g" "e-8" "note")   ; the soprano's first note: its own id
+  (mapcar (lambda (c) (attr c "class")) (child-elements group))
+    => ("lyric")   ; the note's group holds its lyric's
+  (find-svg-element page "e-zz") => nil
+
+ELEMENT-KIND is the class attribute each group gets:
+
+  (mapcar (lambda (class) (element-kind (first-of-kind *score* class)))
+          '(measure-info tempo-mark part staff voice note-event fermata lyric))
+    => (:measure :tempo-mark :part :staff :voice :note :fermata :lyric)
+
+The same score and layout give the same bytes, and the page is written to
+old-hundredth.svg next to this demo:
+
+  (string= (encode-page page)
+           (encode-page (first (render-svg (make-null-engine) *score*))))
+    => t
+  (subseq (encode-page page) 0 38) => "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+  (and (search "<svg xmlns=\"http://www.w3.org/2000/svg\"" (encode-page page)) t)
+    => t   ; a standalone SVG document
+
+========================================================================
+== 4. The id map: score element ids to (page . svg-id)
+========================================================================
+The id map is an FSet map from the score's element ids to lists of
+(page . svg-id): where each element is drawn. An editor or a canvas uses it
+to go from a click on the page to the score element, and back. Every element
+of the choral view is a key; the null engine draws each one once, under its
+own id:
+
+  (fset:size *id-map*) => 61
+  (equal (map-keys *id-map*)
+         (sort (mapcar #'element-id (score-elements *score*)) #'string<))
+    => t   ; every element of the score
+  id      kind         drawn at
+  m-1     measure      ((1 . "m-1"))
+  tm-2    tempo-mark   ((1 . "tm-2"))
+  P1      part         ((1 . "P1"))
+  st-6    staff        ((1 . "st-6"))
+  v-7     voice        ((1 . "v-7"))
+  e-8     note         ((1 . "e-8"))
+  ly-9    lyric        ((1 . "ly-9"))
+  e-1k    note         ((1 . "e-1k"))
+  fe-1l   fermata      ((1 . "fe-1l"))
+
+  (every (lambda (id) (equal (lookup *id-map* id) (list (cons 1 id))))
+         (map-keys *id-map*))
+    => t   ; each value is ((1 . its own id))
+
+========================================================================
+== 5. Page splitting, :PAGE and system breaks
+========================================================================
+A larger scale on a smaller page splits the line. On A5 at scale 200 a measure
+is 80 mm wide, so one fits a 128 mm line; a system of four staves is 90 mm
+high, so two fit a 190 mm page. Three systems make two pages:
+
+  page 1  50 SVG elements  systems (m-1) (m-3)
+  page 2  24 SVG elements  systems (m-4)
+
+  (mapcar #'svg-page-number pages) => (1 2)
+  (reduce #'append (mapcar #'svg-page-systems pages))
+    => (("m-1") ("m-3") ("m-4"))   ; every measure once, in order
+  (lookup id-map (element-id last-bar)) => ((2 . "m-4"))   ; bar 2 is on page 2
+  (lookup id-map (element-id last-note)) => ((2 . "e-m"))
+  (lookup id-map "P1")
+    => ((1 . "P1"))   ; parts, staves and voices are drawn on page 1
+
+:PAGE asks for one page. The id map still covers the whole rendering, and
+the page is the same as in the full rendering:
+
+  (mapcar #'svg-page-number one) => (2)
+  (string= (encode-page (first one)) (encode-page (second pages))) => t
+  (fset:equal? one-map id-map) => t
+  (render-svg (make-null-engine) *score* :layout '(:page-size :a5 :scale 200) :page 3)
+    -> invalid-render-option: Invalid :page 3 (null)
+  (render-svg (make-null-engine) *score* :page 0)
+    -> invalid-render-option: Invalid :page 0 (null)
+
+:SYSTEM-BREAKS is a list of measure ids: a system starts at each of them (and
+at the first measure). A page's SYSTEMS are the break plan: fed back, they give
+the same lines again, whatever the scale.
+
+  page 1  72 SVG elements  systems (m-1) (m-3 m-4)
+  (svg-page-systems (first pages))
+    => (("m-1") ("m-3" "m-4"))   ; the pickup alone, then bars 1-2
+  breaks => ("m-3")
+  (equal (mapcar #'encode-page again) (mapcar #'encode-page pages))
+    => t   ; the same bytes
+  (render-svg (make-null-engine) *score* :layout '(:system-breaks ("m-zz")))
+    -> invalid-render-option: Invalid :system-breaks ("m-zz") (null)
+
+========================================================================
+== 6. Views: :CHORAL, :CONDENSED and :PARTS
+========================================================================
+Views are score-protocol's. :CHORAL draws the score as notated (here four
+staves); :CONDENSED draws CONDENSED-VIEW, the hymnal reduction: soprano and
+alto on a treble staff, tenor and bass on a bass staff. The engine only ever
+sees the view; RENDER-SVG turns the view's ids back into the score's.
+
+  (length (parts view)) => 1
+  (mapcar #'staff-clef (part-staves (first (parts view)))) => (:treble :bass)
+  (mapcar #'voice-stem (part-voices (first (parts view)))) => (:up :down :up :down)
+  (lookup view-map (element-id (first (parts view))))
+    => nil   ; the view's part is new
+  page 1  62 SVG elements  systems (m-1 m-3 m-4)
+  (fset:size id-map) => 53   ; 61 elements less the 4 parts and 4 staves
+  (lookup id-map "P1") => nil   ; the source parts are not drawn
+  (lookup id-map (element-id alto-note))
+    => ((1 . "e-r"))   ; the alto's first note, under its own id
+  (check-engraving *score* pages id-map :view :condensed) => nil
+
+:PARTS restricts the view to some parts (by id), here the outer voices:
+
+  page 1  45 SVG elements  systems (m-1 m-3 m-4)
+  (fset:size id-map)
+    => 37   ; 5 in the measure map, 2 parts with their staves and voices, 16 notes, 2 fermatas, 8 lyrics
+  (lookup id-map "P2") => nil
+  (check-engraving *score* pages id-map :parts '("P1" "P4")) => nil
+  (render-svg (make-null-engine) *score* :view :piano)
+    -> invalid-render-option: Invalid :view :piano
+  (render-svg (make-null-engine) *score* :parts '("P5"))
+    -> invalid-render-option: Invalid :parts ("P5")
+
+========================================================================
+== 7. Unsupported notation and SKIP-ELEMENT
+========================================================================
+An engine that can't draw an element signals UNSUPPORTED-NOTATION inside a
+SKIP-ELEMENT restart (score-protocol's symbol, the one its MusicXML reader
+uses, so one handler serves both). MAKE-NULL-ENGINE :UNSUPPORTED names classes
+to refuse. Here fermatas and tempo marks: the conditions come in document
+order, and skipping draws the score without them.
+
+  (render-svg engine *score*)
+    -> unsupported-notation: Engine null cannot draw element "tm-2" (tempo-mark)
+  skipped, in order: tm-2 (tempo-mark), tm-5 (tempo-mark), fe-n (fermata), fe-z (fermata), fe-1a (fermata), fe-1l (fermata)
+
+  (length seen) => 6   ; two tempo marks, four fermatas
+  (lookup id-map (element-id fermata)) => nil   ; a skipped element maps to ()
+  (find-svg-element (first pages) (element-id fermata)) => nil
+  (mapcar (lambda (i) (list (engraving-issue-kind i) (engraving-issue-id i)))
+          (check-engraving *score* pages id-map))
+    => ((:not-drawn "tm-2") (:not-drawn "tm-5") (:not-drawn "fe-n") (:not-drawn "fe-z") (:not-drawn "fe-1a") (:not-drawn "fe-1l"))   ; CHECK-ENGRAVING reports what was not drawn
+
+Skipping an element skips everything it holds, without a signal: refusing the
+VOICE class, the four voices are signalled and none of their 32 events, the
+soprano's 8 lyrics or the 4 fermatas is drawn:
+
+  count => 4
+  (count nil (mapcar (lambda (id) (lookup id-map id)) (map-keys id-map)))
+    => 48   ; 4 voices + 32 events + 8 lyrics + 4 fermatas map to ()
+
+========================================================================
+== 8. Conformance: CHECK-ENGRAVING
+========================================================================
+Engines are tested with conformance checks, not with golden SVG. CHECK-ENGRAVING
+says whether a rendering keeps the protocol's promises: pages numbered 1..n,
+SVG roots in the SVG namespace, valid and unique SVG ids, an id map with every
+expected element and nothing else, references to ids that exist, and systems
+covering every measure once. The null engine's renderings pass:
+
+  (check-engraving *score* *pages* *id-map*) => nil
+  (check-engraving *score* pages id-map) => nil   ; the two-page rendering
+
+Broken outputs, as a faulty engine might return them:
+
+  (issue-list (check-engraving *score* (reverse pages) id-map))
+    => ((:page-number nil :index 0 :number 2) (:systems nil :expected ("m-1" "m-3" "m-4") :actual ("m-4" "m-1" "m-3")))   ; pages out of order
+  (issue-list (check-engraving *score* pages (fset:less id-map note)))
+    => ((:missing-element "e-8"))   ; an element missing from the map
+  (issue-list (check-engraving *score* pages (fset:with id-map "x-1" '((1 . "x-1")))))
+    => ((:unknown-element "x-1"))   ; a key that is no element of the score
+  (issue-list (check-engraving *score* pages (fset:with id-map note '((3 . "g-1")))))
+    => ((:dangling-ref "e-8" :ref (3 . "g-1")))   ; a drawing on a page that does not exist
+
+========================================================================
+== 9. Timemaps: RENDER-TIMEMAP, SCORE-TIMEMAP, CHECK-TIMEMAP
+========================================================================
+A timemap says when each event sounds, for a playback cursor: entries in
+onset order, each with the milliseconds from the start, the ids of the events
+that start and end there, and the tempo in force. It comes from the model
+(positions, durations, tempo marks), not from a layout, so every engine
+reports the same one. RENDER-TIMEMAP unfolds repeats by default. The line at a
+quarter = 96 is 625 ms a quarter; the last chord, at 72, is 833 1/3 ms a
+quarter. Fermatas add no time. Events are shown as part:pitch:
+
+  onset ms          tempo  on                    off
+  0                 q=96   SG4 AD4 TB3 BG2
+  1250              q=96   SG4 AD4 TB3 BB2       SG4 AD4 TB3 BG2
+  1875              q=96   SF#4 AD4 TA3 BD3      SG4 AD4 TB3 BB2
+  2500              q=96   SE4 AB3 TG3 BE3       SF#4 AD4 TA3 BD3
+  3125              q=96   SD4 AB3 TG3 BG2       SE4 AB3 TG3 BE3
+  3750              q=96   SG4 AD4 TG3 BB2       SD4 AB3 TG3 BG2
+  4375              q=96   SA4 AD4 TF#3 BD3      SG4 AD4 TG3 BB2
+  5000              q=72   SB4 AD4 TG3 BG2       SA4 AD4 TF#3 BD3
+  20000/3 (6666.67) q=72                         SB4 AD4 TG3 BG2
+
+  (length timemap) => 9
+  (mapcar #'timemap-entry-onset timemap)
+    => (0 1250 1875 2500 3125 3750 4375 5000 20000/3)   ; exact rationals
+  (timemap-entry-on (first timemap))
+    => ("e-8" "e-r" "e-12" "e-1d")   ; ids, in document order
+  (timemap-entry-off (car (last timemap))) => ("e-m" "e-y" "e-19" "e-1k")
+  (equalp (score-timemap *score*) timemap)
+    => t   ; no repeat: unfolding changes nothing
+  (check-timemap *score* timemap) => nil
+
+The same line with a repeat from the pickup to the final bar, so that it is
+sung twice. With :UNFOLD T (the default) every event appears once per pass,
+under its own id, and the timemap follows the playback order; with :UNFOLD NIL
+it is the score as written:
+
+  (length written) => 9
+  (length unfolded) => 17   ; the end of pass 1 is the start of pass 2: one entry
+  (mapcar (lambda (id) (event-label twice id)) (timemap-entry-off turn))
+    => ("SB4" "AD4" "TG3" "BG2")
+  (mapcar (lambda (id) (event-label twice id)) (timemap-entry-on turn))
+    => ("SG4" "AD4" "TB3" "BG2")
+  (ms-text (timemap-entry-onset turn)) => "20000/3 (6666.67)"
+  (tempo-bpm (timemap-entry-tempo turn))
+    => 96   ; the Moderato again, from the pickup's mark
+  (count-if (lambda (e) (member s1 (timemap-entry-on e) :test #'string=)) unfolded)
+    => 2   ; the soprano's first note, on both passes
+  (ms-text (timemap-entry-onset (car (last unfolded)))) => "40000/3 (13333.33)"
+  (check-timemap twice unfolded) => nil
+  (check-timemap twice written :unfold nil) => nil
+
+CHECK-TIMEMAP on broken timemaps: the written one checked as unfolded, two
+entries swapped, an id that is no timed event:
+
+  (length (check-timemap twice written))
+    => 32   ; every event once where twice is expected
+  (engraving-issue-detail (first (check-timemap twice written)))
+    => (:expected 2 :on 1 :off 1)
+  (mapcar #'engraving-issue-kind
+          (check-timemap *score*
+                         (list* (second timemap) (first timemap) (cddr timemap))))
+    => (:onset-order :off-before-on :off-before-on :off-before-on :off-before-on)
+  (issue-list
+   (check-timemap *score*
+                  (cons
+                   (make-timemap-entry :onset 0 :on
+                                       (append (timemap-entry-on head) (list "P1"))
+                                       :off 'nil :tempo (timemap-entry-tempo head))
+                   (rest timemap))))
+    => ((:unknown-event "P1" :entry 0))   ; a part id among the first notes
+  (funcall 'make-timemap-entry :onset -1 :on 'nil :off 'nil)
+    -> type-error: The value -1 is not of type (or (float 0.0) (rational 0))
+  (score-timemap "a score")
+    -> simple-type-error: The value of engrave-protocol::score is "a score", which is not of type score.
+
+========================================================================
+== 10. PDF: RENDER-PDF and the printer protocol
+========================================================================
+RENDER-PDF renders the SVG pages and hands them to a printer, an object with a
+PRINT-PAGES method; the protocol checks that what comes back is a PDF. EN0
+ships no printer (the browser printer is planned), and *PDF-PRINTER* is NIL.
+Without a printer nothing is rendered: PRINTER-UNAVAILABLE, inside USE-VALUE.
+
+  *pdf-printer* => nil
+  (render-pdf (make-null-engine) *score*)
+    -> printer-unavailable: No PDF printer available (null): no :PRINTER given and *PDF-PRINTER* is NIL
+  (block nil
+    (handler-bind ((printer-unavailable
+                    (lambda (c) (return (and (find-restart 'use-value c) t)))))
+      (render-pdf (make-null-engine) *score*)))
+    => t   ; USE-VALUE is there while the handler runs
+
+A printer that returns something other than a PDF (SVG-TEXT-PRINTER in
+demo.lisp returns the pages' SVG text) is refused with ENGINE-RENDER-ERROR:
+
+  (render-pdf (make-null-engine) *score* :printer (make-instance 'svg-text-printer))
+    -> engine-render-error: Engine null failed: the printer returned no PDF (no (unsigned-byte 8) vector starting with %PDF-)
+  (handler-bind ((printer-unavailable
+                  (lambda (c) (use-value (make-instance 'svg-text-printer) c))))
+    (render-pdf (make-null-engine) *score*))
+    -> engine-render-error: Engine null failed: the printer returned no PDF (no (unsigned-byte 8) vector starting with %PDF-)
+
+========================================================================
+== Summary
+========================================================================
+92 results checked against expected values: 0 mismatched.
+Every section ran to the end.
