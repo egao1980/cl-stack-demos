@@ -17,4 +17,5 @@
            #:demo-image-events-denied
            #:demo-image-job-events
            #:demo-image-events-observe
-           #:demo-image-events-real))
+           #:demo-image-events-real
+           #:demo-reader-conditionals))
