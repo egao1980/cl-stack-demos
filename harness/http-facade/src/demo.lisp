@@ -230,6 +230,162 @@
     (note "  get-async to a closed port => ~A after ~,2F s (typep http:http-error: ~A)"
           (type-of res) secs (typep res 'http:http-error))))
 
+(defparameter +demo-proxy-credentials+ "dXNlcjpzZWNyZXQ="
+  "user:secret in base64: the made-up proxy credentials of demo 4.")
+
+(defun %hex-prefix (octets &optional (n 6))
+  (format nil "~{~2,'0X~^ ~}"
+          (coerce (subseq octets 0 (min n (length octets))) 'list)))
+
+(defun %client-hello-p (octets)
+  (and (>= (length octets) 6)
+       (= #x16 (aref octets 0))
+       (= 3 (aref octets 1))
+       (= 1 (aref octets 5))))
+
+(defun %head-lines (head)
+  (loop with start = 0
+        for end = (search (coerce '(#\Return #\Newline) 'string) head :start2 start)
+        while (and end (> end start))
+        collect (subseq head start end)
+        do (setf start (+ end 2))))
+
+(defun %proxy-auth-line (head)
+  (find-if (lambda (line) (eql 0 (search "proxy-authorization:" (string-downcase line))))
+           (%head-lines head)))
+
+(defparameter *proxy-variables*
+  '("https_proxy" "HTTPS_PROXY" "http_proxy" "HTTP_PROXY"
+    "all_proxy" "ALL_PROXY" "no_proxy" "NO_PROXY"))
+
+(defun %call-with-https-proxy-env (proxy thunk)
+  "Call THUNK with https_proxy=PROXY the only proxy variable set."
+  (let ((saved (mapcar (lambda (name) (cons name (uiop:getenv name))) *proxy-variables*)))
+    (unwind-protect
+        (progn
+          (dolist (name *proxy-variables*)
+            (setf (uiop:getenv name) ""))
+          (setf (uiop:getenv "https_proxy") proxy)
+          (funcall thunk))
+      (dolist (name *proxy-variables*)
+        (setf (uiop:getenv name) ""))
+      (loop for (name . value) in saved
+            when (plusp (length value))
+              do (setf (uiop:getenv name) value)))))
+
+(defun %via-https-proxy (backend url &key verify)
+  "SESSION-GET of URL on BACKEND in a trust-env session, with a fresh
+   loopback https:// proxy named by HTTPS_PROXY. → (values result record seconds)."
+  (multiple-value-bind (port record stop) (start-tls-proxy)
+    (multiple-value-bind (secs res)
+        (%call-with-https-proxy-env
+         (format nil "https://user:secret@127.0.0.1:~D" port)
+         (lambda ()
+           (timed (http:with-session (s :backend backend :verify verify :timeout 10)
+                    (http:session-get s url)))))
+      (funcall stop)
+      (values res record secs))))
+
+(defun %show-proxy-view (record)
+  (cond
+   ((not (pr-connected record))
+    (note "      proxy: no connection, not one octet"))
+   (t
+    (note "      proxy, first octets off the socket: ~A  ~A"
+          (%hex-prefix (pr-raw record))
+          (if (%client-hello-p (pr-raw record))
+              "(TLS handshake record: a ClientHello)"
+              "(not TLS)"))
+    (when (pr-cleartext record)
+      (note "      in cleartext: ~{~A~^ | ~}" (%head-lines (pr-cleartext record))))
+    (when (plusp (length (pr-inside record)))
+      (note "      inside TLS: ~A" (first (%head-lines (pr-inside record))))
+      (note "                  ~A" (or (%proxy-auth-line (pr-inside record))
+                                       "(no Proxy-Authorization)")))
+    (when (and (%client-hello-p (pr-raw record))
+               (zerop (length (or (pr-inside record) ""))))
+      (note "      inside TLS: nothing (the client ended the handshake)"))
+    (when (plusp (length (pr-tunnel record)))
+      (note "      tunnel, first octets: ~A  ~A"
+            (%hex-prefix (pr-tunnel record))
+            (if (%client-hello-p (pr-tunnel record))
+                "(the origin's ClientHello: TLS inside TLS)"
+                "(not TLS)")))
+    (when (pr-origin record)
+      (note "      origin, inside the inner TLS: ~A (Proxy-Authorization ~A)"
+            (first (%head-lines (pr-origin record)))
+            (if (%proxy-auth-line (pr-origin record)) "present" "absent")))
+    (note "      credentials in the octets off the socket: ~A"
+          (if (search +demo-proxy-credentials+
+                      (babel:octets-to-string (pr-raw record) :encoding :latin-1))
+              "YES, in cleartext"
+              "no")))))
+
+(defun %call-trusting-demo-ca (thunk)
+  "THUNK with a TLS context that trusts certs/ca.crt (and only it)."
+  (let ((ctx (cl+ssl:make-context :verify-location (%cert "ca.crt"))))
+    (cl+ssl:with-global-context (ctx :auto-free-p t)
+      (funcall thunk))))
+
+(defun %result-text (res)
+  (if (typep res 'condition)
+      (short res)
+      (format nil "~D ~S" (hp:response-status res) (body-text res))))
+
+(defun demo-4 ()
+  (banner "Demo 4: https:// proxies are reached over TLS (http-protocol#53)")
+  (note "HTTPS_PROXY=https://user:secret@127.0.0.1:P (made-up credentials), read by a trust-env")
+  (note "session. The proxy is a loopback TLS listener (tls-proxy.lisp). It logs the first octets")
+  (note "off the socket and what it reads inside TLS; through CONNECT it is the origin as well.")
+  (note "Before: http-protocol 0.4.4 classed the proxy :http and http-backend-async 0.2.28 sent")
+  (note "the request line and Proxy-Authorization to it in plain TCP (http-backend-async#81).")
+  (let ((*standard-output* (make-broadcast-stream))
+        (*error-output* (make-broadcast-stream)))
+    ;; async offers h2 over ALPN, so its first https request loads
+    ;; http2/client. Load it now, quietly, to keep its compiler output out.
+    (ignore-errors (asdf:load-system "http2/client")))
+  (let ((refusal nil))
+    (dolist (backend '(:async :dexador))
+      (dolist (url '("http://origin.test/demo" "https://origin.test/demo"))
+        (multiple-value-bind (res record secs) (%via-https-proxy backend url)
+          (when (typep res 'hp:proxy-tls-unsupported)
+            (setf refusal res))
+          (note "~%  ~(~8A~) ~26A => ~A (~,2F s)" backend url (%result-text res) secs)
+          (%show-proxy-view record))))
+    (when refusal
+      (note "~%dexador's refusal, in full: ~A" refusal)
+      (note "  typep unsupported-operation: ~A, operation ~S"
+            (typep refusal 'hp:unsupported-operation)
+            (hp:unsupported-operation-operation refusal))
+      ;; Once more, to look at the restart while the condition is live.
+      (let ((report nil))
+        (multiple-value-bind (port record stop) (start-tls-proxy)
+          (declare (ignore record))
+          (%call-with-https-proxy-env
+           (format nil "https://user:secret@127.0.0.1:~D" port)
+           (lambda ()
+             (handler-case
+                 (handler-bind ((hp:proxy-tls-unsupported
+                                 (lambda (c)
+                                   (let ((restart (find-restart 'use-value c)))
+                                     (setf report (and restart (princ-to-string restart)))))))
+                   (http:with-session (s :backend :dexador :timeout 10)
+                     (http:session-get s "https://origin.test/demo")))
+               (error () nil))))
+          (funcall stop))
+        (note "  its USE-VALUE restart: ~A" (or report "none")))))
+  (note "~%The proxy hop uses the session's TLS settings (async, :verify t):")
+  (multiple-value-bind (res record secs)
+      (%call-trusting-demo-ca
+       (lambda () (%via-https-proxy :async "https://origin.test/demo" :verify t)))
+    (note "~%  test CA trusted    https://origin.test/demo => ~A (~,2F s)" (%result-text res) secs)
+    (note "      (the proxy's certificate checked against 127.0.0.1, the origin's against origin.test)")
+    (%show-proxy-view record))
+  (multiple-value-bind (res record secs)
+      (%via-https-proxy :async "https://origin.test/demo" :verify t)
+    (note "~%  CA not trusted     https://origin.test/demo => ~A (~,2F s)" (%result-text res) secs)
+    (%show-proxy-view record)))
+
 (defun run-demos ()
   (setf *maker-at-start* http-backend-async:*event-backend-maker*)
   (note "cl-stack-http ~A, http-protocol ~A, event-protocol ~A, http-backend-dexador ~A, http-backend-async ~A, event-backend-libuv ~A, dexador ~A"
@@ -251,7 +407,7 @@
             (ignore-errors
               (http:with-backend (:dexador) (http:get (url "/warm-up")))))
           (note "(a warm-up request on dexador loaded the optional content-encoding codecs)")
-          (demo-1) (demo-2) (demo-3))
+          (demo-1) (demo-2) (demo-3) (demo-4))
       (funcall stop)))
   (banner "done")
   t)
