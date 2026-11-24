@@ -1,11 +1,13 @@
 (in-package #:harness-demos-music-theory)
 
-;;;; A short tour of music-theory 0.3.0. Sections 1-6 cover slice MT0 (spelled
+;;;; A short tour of music-theory 0.4.0. Sections 1-6 cover slice MT0 (spelled
 ;;;; pitches, the line of fifths and intervals), sections 7-11 slice MT1 (meters,
 ;;;; the metric hierarchy, dots and tuplets, tie splitting, tempo), sections 12-16
 ;;;; slice MT2 (keys and scales, scale degrees, Roman numerals, mixture, a
-;;;; progression). Every result with a known answer is also checked: RUN-DEMOS
-;;;; returns NIL when one differs or a section stops on an error.
+;;;; progression), sections 17-22 slice MT3 (chord symbols: a chart, dialects,
+;;;; Unicode and slash chords, essential tones, transposition, errors). Every
+;;;; result with a known answer is also checked: RUN-DEMOS returns NIL when one
+;;;; differs or a section stops on an error.
 
 ;;; Output and checks ---------------------------------------------------------
 
@@ -54,7 +56,8 @@ Roman numeral after it."
                 (interval (ignore-errors (interval-name value)))
                 (meter (meter-string value))
                 (key (key-name value))
-                (roman-numeral (ignore-errors (roman-name value))))))
+                (roman-numeral (ignore-errors (roman-name value)))
+                (chord-symbol (ignore-errors (print-chord-symbol value))))))
     (if name
         (format nil "~a   ; ~a" (code-text value) name)
         (code-text value))))
@@ -1577,6 +1580,672 @@ on any degree, with any alteration (70)."
           do (out "  ~10a~{~a~^-~}~%  ~10a~a~%" name texts "" line)
              (check line expected (format nil "progression in ~a" name)))))
 
+;;; 17. A lead-sheet chord chart (MT3) ------------------------------------------
+
+(defparameter *degree-fifths*
+  '((2 . 2) (4 . -1) (5 . 1) (6 . 3) (9 . 2) (11 . -1) (13 . 3))
+  "The line-of-fifths offset above the root of the natural interval of each degree
+that an alteration or an added tone can name: M2 +2, P4 -1, P5 +1, M6 +3. A sharp
+adds 7 to the offset, a flat takes 7 away.")
+
+(defun tone-label (chord pair)
+  "The degree of PAIR, one of CHORD's tones, with b or # when CHORD alters that
+tone or adds it altered: 9 for the D of C9, b9 for the Db of C7(b9), #4 for the F#
+of C5(add#4)."
+  (destructuring-bind (degree . pitch-class) pair
+    (let* ((natural (cdr (assoc degree *degree-fifths*)))
+           (alter (and natural
+                       (/ (- (pitch-fifths pitch-class)
+                             (pitch-fifths (chord-symbol-root chord))
+                             natural)
+                          7)))
+           (sign (and alter
+                      (member (cons degree alter)
+                              (append (chord-symbol-alterations chord)
+                                      (chord-symbol-added chord))
+                              :test #'equal)
+                      (case alter (-1 "b") (1 "#")))))
+      (format nil "~@[~a~]~d" sign degree))))
+
+(defun tone-names (pairs &optional (accidentals :ascii))
+  "The pitch classes of the (degree . pitch class) PAIRS, as one string."
+  (format nil "~{~a~^ ~}"
+          (mapcar (lambda (pair) (pitch-class-string (cdr pair) :accidentals accidentals))
+                  pairs)))
+
+(defun tone-degrees (chord pairs)
+  "The degrees of PAIRS, tones of CHORD, as one string (see TONE-LABEL)."
+  (format nil "~{~a~^ ~}" (mapcar (lambda (pair) (tone-label chord pair)) pairs)))
+
+(defun keyword-text (keyword)
+  (if keyword (string-downcase (symbol-name keyword)) "-"))
+
+(defun list-text (items)
+  "ITEMS joined by spaces, or - when there are none."
+  (if items (format nil "~{~a~^ ~}" items) "-"))
+
+(defun alter-text (pair)
+  "A (degree . alter) pair as b9, #11 or 9."
+  (format nil "~a~d" (case (cdr pair) (-1 "b") (1 "#") (t "")) (car pair)))
+
+(defun dash (text)
+  (if (string= text "") "-" text))
+
+(defun print-wrapped (label items &key (width 84))
+  "Print LABEL and then ITEMS separated by spaces, wrapped at WIDTH columns, the
+continuation lines indented under the first item."
+  (let ((column 11))
+    (format t "  ~9a" label)
+    (loop for item in items
+          for first = t then nil
+          for length = (length item)
+          do (cond (first)
+                   ((> (+ column 1 length) width)
+                    (format t "~%~11@a" "")
+                    (setf column 11))
+                   (t (write-char #\Space) (incf column)))
+             (write-string item)
+             (incf column length))
+    (terpri)))
+
+(defun quoted-empty (text)
+  (if (string= text "") "\"\"" text))
+
+(defun chord-slots (chord)
+  "The slots of CHORD that a print and parse round trip keeps: all but TEXT and DIALECT."
+  (list (chord-symbol-root chord) (chord-symbol-quality chord)
+        (chord-symbol-extensions chord) (chord-symbol-alterations chord)
+        (chord-symbol-suspension chord) (chord-symbol-added chord)
+        (chord-symbol-omitted chord) (chord-symbol-bass chord)
+        (chord-symbol-no-chord-p chord)))
+
+(defun same-chord-p (a b)
+  "True when the chord symbols A and B are equal in every slot but TEXT and DIALECT."
+  (equalp (chord-slots a) (chord-slots b)))
+
+(defun pretty-text (object)
+  "OBJECT pretty-printed as it reads in this package, at most 78 columns wide."
+  (let ((*package* (find-package '#:harness-demos-music-theory))
+        (*print-case* :downcase)
+        (*print-pretty* t)
+        (*print-right-margin* 78))
+    (prin1-to-string object)))
+
+(defparameter *chart* "| C  Am7 | Dm7  G7 | Cmaj7  A7b9 | D9sus4  G13 | C6/9  N.C. |")
+
+(defun chart-bars (chart)
+  "The bars of a one-line CHART, each a list of the symbol texts in it: the text
+between bar lines, split at spaces."
+  (loop for bar in (uiop:split-string chart :separator "|")
+        for texts = (remove "" (uiop:split-string bar :separator " ") :test #'string=)
+        when texts collect texts))
+
+(defparameter *chart-rows*
+  ;; (text degrees tones printed)
+  '(("C" "1 3 5" "C E G" "C")
+    ("Am7" "1 3 5 7" "A C E G" "Am7")
+    ("Dm7" "1 3 5 7" "D F A C" "Dm7")
+    ("G7" "1 3 5 7" "G B D F" "G7")
+    ("Cmaj7" "1 3 5 7" "C E G B" "Cmaj7")
+    ("A7b9" "1 3 5 7 b9" "A C# E G Bb" "A7(b9)")
+    ("D9sus4" "1 4 5 7 9" "D G A C E" "D9sus4")
+    ("G13" "1 3 5 7 9 11 13" "G B D F A C E" "G13")
+    ("C6/9" "1 3 5 6 9" "C E G A D" "C6/9")
+    ("N.C." "" "" "N.C.")))
+
+(defun demo-chart ()
+  (para "A CHORD-SYMBOL is the value behind lead-sheet text such as Cmaj7 or G7/B: ROOT,"
+        "QUALITY (one of 15 keywords), EXTENSIONS (9, 11, 13), ALTERATIONS and ADDED as"
+        "(degree . alter) pairs, SUSPENSION 2 or 4, OMITTED degrees, BASS, and NO-CHORD-P"
+        "for N.C. PARSE-CHORD-SYMBOL reads text with a closed grammar (the EBNF is in the"
+        "header of src/chord-symbol.lisp) by longest match, without backtracking or"
+        "regular expressions. PRINT-CHORD-SYMBOL writes the canonical text. TEXT keeps"
+        "the input as written and DIALECT the dialect it was read in, :POP by default.")
+  (let ((chord (parse-chord-symbol "A7b9")))
+    (format t "  (parse-chord-symbol \"A7b9\")~%    => ~a~%" (indent (pretty-text chord) 7))
+    (check (chord-slots chord)
+           (list (parse-pitch-class "A") :dominant-7 '() '((9 . -1)) nil '() '() nil nil)
+           "A7b9 slots"))
+  (show (print-chord-symbol (parse-chord-symbol "A7b9")) "A7(b9)")
+  (show (chord-symbol-text (parse-chord-symbol "A7b9")) "A7b9")
+  (terpri)
+  (para "A chart on one line, split at the bar lines and the spaces, with every symbol"
+        "parsed. A seventh word gives its quality, and its number the extensions: 9 is"
+        "(9), 13 is (9 11 13).")
+  (format t "  ~a~%~%" *chart*)
+  (let ((bars (chart-bars *chart*)))
+    (format t "  ~5a~9a~6a~13a~12a~13a~12a~a~%"
+            "bar" "text" "root" "quality" "extensions" "alterations" "suspension" "added")
+    (loop for texts in bars
+          for bar from 1
+          do (dolist (text texts)
+               (let ((c (parse-chord-symbol text)))
+                 (if (chord-symbol-no-chord-p c)
+                     (out "  ~5a~9a~a~%" bar text "no chord: NO-CHORD-P is T, the other slots empty")
+                     (out "  ~5a~9a~6a~13a~12a~13a~12a~a~%" bar text
+                          (pitch-class-string (chord-symbol-root c))
+                          (keyword-text (chord-symbol-quality c))
+                          (list-text (chord-symbol-extensions c))
+                          (list-text (mapcar #'alter-text (chord-symbol-alterations c)))
+                          (or (chord-symbol-suspension c) "-")
+                          (list-text (mapcar #'alter-text (chord-symbol-added c))))))))
+    (check bars '(("C" "Am7") ("Dm7" "G7") ("Cmaj7" "A7b9") ("D9sus4" "G13") ("C6/9" "N.C."))
+           "chart bars")
+    (terpri)
+    (para "CHORD-TONES realises a chord: its tones as (degree . PITCH-CLASS-NAME) pairs,"
+          "spelled exactly, ascending by degree. Below, each list is written as its degrees"
+          "(b9 for a flat ninth) and its names. A suspension replaces the 3 (D9sus4 has G,"
+          "not F#), the 6/9 chord is the sixth chord with an added 9, and G13 lists its 11"
+          "as MusicXML's dominant 13th does (section 20 shows which tones to keep). N.C."
+          "has no tones.")
+    (format t "  ~9a~18a~16a~a~%" "text" "degrees" "tones" "PRINT-CHORD-SYMBOL")
+    (let ((rows (loop for text in (reduce #'append bars)
+                      for c = (parse-chord-symbol text)
+                      for tones = (chord-tones c)
+                      collect (list text (tone-degrees c tones) (tone-names tones)
+                                    (print-chord-symbol c)))))
+      (loop for (text degrees tones printed) in rows
+            do (out "  ~9a~18a~16a~a~%" text (dash degrees) (dash tones) printed))
+      (check rows *chart-rows* "chart tones"))))
+
+;;; 18. Dialects ------------------------------------------------------------------
+
+(defparameter *dialects* '(:classical :pop :jazz))
+
+(defparameter *dialect-readings*
+  ;; (text quality-in-classical quality-in-pop quality-in-jazz)
+  '(("Cdim" :diminished :diminished-7 :diminished-7)
+    ("C°" :diminished :diminished-7 :diminished-7)
+    ("C-7" :minor-7 :minor-7 :minor-7)
+    ("CΔ7" :major-7 :major-7 :major-7)
+    ("Cø" :half-diminished-7 :half-diminished-7 :half-diminished-7)
+    ("C7alt" :dominant-7 :dominant-7 :dominant-7)
+    ("C+" :augmented :augmented :augmented)))
+
+(defparameter *dialect-prints*
+  ;; (tones classical pop jazz), one row per distinct value read above
+  '(("C Eb Gb" "C°" "Cm(b5)" "C-(b5)")
+    ("C Eb Gb Bbb" "C°7" "Cdim7" "C°7")
+    ("C Eb G Bb" "Cm7" "Cm7" "C-7")
+    ("C E G B" "CM7" "Cmaj7" "CΔ7")
+    ("C Eb Gb Bb" "Cø7" "Cm7(b5)" "Cø7")
+    ("C E Bb Db D# F# Ab" "C7(b9,#9,#11,b13,omit5)" "C7(b9,#9,#11,b13,omit5)" "C7alt")
+    ("C E G#" "C+" "C+" "C+")))
+
+(defparameter *sweep-roots* '("C" "F#" "Bb"))
+
+(defparameter *sweep-words*
+  '("" "m" "-" "dim" "o" "°" "aug" "+" "5" "6" "m6" "-6" "6/9" "m6/9" "-6/9"
+    "7" "maj7" "M7" "Δ7" "Δ" "m7" "-7" "mM7" "mmaj7" "-Δ7" "m(maj7)" "ø" "ø7"
+    "dim7" "°7" "+7" "+M7" "+Δ" "9" "maj9" "m9" "-9" "mmaj9" "ø9" "°9" "+9"
+    "11" "maj11" "m11" "ø11" "13" "maj13" "m13" "-13" "ø13" "+13")
+  "Quality words for the round-trip sweep, some from each kind of row of the grammar.")
+
+(defparameter *sweep-endings*
+  '("" "(b5)" "(#5)" "(b9)" "(#9)" "(#11)" "(b13)" "(b9,#9)" "(b5,#5)" "alt"
+    "(add9)" "(add2)" "(add4)" "(add6)" "(addb6)" "(add#4)" "(add11)" "(add13)"
+    "(omit3)" "(omit5)" "(omit9)" "(omit11)" "sus4" "sus2" "sus4(b9)" "sus2(add6)"
+    "(b9,omit5)" "(#11,omit3)" "(#5,add9)" "(add9,omit5)" "/E" "/F#" "(b9)/Ab")
+  "What follows the quality word in the round-trip sweep.")
+
+(defun issue-10-p (chord printed)
+  "True for the shape of egao1980/music-theory#10: CHORD omits its 5, and PRINTED
+writes a b5 next to the omit5."
+  (and (member 5 (chord-symbol-omitted chord))
+       (or (search "b5" printed) (search "♭5" printed))
+       t))
+
+(defun round-trip-sweep ()
+  "Parse root + word + ending for every entry of the sweep tables in each dialect,
+then print every distinct value in each dialect and style and read it back. Returns
+(values texts rejected distinct trips held known others): KNOWN and OTHERS are the
+printed texts that failed, of the shape of music-theory#10 or not."
+  (let ((values (make-hash-table :test 'equalp))
+        (texts 0) (rejected 0) (trips 0) (held 0) (known '()) (others '()))
+    (dolist (root *sweep-roots*)
+      (dolist (word *sweep-words*)
+        (dolist (ending *sweep-endings*)
+          (dolist (dialect *dialects*)
+            (let ((text (concatenate 'string root word ending)))
+              (incf texts)
+              (handler-case (let ((c (parse-chord-symbol text :dialect dialect)))
+                              (setf (gethash (chord-slots c) values) c))
+                ((or chord-symbol-parse-error unknown-chord-quality) () (incf rejected))))))))
+    (loop for c being the hash-values of values
+          do (dolist (dialect *dialects*)
+               (dolist (style '(:ascii :unicode))
+                 (incf trips)
+                 (let* ((printed (print-chord-symbol c :dialect dialect :accidentals style))
+                        (back (handler-case (parse-chord-symbol printed :dialect dialect)
+                                (chord-symbol-parse-error () nil))))
+                   (cond ((and back (same-chord-p back c)
+                               (string= printed (print-chord-symbol back :dialect dialect
+                                                                         :accidentals style)))
+                          (incf held))
+                         ((issue-10-p c printed) (push printed known))
+                         (t (push printed others)))))))
+    (values texts rejected (hash-table-count values) trips held
+            (sort known #'string<) (sort others #'string<))))
+
+(defun demo-dialects ()
+  (para "PARSE-CHORD-SYMBOL takes :DIALECT :CLASSICAL, :POP (the default) or :JAZZ. All"
+        "three read the same grammar, and differ in one place only: dim, o and ° alone"
+        "are the diminished triad in :CLASSICAL and the diminished seventh in :POP and"
+        ":JAZZ. Cdim7, Co7 and C°7 are the seventh in all three. The other signs mean the"
+        "same everywhere: - minor, Δ major seventh, ø half-diminished seventh (m7b5),"
+        "+ augmented, and 7alt the altered dominant (b9 #9 #11 b13, no 5). The quality"
+        "each text reads as:")
+  (format t "  ~8a~20a~20a~a~%" "text" ":classical" ":pop" ":jazz")
+  (let ((values '()))
+    (let ((rows (loop for (text) in *dialect-readings*
+                      collect (cons text
+                                    (loop for dialect in *dialects*
+                                          for c = (parse-chord-symbol text :dialect dialect)
+                                          do (pushnew c values :test #'same-chord-p)
+                                          collect (chord-symbol-quality c))))))
+      (dolist (row rows)
+        (out "  ~8a~{~20a~}~%" (first row) (mapcar #'keyword-text (rest row))))
+      (check rows *dialect-readings* "qualities read in each dialect"))
+    (terpri)
+    (para "Printing is where the dialects differ most. PRINT-CHORD-SYMBOL writes each value"
+          "read above in each dialect's words: :CLASSICAL ° ø + and M, :POP plain text"
+          "(m(b5), m7(b5), dim7, maj), :JAZZ - Δ ø °, with 7alt for the altered dominant."
+          "Only a dialect with a word for a chord prints it; otherwise the tones go in the"
+          "group:")
+    (format t "  ~20a~25a~25a~a~%" "tones" ":classical" ":pop" ":jazz")
+    (let ((rows (loop for c in (reverse values)
+                      collect (cons (tone-names (chord-tones c))
+                                    (mapcar (lambda (dialect)
+                                              (print-chord-symbol c :dialect dialect))
+                                            *dialects*)))))
+      (dolist (row rows)
+        (out "  ~20a~{~25a~}~%" (first row) (rest row)))
+      (check rows *dialect-prints* "printed in each dialect")))
+  (terpri)
+  (para "Printed text reads back. The library promises that for every well-formed chord,"
+        "dialect and accidental style, parsing the printed text in that dialect gives the"
+        "same value, and printing that again the same text. A sweep: every root, quality"
+        "word and ending below, read in each dialect, then each distinct value printed and"
+        "read back in each dialect and style.")
+  (print-wrapped "roots" *sweep-roots*)
+  (print-wrapped "words" (mapcar #'quoted-empty *sweep-words*))
+  (print-wrapped "endings" (mapcar #'quoted-empty *sweep-endings*))
+  (terpri)
+  (multiple-value-bind (texts rejected distinct trips held known others) (round-trip-sweep)
+    (format t "  ~:d texts, ~:d of them rejected (outside the grammar, or against R1-R6)~%" texts rejected)
+    (format t "  ~:d distinct values, ~:d round trips (3 dialects x 2 styles each):~%" distinct trips)
+    (format t "    ~:d give the same value back, and the same text when printed again~%" held)
+    (format t "    ~:d fail, all of the shape of music-theory#10 (below)~%" (length known))
+    (format t "    ~:d fail in any other way~%~%" (length others))
+    (when others
+      (format t "  !! other failures: ~{~a~^ ~}~%" (subseq others 0 (min 10 (length others)))))
+    (check others '() "round trips not of the shape of #10")
+    (check (+ held (length known)) trips "round trips counted")
+    (para "Known issue, egao1980/music-theory#10 (open): a diminished triad or a"
+          "half-diminished seventh without its 5 prints in :POP (the triad in :JAZZ too)"
+          "as the minor chord with b5 and omit5, and rule R5 then rejects an omitted 5 that"
+          "is also altered. Half of the failures are ASCII texts and half the same texts"
+          "in Unicode. The ASCII ones with the root C, then the example from the issue:")
+    (let ((ascii (remove-duplicates (remove-if (lambda (s) (find #\♭ s)) known) :test #'string=)))
+      (format t "  ~d ASCII, ~d Unicode~%" (length ascii) (- (length known) (length ascii)))
+      (print-wrapped "root C" (remove-if-not (lambda (s) (member (char s 1) '(#\m #\-))) ascii))
+      (terpri)))
+  (show (print-chord-symbol (parse-chord-symbol "C°(omit5)" :dialect :classical) :dialect :pop)
+        "Cm(b5,omit5)")
+  (show-signal (parse-chord-symbol "Cm(b5,omit5)") :checked nil))
+
+;;; 19. Unicode and ASCII, slash chords ---------------------------------------------
+
+(defparameter *style-rows*
+  ;; (ascii unicode printed-ascii printed-unicode)
+  '(("F#m7b5" "F♯m7♭5" "F#m7(b5)" "F♯m7(♭5)")
+    ("Bb7#9" "B♭7♯9" "Bb7(#9)" "B♭7(♯9)")
+    ("Gb13#11" "G♭13♯11" "Gb13(#11)" "G♭13(♯11)")
+    ("Ebbmaj7" "E𝄫maj7" "Ebbmaj7" "E𝄫maj7")
+    ("Fxm" "F𝄪m" "F##m" "F𝄪m")
+    ("Db/Ab" "D♭/A♭" "Db/Ab" "D♭/A♭")))
+
+(defparameter *slash-rows*
+  ;; (text bass bass-degree tones printed)
+  '(("G7/B" "B" "3" "G B D F" "G7/B")
+    ("Dm7/C" "C" "7" "D F A C" "Dm7/C")
+    ("C6/9/E" "E" "3" "C E G A D" "C6/9/E")
+    ("G7(b9)/F" "F" "7" "G B D F Ab" "G7(b9)/F")
+    ("Cmaj7/B" "B" "7" "C E G B" "Cmaj7/B")
+    ("C/F#" "F#" "-" "C E G" "C/F#")
+    ("C/F♯" "F#" "-" "C E G" "C/F#")
+    ("Ab/Bb" "Bb" "-" "Ab C Eb" "Ab/Bb")
+    ("D/C" "C" "-" "D F# A" "D/C")))
+
+(defun demo-styles ()
+  (para "Accidentals are ASCII (b # bb ## x) or Unicode (♭ ♯ 𝄫 𝄪), in the root, the bass"
+        "and the modifiers alike, and both spellings read as the same value. In a"
+        "modifier - is a flat and + a sharp (C7-9, C7+5); right after the root letter -"
+        "is minor. PRINT-CHORD-SYMBOL prints :ASCII by default or :UNICODE; the style"
+        "spells the root, the bass and the group, while the dialect's words stay fixed,"
+        "so :JAZZ prints ø either way. SAME-CHORD-P (this demo) compares every slot but"
+        "TEXT and DIALECT.")
+  (show (same-chord-p (parse-chord-symbol "F♯m7♭5") (parse-chord-symbol "F#m7b5")) t)
+  (show (chord-symbol-quality (parse-chord-symbol "F♯m7♭5")) :half-diminished-7
+        "m7 with b5 folds into ø7")
+  (show (print-chord-symbol (parse-chord-symbol "F♯m7♭5")) "F#m7(b5)")
+  (show (print-chord-symbol (parse-chord-symbol "F#m7b5") :accidentals :unicode) "F♯m7(♭5)")
+  (show (print-chord-symbol (parse-chord-symbol "F#m7b5") :dialect :jazz) "F#ø7")
+  (show (print-chord-symbol (parse-chord-symbol "F#m7b5") :dialect :jazz :accidentals :unicode)
+        "F♯ø7")
+  (show (print-chord-symbol (parse-chord-symbol "C7-9")) "C7(b9)")
+  (show (print-chord-symbol (parse-chord-symbol "C7+5")) "C+7" "C7 with #5 folds into C+7")
+  (show (chord-symbol-quality (parse-chord-symbol "C-7")) :minor-7)
+  (terpri)
+  (format t "  ~10a~12a~7a~12a~a~%" "ASCII" "Unicode" "same" ":ascii" ":unicode")
+  (let* ((same 0)
+         (rows (loop for (ascii unicode) in *style-rows*
+                     for a = (parse-chord-symbol ascii)
+                     for u = (parse-chord-symbol unicode)
+                     for row = (list ascii unicode (print-chord-symbol u)
+                                     (print-chord-symbol a :accidentals :unicode))
+                     do (when (same-chord-p a u) (incf same))
+                        (out "  ~10a~12a~7a~12a~a~%" ascii unicode
+                             (if (same-chord-p a u) "yes" "no") (third row) (fourth row))
+                     collect row)))
+    (check rows *style-rows* "ASCII and Unicode printing")
+    (check same (length *style-rows*) "ASCII and Unicode read as one value"))
+  (terpri)
+  (para "A slash gives the bass. It can be a chord tone (G7/B has the 3 in the bass, the"
+        "first inversion) or not (C/F#, a C triad over F#). CHORD-TONES lists the chord's"
+        "own tones, so the bass is among them only when it is a chord tone anyway; it is"
+        "always (CHORD-SYMBOL-BASS c). 6/9 is one word, so C6/9/E is the 6/9 chord over E.")
+  (format t "  ~11a~6a~10a~14a~a~%" "text" "bass" "in chord" "tones" "printed")
+  (let ((rows (loop for (text) in *slash-rows*
+                    for c = (parse-chord-symbol text)
+                    for tones = (chord-tones c)
+                    for bass = (chord-symbol-bass c)
+                    for tone = (find bass tones :key #'cdr :test #'equalp)
+                    collect (list text (pitch-class-string bass)
+                                  (if tone (tone-label c tone) "-")
+                                  (tone-names tones) (print-chord-symbol c)))))
+    (loop for (text bass degree tones printed) in rows
+          do (out "  ~11a~6a~10a~14a~a~%" text bass degree tones printed))
+    (check rows *slash-rows* "slash chords"))
+  (show (print-chord-symbol (parse-chord-symbol "C/F#") :accidentals :unicode) "C/F♯"))
+
+;;; 20. Essential tones -------------------------------------------------------------
+
+(defparameter *essential-rows*
+  ;; (text all-degrees all-tones n3-degrees n3-tones n4-degrees n4-tones)
+  '(("G13" "1 3 5 7 9 11 13" "G B D F A C E" "3 7 13" "B F E" "3 7 13 1" "B F E G")
+    ("C7#9" "1 3 5 7 #9" "C E G Bb D#" "3 7 #9" "E Bb D#" "3 7 #9 1" "E Bb D# C")
+    ("Fm11" "1 3 5 7 9 11" "F Ab C Eb G Bb" "3 7 11" "Ab Eb Bb" "3 7 11 1" "Ab Eb Bb F")
+    ("Bø7" "1 3 5 7" "B D F A" "3 7 5" "D A F" "3 7 5 1" "D A F B")))
+
+(defparameter *priority-rows*
+  ;; (text priority-order left-out)
+  '(("C" "1 3 5" "-")
+    ("Cadd9" "1 3 9 5" "-")
+    ("C6" "3 6 1 5" "-")
+    ("C7" "3 7 1 5" "-")
+    ("C7sus4" "4 7 1 5" "-")
+    ("C7(omit3)" "7 1 5" "-")
+    ("C9" "3 7 9 1 5" "-")
+    ("C11" "11 7 1 9 5" "3")
+    ("C13" "3 7 13 1 9 5" "11")
+    ("C13(#11)" "3 7 13 #11 1 9 5" "-")
+    ("C13(b9)" "3 7 13 b9 1 5" "11")
+    ("C7alt" "3 7 b9 #9 #11 b13 1" "-")
+    ("Cm11" "3 7 11 1 9 5" "-")
+    ("C°7" "3 7 5 1" "-")
+    ("C+7" "3 7 5 1" "-")))
+
+(defun demo-essential ()
+  (para "Fewer voices than chord tones: CHORD-ESSENTIAL-TONES chord n returns at most N of"
+        "the chord's tones, the most important first, which is what a three-voice choir or"
+        "a guitar trio would keep. The third and the seventh come first (they give the"
+        "quality), then the top extension, a fifth the quality alters (the b5 of Bø7),"
+        "the altered and added tones, the root, the lower extensions, and a perfect fifth"
+        "last. Each chord below as all its tones, then n = 3 and n = 4, as degrees and"
+        "names:")
+  (format t "  ~8a~20a~13a~a~%" "chord" "all tones" "n = 3" "n = 4")
+  (let ((rows (loop for (text) in *essential-rows*
+                    for c = (parse-chord-symbol text)
+                    for all = (chord-tones c)
+                    for three = (chord-essential-tones c 3)
+                    for four = (chord-essential-tones c 4)
+                    collect (list text (tone-degrees c all) (tone-names all)
+                                  (tone-degrees c three) (tone-names three)
+                                  (tone-degrees c four) (tone-names four)))))
+    (loop for (text d-all n-all d3 n3 d4 n4) in rows
+          do (out "  ~8a~20a~13a~a~%  ~8a~20a~13a~a~%" text d-all d3 d4 "" n-all n3 n4))
+    (check rows *essential-rows* "essential tones, n = 3 and 4"))
+  (terpri)
+  (para "G13 keeps B F E: the 13 outranks the root, and the 5, 9 and 11 go first. Bø7"
+        "keeps its b5 (F) over its root, because the b5 is what makes it half-diminished."
+        "The whole order comes from a table keyed by quality and extensions, changed by"
+        "the chord: a suspension takes the 3's place, omitted tones leave, and the"
+        "altered and added tones go where the table says. The order with N large, and"
+        "the tones it never lists (the 11 of a dominant 13th, the 3 of an eleventh"
+        "chord with a major third):")
+  (format t "  ~11a~22a~a~%" "chord" "priority order" "left out")
+  (let ((rows (loop for (text) in *priority-rows*
+                    for c = (parse-chord-symbol text)
+                    for all = (chord-tones c)
+                    for order = (chord-essential-tones c 99)
+                    collect (list text (tone-degrees c order)
+                                  (dash (tone-degrees c (remove-if (lambda (pair)
+                                                                     (member pair order :test #'equalp))
+                                                                   all)))))))
+    (loop for (text order left-out) in rows
+          do (out "  ~11a~22a~a~%" text order left-out))
+    (check rows *priority-rows* "priority orders"))
+  (show (tone-names (chord-essential-tones (parse-chord-symbol "C7alt") 4)) "E Bb Db D#")
+  (show (chord-essential-tones (parse-chord-symbol "C7") 0) nil)
+  (show (chord-essential-tones (parse-chord-symbol "N.C.") 3) nil))
+
+;;; 21. Transposing chord symbols ---------------------------------------------------
+
+(defparameter *eb-progression*
+  '("Ebmaj7" "Cm7" "Fm7" "Bb7/D" "Gm7" "C7b9" "Fm7/Ab" "Bb13" "Eb6/9"))
+
+(defparameter *transposed-rows*
+  ;; (Eb major, up M2, from Eb major to E major, up m2)
+  '(("Ebmaj7" "Fmaj7" "Emaj7" "Fbmaj7")
+    ("Cm7" "Dm7" "C#m7" "Dbm7")
+    ("Fm7" "Gm7" "F#m7" "Gbm7")
+    ("Bb7/D" "C7/E" "B7/D#" "Cb7/Eb")
+    ("Gm7" "Am7" "G#m7" "Abm7")
+    ("C7(b9)" "D7(b9)" "C#7(b9)" "Db7(b9)")
+    ("Fm7/Ab" "Gm7/Bb" "F#m7/A" "Gbm7/Bbb")
+    ("Bb13" "C13" "B13" "Cb13")
+    ("Eb6/9" "F6/9" "E6/9" "Fb6/9")))
+
+(defun demo-transposition ()
+  (para "TRANSPOSE-CHORD-SYMBOL moves ROOT and BASS and keeps every other slot: quality,"
+        "extensions and alterations go along unchanged, and TEXT becomes NIL. The second"
+        "argument is an INTERVAL, or a list of two KEYs. An interval moves a pitch a fixed"
+        "distance on the line of fifths (M2 +2, m2 -5, A1 +7); a pair of keys moves it"
+        "from the first tonic to the second, so the spelling follows the target key. A"
+        "progression in Eb major, up a M2, from Eb major to E major, and up a m2 for"
+        "comparison (the same sounds as E major, spelled from Fb):")
+  (let* ((chords (mapcar #'parse-chord-symbol *eb-progression*))
+         (up (parse-interval "M2"))
+         (keys (list (parse-key "Eb major") (parse-key "E major")))
+         (rows (loop for c in chords
+                     collect (list (print-chord-symbol c)
+                                   (print-chord-symbol (transpose-chord-symbol c up))
+                                   (print-chord-symbol (transpose-chord-symbol c keys))
+                                   (print-chord-symbol
+                                    (transpose-chord-symbol c (parse-interval "m2")))))))
+    (format t "  ~12a~12a~16a~a~%" "Eb major" "up M2" "Eb to E major" "up m2")
+    (loop for (from by-m2 by-key by-minor) in rows
+          do (out "  ~12a~12a~16a~a~%" from by-m2 by-key by-minor))
+    (check rows *transposed-rows* "progression transposed")
+    (terpri)
+    (para "The tones follow the root, because they are spelled from it:")
+    (show (tone-names (chord-tones (parse-chord-symbol "C7b9"))) "C E G Bb Db")
+    (show (tone-names (chord-tones (transpose-chord-symbol (parse-chord-symbol "C7b9")
+                                                           (list (parse-key "Eb major")
+                                                                 (parse-key "E major")))))
+          "C# E# G# B D")
+    (show (chord-symbol-text (transpose-chord-symbol (parse-chord-symbol "Bb7/D")
+                                                     (parse-interval "M2")))
+          nil)
+    (show (print-chord-symbol (transpose-chord-symbol (parse-chord-symbol "G7/B")
+                                                      (reverse-interval (parse-interval "M2"))))
+          "F7/A")
+    (show (print-chord-symbol (transpose-chord-symbol (parse-chord-symbol "G7/B")
+                                                      (parse-interval "A1")))
+          "G#7/B#")
+    (show (print-chord-symbol (transpose-chord-symbol (parse-chord-symbol "G7/B")
+                                                      (list (parse-key "C") (parse-key "Db"))))
+          "Ab7/C")
+    (show (chord-symbol-no-chord-p (transpose-chord-symbol (parse-chord-symbol "N.C.")
+                                                           (parse-interval "M2")))
+          t)
+    (terpri)
+    (para "The progression in every major key, by key. Transposing back to Eb major gives"
+          "each chord back, and every tone of each chord moves by the same distance on"
+          "the line of fifths as the tonic:")
+    (let ((back 0) (moved 0) (total 0)
+          (home (first keys)))
+      (dolist (key (remove :minor (thirty-keys) :key #'key-mode))
+        (let* ((pair (list home key))
+               (shift (- (pitch-fifths (key-tonic key)) (pitch-fifths (key-tonic home))))
+               (there (mapcar (lambda (c) (transpose-chord-symbol c pair)) chords)))
+          (out "  ~10a~{~a~^ ~}~%" (key-name key) (mapcar #'print-chord-symbol there))
+          (loop for c in chords
+                for moved-chord in there
+                do (incf total)
+                   (when (same-chord-p c (transpose-chord-symbol moved-chord (list key home)))
+                     (incf back))
+                   (when (equal (mapcar (lambda (a b)
+                                          (cons (car b) (- (pitch-fifths (cdr b))
+                                                           (pitch-fifths (cdr a)))))
+                                        (chord-tones c) (chord-tones moved-chord))
+                                (mapcar (lambda (a) (cons (car a) shift)) (chord-tones c)))
+                     (incf moved)))))
+      (format t "~%  ~d chords: ~d come back to Eb major, ~d have every tone moved by the shift~%"
+              total back moved)
+      (check (list back moved) (list total total) "progression in 15 keys")
+      (check total 135 "chords in 15 keys"))
+    (let ((down (reverse-interval up)))
+      (check (every (lambda (c) (same-chord-p c (transpose-chord-symbol
+                                                  (transpose-chord-symbol c up) down)))
+                    chords)
+             t "up M2 and down again"))))
+
+;;; 22. Errors and restarts -----------------------------------------------------------
+
+(defparameter *error-rows*
+  ;; (text position)
+  '(("Cmaj8" 4) ("Hm7" 0) ("c7" 0) ("C7b95" 2) ("C7 b9" 3) ("C7(b9" 5) ("C/E7" 3)
+    ("Cm7sus4" 3) ("C+(b5)" 3) ("C7(b9,b9)" 6) ("C9(add9)" 3) ("C7(b5,omit5)" 6)
+    ("C7b9alt" 4)))
+
+(defparameter *bad-chart* "| C  Cmaj8 | Am7  Hm7 | Dm7  G7(b9 | Cmaj7  H7 |")
+
+(defun parse-chart (chart)
+  "Every symbol of CHART parsed, bar by bar; NIL for a symbol a handler skipped."
+  (mapcar (lambda (texts) (mapcar #'parse-chord-symbol texts)) (chart-bars chart)))
+
+(defun chart-text (bars)
+  "BARS of parsed symbols printed as a chart, with ? for a skipped symbol."
+  (format nil "| ~{~{~a~^  ~}~^ | ~} |"
+          (mapcar (lambda (bar) (mapcar (lambda (c) (if c (print-chord-symbol c) "?")) bar))
+                  bars)))
+
+(defun demo-chord-errors ()
+  (para "Text outside the grammar, or an item that breaks one of the rules R1-R6 (one"
+        "suspension, on a major third; a 5 altered only where the fifth is perfect; no"
+        "repeated alteration; no added tone already in the chord; an omitted tone must be"
+        "a natural chord tone; alt only on a plain dominant seventh), signals"
+        "CHORD-SYMBOL-PARSE-ERROR, a MUSIC-THEORY-ERROR. POSITION is the index of the"
+        "first character the parser could not accept and EXPECTED names what it could"
+        "have taken there:")
+  (show-signal (parse-chord-symbol "Cmaj8"))
+  (show-signal (parse-chord-symbol "Hm7"))
+  (show (handler-case (parse-chord-symbol "Cmaj8")
+          (chord-symbol-parse-error (c)
+            (list (chord-symbol-parse-error-position c) (chord-symbol-parse-error-expected c))))
+        '(4 "a modifier, \"(\", \"/\" or the end of the symbol"))
+  (terpri)
+  (para "Cmaj8 reads C and the word maj, and fails at the 8: no seventh word ends in 8."
+        "H, the German B, is not a root letter, and neither is a lower-case c. Others,"
+        "with a caret under the position:")
+  (let ((positions
+          (loop for (text) in *error-rows*
+                collect (handler-case (progn (parse-chord-symbol text) :returned)
+                          (chord-symbol-parse-error (c)
+                            (let ((position (chord-symbol-parse-error-position c)))
+                              (out "  ~a~%  ~a^ ~d: ~a~@[ (~a)~]~%" text
+                                   (make-string position :initial-element #\Space) position
+                                   (chord-symbol-parse-error-expected c)
+                                   (music-theory-error-reason c))
+                              position))))))
+    (check (mapcar #'list (mapcar #'first *error-rows*) positions) *error-rows* "error positions"))
+  (terpri)
+  (para "The error is signalled inside two restarts: USE-VALUE, whose value"
+        "PARSE-CHORD-SYMBOL returns, and SKIP-CHORD-SYMBOL, which makes it return NIL:")
+  (block restarts
+    (handler-bind ((chord-symbol-parse-error
+                     (lambda (c)
+                       (format t "  the restarts of ~s: ~{~(~a~)~^, ~}~%~%"
+                               (music-theory-error-text c)
+                               (mapcar #'restart-name (subseq (compute-restarts c) 0 2)))
+                       (return-from restarts))))
+      (parse-chord-symbol "Hm7")))
+  (para "A chart with bad symbols, read by one handler that logs each error and skips the"
+        "symbol, so the rest of the chart still comes through:")
+  (format t "  ~a~%" *bad-chart*)
+  (let* ((log '())
+         (bars (handler-bind ((chord-symbol-parse-error
+                                (lambda (c)
+                                  (push (format nil "~s at ~d" (music-theory-error-text c)
+                                                (chord-symbol-parse-error-position c))
+                                        log)
+                                  (skip-chord-symbol c))))
+                 (parse-chart *bad-chart*))))
+    (format t "  skipped ~{~a~^, ~}~%  => ~a~%~%" (reverse log) (chart-text bars))
+    (check (chart-text bars) "| C  ? | Am7  ? | Dm7  ? | Cmaj7  ? |" "chart with skipped symbols")
+    (check (reverse log) '("\"Cmaj8\" at 4" "\"Hm7\" at 0" "\"G7(b9\" at 5" "\"H7\" at 0")
+           "skip log"))
+  (para "The same chart with a handler for German charts: when the error is an H in the"
+        "root's place, it reads the text again with B there and returns that value with"
+        "USE-VALUE; anything else it skips:")
+  (let ((bars (handler-bind ((chord-symbol-parse-error
+                               (lambda (c)
+                                 (let ((text (music-theory-error-text c)))
+                                   (if (and (eql (chord-symbol-parse-error-position c) 0)
+                                            (plusp (length text))
+                                            (char= (char text 0) #\H))
+                                       (use-value (parse-chord-symbol
+                                                   (concatenate 'string "B" (subseq text 1)))
+                                                  c)
+                                       (skip-chord-symbol c))))))
+                (parse-chart *bad-chart*))))
+    (format t "  => ~a~%~%" (chart-text bars))
+    (check (chart-text bars) "| C  ? | Am7  Bm7 | Dm7  ? | Cmaj7  B7 |" "chart with H as B"))
+  (para "An unknown word in the quality's place is a warning, not an error:"
+        "UNKNOWN-CHORD-QUALITY with the word as TEXT, inside a USE-VALUE restart that takes"
+        "a quality keyword. Unhandled or muffled, the quality is :MAJOR, and the parser"
+        "goes on after the word. (Cmajor is not unknown: maj matches, and or is an error.)")
+  (show (handler-case (parse-chord-symbol "Cdom7(b9)")
+          (unknown-chord-quality (w) (list (unknown-chord-quality-text w) (princ-to-string w))))
+        '("dom7" "unknown chord quality \"dom7\""))
+  (show (handler-bind ((unknown-chord-quality (lambda (w) (use-value :dominant-7 w))))
+          (print-chord-symbol (parse-chord-symbol "Cdom7(b9)")))
+        "C7(b9)")
+  (show (handler-bind ((warning #'muffle-warning))
+          (print-chord-symbol (parse-chord-symbol "Cdom7(b9)")))
+        "C(b9)" "muffled: a C major triad with a b9")
+  (terpri)
+  (para "One handler on MUSIC-THEORY-ERROR catches these and the other chord errors: a"
+        "value the printer cannot print (a triad with EXTENSIONS breaks rule W3), and"
+        "INVALID-PITCH for a tone or a transposed root beyond two accidentals:")
+  (show-signal (parse-chord-symbol "Hm7"))
+  (show-signal (print-chord-symbol (make-chord-symbol :root (parse-pitch-class "C")
+                                                      :quality :major :extensions '(9))))
+  (show-signal (chord-tones (parse-chord-symbol "E##")))
+  (show-signal (transpose-chord-symbol (parse-chord-symbol "F##7") (parse-interval "A1"))))
+
 ;;; Entry point -----------------------------------------------------------------
 
 (defun run-demos ()
@@ -1584,7 +2253,9 @@ on any degree, with any alteration (70)."
   (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '()))
     (format t "~&music-theory ~a: spelled pitches, the line of fifths and intervals (slice MT0,~%~
                sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale~%~
-               degrees and Roman numerals (slice MT2, sections 12-16)~%"
+               degrees and Roman numerals (slice MT2, sections 12-16); chord symbols: the~%~
+               grammar, dialects, realisation, essential tones, transposition (slice MT3,~%~
+               sections 17-22)~%"
             (asdf:component-version (asdf:find-system "music-theory")))
     (section "1. Spelled pitches: letter, accidental, octave" (demo-pitches))
     (section "2. MIDI numbers and the scientific octave" (demo-midi))
@@ -1602,6 +2273,12 @@ on any degree, with any alteration (70)."
     (section "14. Roman numerals" (demo-roman))
     (section "15. Mixture: chords borrowed from the parallel key" (demo-mixture))
     (section "16. A progression, to chords and back" (demo-progression))
+    (section "17. A lead-sheet chord chart parsed" (demo-chart))
+    (section "18. Dialects: classical, pop and jazz" (demo-dialects))
+    (section "19. Unicode and ASCII, slash chords" (demo-styles))
+    (section "20. Essential tones" (demo-essential))
+    (section "21. Transposing chord symbols" (demo-transposition))
+    (section "22. Chord-symbol errors and restarts" (demo-chord-errors))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
