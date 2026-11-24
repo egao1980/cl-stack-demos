@@ -1,0 +1,722 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (22 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+score-backend-musicxml 0.1.0 (slice SC2: MusicXML 4.0 partwise, .musicxml and .mxl)
+on score-protocol 0.2.0 and music-theory 0.5.1
+
+========================================================================
+== 1. Reading a hymn
+========================================================================
+READ-MUSICXML takes a pathname, a string of MusicXML, UTF-8 octets or a
+character stream, and returns a score-protocol SCORE: an immutable value with
+a measure map, parts with staves and voices of events, a chord-symbol track
+and the spanners. Durations are rationals in whole notes (1/4 is a quarter).
+
+The input is NEW BRITAIN, the tune of "Amazing Grace" (American folk melody,
+1829; words by John Newton, 1779), re-encoded by hand for this demo: the first
+phrase pair, sung twice. It has a one-beat pickup, two verses of lyrics,
+<harmony> chord symbols, a tie, two slurs, a dynamic, a tempo mark and a repeat
+with first and second endings. Some elements carry id attributes. The file,
+scores/new-britain.musicxml:
+
+    1  <?xml version="1.0" encoding="UTF-8"?>
+    2  <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+    3  <score-partwise version="4.0">
+    4    <work><work-title>Amazing Grace</work-title></work>
+    5    <movement-title>NEW BRITAIN</movement-title>
+    6    <identification>
+    7      <creator type="composer">American folk melody, 1829</creator>
+    8      <creator type="lyricist">John Newton, 1779</creator>
+    9      <rights>Public domain. This encoding: MIT.</rights>
+   10      <encoding><software>harness-demos-musicxml</software></encoding>
+   11    </identification>
+   12    <part-list>
+   13      <score-part id="melody"><part-name>Melody</part-name></score-part>
+   14    </part-list>
+   15    <part id="melody">
+   16      <measure number="0" implicit="yes" id="pickup.melody">
+   17        <attributes>
+   18          <divisions>2</divisions>
+   19          <key><fifths>1</fifths><mode>major</mode></key>
+   20          <time><beats>3</beats><beat-type>4</beat-type></time>
+   21          <clef id="treble"><sign>G</sign><line>2</line></clef>
+   22        </attributes>
+   23        <direction placement="above" id="moderato">
+   24          <direction-type><words>Moderato</words></direction-type>
+   25          <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>84</per-minute></metronome></direction-type>
+   26          <sound tempo="84"/>
+   27        </direction>
+   28        <direction placement="below" id="soft"><direction-type><dynamics><mp/></dynamics></direction-type></direction>
+   29        <harmony id="no-chord"><root><root-step>G</root-step></root><kind>none</kind></harmony>
+   30        <note id="first-note"><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type>
+   31          <lyric number="1" id="a"><syllabic>begin</syllabic><text>A</text></lyric></note>
+   32      </measure>
+   33      <measure number="1">
+   34        <barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>
+   35        <harmony><root><root-step>G</root-step></root><kind>major</kind></harmony>
+   36        <note><pitch><step>G</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   37          <lyric number="1"><syllabic>middle</syllabic><text>maz</text></lyric>
+   38          <lyric number="2"><text>grace</text></lyric></note>
+   39        <note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>eighth</type><beam number="1">begin</beam>
+   40          <notations><slur type="start" id="amazing-slur"/></notations>
+   41          <lyric number="1"><syllabic>end</syllabic><text>ing</text><extend/></lyric>
+   42          <lyric number="2"><text>that</text><extend/></lyric></note>
+   43        <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>eighth</type><beam number="1">end</beam>
+   44          <notations><slur type="stop"/></notations></note>
+   45      </measure>
+   46      <measure number="2">
+   47        <note><pitch><step>B</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   48          <lyric number="1"><text>grace!</text></lyric>
+   49          <lyric number="2"><text>taught</text></lyric></note>
+   50        <harmony id="slash-chord"><root><root-step>G</root-step></root><kind>dominant</kind><bass><bass-step>B</bass-step></bass></harmony>
+   51        <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type>
+   52          <lyric number="1"><text>How</text></lyric>
+   53          <lyric number="2"><text>my</text></lyric></note>
+   54      </measure>
+   55      <measure number="3">
+   56        <harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>
+   57        <note><pitch><step>G</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   58          <lyric number="1"><text>sweet</text></lyric>
+   59          <lyric number="2"><text>heart</text></lyric></note>
+   60        <note><pitch><step>E</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type>
+   61          <lyric number="1"><text>the</text></lyric>
+   62          <lyric number="2"><text>to</text></lyric></note>
+   63      </measure>
+   64      <measure number="4">
+   65        <harmony><root><root-step>G</root-step></root><kind>major</kind></harmony>
+   66        <note><pitch><step>D</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   67          <lyric number="1"><text>sound</text></lyric>
+   68          <lyric number="2"><text>fear,</text></lyric></note>
+   69        <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type>
+   70          <lyric number="1"><text>That</text></lyric>
+   71          <lyric number="2"><text>And</text></lyric></note>
+   72      </measure>
+   73      <measure number="5">
+   74        <harmony><root><root-step>G</root-step></root><kind>major</kind></harmony>
+   75        <note><pitch><step>G</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   76          <lyric number="1"><text>saved</text></lyric>
+   77          <lyric number="2"><text>grace</text></lyric></note>
+   78        <note><pitch><step>B</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>eighth</type><beam number="1">begin</beam>
+   79          <notations><slur type="start"/></notations>
+   80          <lyric number="1"><text>a</text><extend/></lyric>
+   81          <lyric number="2"><text>my</text><extend/></lyric></note>
+   82        <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>eighth</type><beam number="1">end</beam>
+   83          <notations><slur type="stop"/></notations></note>
+   84      </measure>
+   85      <measure number="6">
+   86        <harmony><root><root-step>E</root-step></root><kind>minor</kind></harmony>
+   87        <note><pitch><step>B</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   88          <lyric number="1"><text>wretch</text></lyric>
+   89          <lyric number="2"><text>fears</text></lyric></note>
+   90        <note><pitch><step>A</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type>
+   91          <lyric number="1"><text>like</text></lyric>
+   92          <lyric number="2"><syllabic>begin</syllabic><text>re</text></lyric></note>
+   93      </measure>
+   94      <measure number="7">
+   95        <harmony><root><root-step>D</root-step></root><kind>major</kind></harmony>
+   96        <note id="held.note"><pitch><step>D</step><octave>5</octave></pitch><duration>6</duration><tie type="start"/><voice>1</voice><type>half</type><dot/>
+   97          <notations><tied type="start" id="held"/></notations>
+   98          <lyric number="1"><text>me!</text></lyric>
+   99          <lyric number="2"><syllabic>end</syllabic><text>lieved;</text></lyric></note>
+  100      </measure>
+  101      <measure number="8">
+  102        <barline location="left" id="first-time"><ending number="1" type="start">1.</ending></barline>
+  103        <harmony><root><root-step>D</root-step></root><kind>dominant</kind></harmony>
+  104        <note><pitch><step>D</step><octave>5</octave></pitch><duration>4</duration><tie type="stop"/><voice>1</voice><type>half</type>
+  105          <notations><tied type="stop"/></notations></note>
+  106        <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type>
+  107          <lyric number="2"><text>'Twas</text></lyric></note>
+  108        <barline location="right"><ending number="1" type="stop"/><repeat direction="backward"/></barline>
+  109      </measure>
+  110      <measure number="9">
+  111        <barline location="left"><ending number="2" type="start">2.</ending></barline>
+  112        <harmony><root><root-step>D</root-step></root><kind>major</kind></harmony>
+  113        <note><pitch><step>D</step><octave>5</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+  114          <notations><fermata/></notations></note>
+  115        <note><rest/><duration>2</duration><voice>1</voice><type>quarter</type></note>
+  116        <barline location="right"><bar-style>light-heavy</bar-style><ending number="2" type="discontinue"/></barline>
+  117      </measure>
+  118    </part>
+  119  </score-partwise>
+
+  (setf *hymn* (read-musicxml (score-file "new-britain.musicxml")))
+
+  (score-metadata *hymn*)
+    :title       "Amazing Grace"
+    :subtitle    "NEW BRITAIN"
+    :composer    "American folk melody, 1829"
+    :lyricist    "John Newton, 1779"
+    :copyright   "Public domain. This encoding: MIT."
+
+<work-title> is the title and <movement-title> the subtitle. <encoding> is
+bookkeeping and is dropped without a word, as are layout and playback elements
+(<beam>, placement, the left barline's bar-style).
+
+The part, its staves and voices:
+
+  part "melody" "Melody": staves treble (:treble); voices v-b (staff 1)
+
+The measure map, one MEASURE-INFO per bar. The pickup is bar 0:
+
+  bar  id      time  key      length  marks
+    0  pickup  3/4   G major  1/4     pickup; tempo moderato "Moderato" q = 84
+    1  m-1                    3/4     repeat start
+    2  m-2                    3/4
+    3  m-3                    3/4
+    4  m-4                    3/4
+    5  m-5                    3/4
+    6  m-6                    3/4
+    7  m-7                    3/4
+    8  m-8                    3/4     ending first-time passes (1); repeat end, 2 times
+    9  m-9                    3/4     ending en-a passes (2); barline :final
+
+Every event, with its marks and its lyrics (verse 1, verse 2); a trailing
+"-" continues a word and "_" is an extender:
+
+  bar  pos   id          event   marks                     verse 1   verse 2
+    0  0     first-note  D4:q    mp soft                   A-
+    1  0     e-c         G4:h                              maz-      grace
+    1  1/2   e-f         B4:e                              ing_      that_
+    1  5/8   e-i         G4:e
+    2  0     e-j         B4:h                              grace!    taught
+    2  1/2   e-m         A4:q                              How       my
+    3  0     e-p         G4:h                              sweet     heart
+    3  1/2   e-s         E4:q                              the       to
+    4  0     e-v         D4:h                              sound     fear,
+    4  1/2   e-y         D4:q                              That      And
+    5  0     e-11        G4:h                              saved     grace
+    5  1/2   e-14        B4:e                              a_        my_
+    5  5/8   e-17        G4:e
+    6  0     e-18        B4:h                              wretch    fears
+    6  1/2   e-1b        A4:q                              like      re-
+    7  0     e-1e        D5:h.   tie held -> e-1h          me!       lieved;
+    8  0     e-1h        D5:h
+    8  1/2   e-1i        D4:q                                        'Twas
+    9  0     e-1k        D5:h    fermata fe-1l
+    9  1/2   e-1m        rest:q
+
+  (verse-line *hymn* 1)
+    => "A-maz-ing grace! How sweet the sound That saved a wretch like me!"
+  (verse-line *hymn* 2)
+    => "grace that taught my heart to fear, And grace my fears re-lieved; 'Twas"   ; verse 2's pickup, 'Twas, is in the first ending
+
+Chord symbols are music-theory CHORD-SYMBOL values anchored at (bar . offset):
+
+  (0 . 0)      no-chord    N.C.
+  (1 . 0)      h-1n        G
+  (2 . 1/2)    slash-chord G7/B
+  (3 . 0)      h-1o        C
+  (4 . 0)      h-1p        G
+  (5 . 0)      h-1q        G
+  (6 . 0)      h-1r        Em
+  (7 . 0)      h-1s        D
+  (8 . 0)      h-1t        D7
+  (9 . 0)      h-1u        D
+
+G7/B sits at (2 . 1/2): its <harmony> comes after the half note in the file, and
+a harmony's position is the reading cursor there. <kind>none</kind> is N.C.
+
+The spanners: slurs name their first and last events by id.
+
+  amazing-slur  :slur from e-f to e-i
+  sp-1v         :slur from e-14 to e-17
+
+Ids. An element takes the id attribute of the MusicXML element that carries it
+when the value is a valid score id (VALID-ID-P: ASCII letters, digits, - and _,
+starting with a letter) and no earlier element took it. A measure's carrier is
+the first part's <measure>, with a slice id M.P where P is the part's id. Every
+id attribute in the file, and what became of it:
+
+  <score-part id="melody">     part "melody"
+  <part id="melody">           the part's reference to its <score-part>
+  <measure id="pickup.melody"> measure-info "pickup"
+  <clef id="treble">           staff "treble"
+  <direction id="moderato">    tempo-mark "moderato"
+  <direction id="soft">        dynamic-mark "soft"
+  <harmony id="no-chord">      chord-symbol-anchor "no-chord"
+  <note id="first-note">       note-event "first-note"
+  <lyric id="a">               lyric "a"
+  <slur id="amazing-slur">     spanner "amazing-slur"
+  <harmony id="slash-chord">   chord-symbol-anchor "slash-chord"
+  <note id="held.note">        not taken: (valid-id-p "held.note") is NIL
+  <tied id="held">             tie "held"
+  <barline id="first-time">    ending "first-time"
+
+  (valid-id-p "held.note") => nil   ; an NCName, but "." is kept for slice ids
+  (element-id (second (find 7 (all-events *hymn*) :key #'first)))
+    => "e-1e"   ; so the held D5 gets a minted id
+
+Of the 79 elements, 12 took ids from the file. MAKE-SCORE minted the other 67,
+a kind prefix and a base-36 serial, in document order (the measure map, then the
+part, its staves and voices, each event followed by its marks and lyrics, then
+the chord symbols and the spanners). The first twenty:
+
+  pickup moderato m-1 m-2 m-3 m-4 m-5 m-6 m-7 m-8 first-time m-9 en-a melody treble v-b first-note soft a e-c
+
+  (score-id-counter *hymn*) => 67   ; the highest serial minted: 79 - 12 = 67
+  (score-equal *hymn* (read-musicxml (score-file "new-britain.musicxml")))
+    => t   ; reading again gives the same ids
+
+The other kinds of source read alike:
+
+  (score-equal *hymn* (read-musicxml *hymn-text*)) => t   ; a string
+  (score-equal *hymn*
+               (read-musicxml (babel:string-to-octets *hymn-text* :encoding :utf-8)))
+    => t   ; UTF-8 octets
+  (score-equal *hymn* (with-input-from-string (in *hymn-text*) (read-musicxml in)))
+    => t   ; a character stream
+
+========================================================================
+== 2. Hymnal voices: SPLIT-VOICES
+========================================================================
+A hymnal prints soprano and alto on the treble staff and tenor and bass on the
+bass staff. Where two voices move together they share a stem: one chord carries
+both. Where their rhythms part, the staff switches to two voices (MusicXML
+<voice> 1 and 2, stems up and down). The excerpt is the first line of OLD
+HUNDREDTH (melody by Louis Bourgeois, 1551; words "All people that on earth do
+dwell" by William Kethe, 1561), with alto, tenor and bass written for the demo.
+Bars 0 and 1 are shared-stem chords. The last note of bar 1 is a unison: soprano
+and alto both sing D4, printed as one note. In bar 2 the alto holds half notes
+under the soprano's quarters, as voice 2. From scores/old-hundredth-satb.musicxml,
+bar 1 of the treble staff and bar 2:
+
+   32        <note><chord/><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff></note>
+   33        <note><pitch><step>F</step><alter>1</alter><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff><lyric><syllabic>end</syllabic><text>ple</text></lyric></note>
+   34        <note><chord/><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff></note>
+   35        <note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff><lyric><text>that</text></lyric></note>
+   36        <note><chord/><pitch><step>B</step><octave>3</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff></note>
+   37        <note><pitch><step>D</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff><lyric><text>on</text></lyric></note>
+   38        <backup><duration>4</duration></backup>
+   39        <note><pitch><step>B</step><octave>3</octave></pitch><duration>1</duration><voice>5</voice><type>quarter</type><stem>down</stem><staff>2</staff></note>
+    ...
+   50        <note><pitch><step>A</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>quarter</type><stem>up</stem><staff>1</staff><lyric><text>do</text></lyric></note>
+   51        <note><pitch><step>B</step><octave>4</octave></pitch><duration>2</duration><voice>1</voice><type>half</type><stem>up</stem><staff>1</staff><lyric><text>dwell</text></lyric></note>
+   52        <backup><duration>4</duration></backup>
+   53        <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>2</voice><type>half</type><stem>down</stem><staff>1</staff></note>
+   54        <note><pitch><step>D</step><octave>4</octave></pitch><duration>2</duration><voice>2</voice><type>half</type><stem>down</stem><staff>1</staff></note>
+   55        <backup><duration>4</duration></backup>
+   56        <note><pitch><step>G</step><octave>3</octave></pitch><duration>1</duration><voice>5</voice><type>quarter</type><stem>down</stem><staff>2</staff></note>
+   57        <note><chord/><pitch><step>B</step><octave>2</octave></pitch><duration>1</duration><voice>5</voice><type>quarter</type><stem>down</stem><staff>2</staff></note>
+    ...
+
+Read as written, the part has the file's three voices: 1 and 2 on the treble
+staff, 5 on the bass staff, holding chords:
+
+  (setf *as-written* (read-musicxml (score-file "old-hundredth-satb.musicxml")))
+
+    v-6   staff 1 :up      | G4+D4:h | G4+D4:q F#4+D4:q E4+B3:q D4:q | G4:q A4:q B4:h |
+    v-v   staff 1 :down    |  |  | D4:h D4:h |
+    v-y   staff 2 :down    | B3+G2:h | B3+G2:q A3+D3:q G3+E3:q G3+B2:q | G3+B2:q F#3+D3:q G3+G2:h |
+
+With :SPLIT-VOICES :AUTO, READ-MUSICXML calls SPLIT-VOICES on the score it read.
+Per staff, the upper voice keeps the top note of each shared-stem chord and a
+lower voice gets the bottom one. The bass staff had one voice, so its lower voice
+is new. A single note in a shared-stem bar is a unison: both voices sing it, and
+the lower voice's copy is a guess, signalled as LOW-CONFIDENCE-GUESS:
+
+  (read-musicxml (score-file "old-hundredth-satb.musicxml") :split-voices :auto)
+
+  S v-6   staff 1 :up      | G4:h | G4:q F#4:q E4:q D4:q | G4:q A4:q B4:h |
+  A v-v   staff 1 :down    | D4:h | D4:q D4:q B3:q D4:q | D4:h D4:h |
+  T v-y   staff 2 :up      | B3:h | B3:q A3:q G3:q G3:q | G3:q F#3:q G3:h |
+  B v-1o  staff 2 :down    | G2:h | G2:q D3:q E3:q B2:q | B2:q D3:q G2:h |
+
+  signalled: low-confidence-guess: low-confidence guess for "e-1n" (unison): 1/2
+
+  (element-position *satb* (low-confidence-guess-element-id (first guesses)))
+    => (1 . 3/4)   ; bar 1, beat 4: the alto's D4
+  (element-confidence
+   (find-element *satb* (low-confidence-guess-element-id (first guesses))))
+    => 1/2
+  (provenance-backend
+   (element-provenance
+    (find-element *satb* (low-confidence-guess-element-id (first guesses)))))
+    => "score-backend-musicxml"
+  (mapcar #'element-id (uncertain-elements *satb*))
+    => ("e-1n")   ; the one uncertain element
+
+Ids follow the notes. The soprano keeps the chord events' ids, the alto takes
+the ids of the lower chord notes, and the new bass voice is minted:
+
+  as written, bar 0 treble: chord e-7, notes n-8=G4 n-9=D4
+  split, bar 0: soprano e-7, alto n-9; voice ids v-6 v-v v-y v-1o
+
+  (score-equal (split-voices *as-written*) *satb*)
+    => t   ; the same as calling SPLIT-VOICES yourself
+  (check-score *satb*) => nil   ; no issues
+  (score-equal (split-voices *satb*) *satb*)
+    => t   ; a split score has nothing left to split
+
+========================================================================
+== 3. Chord symbols: <harmony> and music-theory
+========================================================================
+A <harmony> is a root, a <kind>, optional <degree>s and an optional bass.
+HARMONY-TO-CHORD-SYMBOL turns the element into a music-theory CHORD-SYMBOL, and
+CHORD-SYMBOL-TO-HARMONY turns a symbol back into an element. The chord-level
+mapping is music-theory 0.5.1's (CHORD-SYMBOL-MUSICXML-KIND and
+MUSICXML-KIND-CHORD-SYMBOL); this backend only adapts it to XML. Each row reads
+a <harmony>, prints the symbol, writes it back, and reads that again:
+
+  <kind> (root, degrees, bass)               reads as          written as
+  major (C)                                  C                 major
+  minor (A)                                  Am                minor
+  diminished (F#)                            F#m(b5)           diminished
+  augmented (Eb)                             Eb+               augmented
+  dominant (G)                               G7                dominant
+  major-seventh (F)                          Fmaj7             major-seventh
+  minor-seventh (D)                          Dm7               minor-seventh
+  half-diminished (B)                        Bm7(b5)           half-diminished
+  diminished-seventh (C#)                    C#dim7            diminished-seventh
+  major-minor (A)                            Ammaj7            major-minor
+  major-sixth (Bb)                           Bb6               major-sixth
+  dominant-ninth (A)                         A9                dominant-ninth
+  suspended-fourth (D)                       Dsus4             suspended-fourth
+  power (E)                                  E5                power
+  Neapolitan (Db)                            Db                major
+  dominant (G; /B)                           G7/B              dominant
+  dominant (D; add 9 -1)                     D7(b9)            dominant (add 9 -1)
+  major (A; subtract 3 0, add 4 0; /E)       Asus4/E           suspended-fourth
+  major (A; add 4 0, subtract 3 0; /E)       A(add4,omit3)/E   major (add 4 0, subtract 3 0)
+  none (C)                                   N.C.              none
+
+Neapolitan, and the other kinds named after their use, are spellings of chords
+the model already has: Neapolitan on Db is a Db major triad, written back as
+major. Degrees are ordered: major with subtract 3, add 4 is a suspension, Asus4/E,
+which music-theory writes with its own kind, suspended-fourth. In the other
+order, add 4, subtract 3, it is an added fourth and an omitted third. The
+D7(b9) row as XML:
+
+    <harmony>
+      <root>
+        <root-step>D</root-step>
+      </root>
+      <kind>dominant</kind>
+      <degree>
+        <degree-value>9</degree-value>
+        <degree-alter>-1</degree-alter>
+        <degree-type>add</degree-type>
+      </degree>
+    </harmony>
+
+  (multiple-value-list (chord-symbol-musicxml-kind (parse-chord-symbol "D7(b9)")))
+    => ("dominant" ((:add 9 -1)))   ; music-theory's side of the mapping
+  (print-chord-symbol
+   (musicxml-kind-chord-symbol "major" (parse-pitch-class "A") :bass
+                               (parse-pitch-class "E") :degrees
+                               '((:subtract 3 0) (:add 4 0))))
+    => "Asus4/E"
+
+use-symbols. MusicXML's <kind> has display attributes: use-symbols="yes" asks for
+symbols (Δ for major seventh, - for minor, ° and ø), and text gives the exact
+text to print. Both say how the chord was printed, not which chord it is, so
+the reader ignores them and the writer never emits them. Three spellings of a
+C major seventh:
+
+    <harmony><root><root-step>C</root-step></root><kind>major-seventh</kind></harmony>
+      => Cmaj7
+    <harmony><root><root-step>C</root-step></root><kind use-symbols="yes">major-seventh</kind></harmony>
+      => Cmaj7
+    <harmony><root><root-step>C</root-step></root><kind text="&#916;7">major-seventh</kind></harmony>
+      => Cmaj7
+
+  (print-chord-symbol
+   (harmony-to-chord-symbol
+    (harmony-element
+     (harmony-xml "C" 0 "major-seventh" :kind-attributes " use-symbols=\"yes\"")))
+   :dialect :jazz :accidentals :unicode)
+    => "CΔ7"   ; symbols are the printer's choice: music-theory's :jazz dialect
+
+A symbol parsed from text remembers that text and its dialect. MusicXML has no
+place for them, so CHORD-SYMBOL-TO-HARMONY returns what it lost as a second value
+(WRITE-MUSICXML turns that into a LOSSY-CONVERSION warning):
+
+  (nth-value 1 (chord-symbol-to-harmony (parse-chord-symbol "C-7" :dialect :jazz)))
+    => ("chord-symbol text")
+  (print-chord-symbol
+   (harmony-to-chord-symbol
+    (chord-symbol-to-harmony (parse-chord-symbol "C-7" :dialect :jazz))))
+    => "Cm7"   ; the same chord, printed in the default dialect
+
+A harmony the model can't hold is MUSICXML-UNSUPPORTED (section 4), here from a
+direct call, so with no path. <kind>other</kind> spells a chord by its degrees
+alone:
+
+  (harmony-to-chord-symbol
+   (harmony-element
+    "<harmony><root><root-step>C</root-step></root><kind>other</kind></harmony>"))
+    -> musicxml-unsupported: musicxml format error: a chord spelled by its degrees alone (kind other)
+  (handler-bind ((musicxml-unsupported #'skip-element))
+    (harmony-to-chord-symbol
+     (harmony-element
+      "<harmony><root><root-step>C</root-step></root><kind>other</kind></harmony>")))
+    => nil   ; SKIP-ELEMENT drops it
+
+========================================================================
+== 4. Content outside the model: MUSICXML-UNSUPPORTED
+========================================================================
+The reader maps every MusicXML element it knows to the model, drops layout,
+playback and bookkeeping elements without a word, and treats everything else as
+content the model can't hold. Here is the hymn again with one such element, a
+trill on "grace!" in bar 2:
+
+   47        <note><pitch><step>B</step><octave>4</octave></pitch><duration>4</duration><voice>1</voice><type>half</type>
+   48          <notations><ornaments><trill-mark/></ornaments></notations>
+   49          <lyric number="1"><text>grace!</text></lyric>
+
+By default (:UNSUPPORTED :ERROR) the read stops with MUSICXML-UNSUPPORTED, a
+SCORE-FORMAT-ERROR naming the element and its path:
+
+  (setf *trill* (trill-text))
+  (read-musicxml *trill*)
+    -> musicxml-unsupported: musicxml format error: outside the MusicXML mapping at "/score-partwise[1]/part[1]/measure[3]/note[1]/notations[1]/ornaments[1]"
+
+  (musicxml-unsupported-element c) => "ornaments"
+  (score-format-error-position c)
+    => "/score-partwise[1]/part[1]/measure[3]/note[1]/notations[1]/ornaments[1]"
+  (score-format-error-format c) => :musicxml
+  (score-error-reason c) => "outside the MusicXML mapping"
+
+The error is signalled inside a SKIP-ELEMENT restart. A handler that invokes it
+drops the element, and reading goes on as if it weren't in the file:
+
+  (block nil
+    (handler-bind ((musicxml-unsupported
+                    (lambda (c)
+                      (return
+                       (mapcar #'restart-name (subseq (compute-restarts c) 0 1))))))
+      (read-musicxml *trill*)))
+    => (skip-element)   ; the innermost restart
+  (setf *skipped*
+          (handler-bind ((musicxml-unsupported #'skip-element))
+            (read-musicxml *trill*)))
+
+  (score-equal *skipped* *hymn*) => t   ; the hymn without the trill, ids and all
+  (string= (write-musicxml *skipped*) (write-musicxml *hymn*))
+    => t   ; byte for byte when written
+  (search "ornament" (write-musicxml *skipped*)) => nil   ; no trace of it
+
+The :UNSUPPORTED keyword sets the policy for the whole read. :WARN drops each
+such element with a LOSSY-CONVERSION warning naming it. Its report says "to
+musicxml" although nothing is being written (egao1980/score-protocol#9). :SKIP
+drops the element silently:
+
+  (read-musicxml *trill* :unsupported :warn)
+    warns: lossy-conversion: lossy conversion to musicxml: <ornaments> dropped
+    => a score, SCORE-EQUAL to *hymn*: t
+
+  (read-musicxml *trill* :unsupported :skip)
+    conditions signalled: 0
+    => a score, SCORE-EQUAL to *hymn*: t
+
+  (read-musicxml *trill* :unsupported :ignore)
+    -> simple-type-error: The value of score-backend-musicxml::unsupported is :ignore, which is not of type (member :error :warn :skip).
+
+Through serdes-protocol the error arrives as SERDES-DECODE-ERROR (serdes-protocol
+translates errors with HANDLER-CASE, so SKIP-ELEMENT is gone by then). Call
+READ-MUSICXML to handle unsupported content.
+
+  (serdes-protocol:decode *trill* :format :musicxml)
+    -> serdes-protocol:serdes-decode-error: Serdes error: decode failed for :MUSICXML: musicxml format error: outside the MusicXML mapping at "/score-partwise[1]/part[1]/measure[3]/note[1]/notations[1]/ornaments[1]"
+
+========================================================================
+== 5. Writing: .musicxml, .mxl and serdes formats
+========================================================================
+WRITE-MUSICXML returns the MusicXML text (or writes it to a pathname or a
+stream). It writes the DOCTYPE, which no reader needs to fetch, a <player> per
+voice, and every element id as an id attribute on its carrier. The first lines
+for the hymn:
+
+  (setf *written* (write-musicxml *hymn*))
+
+    1  <?xml version="1.0" encoding="UTF-8"?>
+    2  <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+    3  <score-partwise version="4.0">
+    4    <work>
+    5      <work-title>Amazing Grace</work-title>
+    6    </work>
+    7    <movement-title>NEW BRITAIN</movement-title>
+    8    <identification>
+    9      <creator type="composer">American folk melody, 1829</creator>
+   10      <creator type="lyricist">John Newton, 1779</creator>
+   11      <rights>Public domain. This encoding: MIT.</rights>
+   12    </identification>
+   13    <part-list>
+   14      <score-part id="melody">
+   15        <part-name>Melody</part-name>
+   16        <player id="v-b">
+   17          <player-name/>
+   18        </player>
+   19      </score-part>
+   20    </part-list>
+   21    <part id="melody">
+   22      <measure number="0" implicit="yes" id="pickup.melody">
+        ...
+
+  id attributes in the written file, by element:
+    score-part 1, player 1, part 1, measure 10, clef 1, direction 2, harmony 10, note 20, lyric 28, slur 2, tied 1, barline 2, fermata 1
+
+  (length (text-lines *written*)) => 482   ; lines; the input has 119
+
+Each of the 79 elements has its id on its carrier (the part's id is on <score-part>
+and, as the reference, on <part>), so a read gives the same score back, ids
+included. The written text is also a fixed point: written twice it is the same
+bytes, and reading and writing it again changes nothing.
+
+  (score-equal (read-musicxml *written*) *hymn*) => t   ; read, write, read
+  (string= (write-musicxml *hymn*) (write-musicxml *hymn*)) => t   ; byte-stable
+  (string= (write-musicxml (read-musicxml *written*)) *written*)
+    => t   ; a fixed point
+  (set-exclusive-or (carried-ids *written*)
+                    (mapcar #'element-id (score-elements *hymn*)) :test #'string=)
+    => nil   ; every element id is in the file, once
+
+  (pathname-name (write-musicxml *hymn* (tmp-path "new-britain.musicxml")))
+    => "new-britain"   ; with a pathname it writes the file
+  (score-equal (read-musicxml (tmp-path "new-britain.musicxml")) *hymn*) => t
+
+A score whose elements have provenance or confidence loses them in MusicXML.
+Writing warns once per kind of loss. The split SATB score of section 2 has one
+guess:
+
+  (write-musicxml *satb*)
+    warns: lossy-conversion: lossy conversion to musicxml: provenance and confidence dropped
+
+  (length
+   (uncertain-elements
+    (read-musicxml
+     (handler-bind ((warning #'muffle-warning))
+       (write-musicxml *satb*)))))
+    => 0   ; the voices are kept, the confidence isn't
+
+.mxl. WRITE-MXL stores the same text in a zip archive: an uncompressed mimetype
+entry first, as MusicXML 4.0 asks, then META-INF/container.xml naming the
+rootfile, then the score. Every entry is stored with no timestamp, so the bytes
+depend on the score only.
+
+  (setf *mxl* (write-mxl *hymn*))
+
+  (length *mxl*) => 13115   ; octets
+  (equalp (write-mxl *hymn*) *mxl*) => t   ; byte-stable
+
+  entry                    method  size
+  mimetype                      0  34
+  META-INF/container.xml        0  188
+  score.musicxml                0  12555
+
+  mimetype: application/vnd.recordare.musicxml
+  META-INF/container.xml:
+    <?xml version="1.0" encoding="UTF-8"?>
+    <container>
+      <rootfiles>
+        <rootfile full-path="score.musicxml" media-type="application/vnd.recordare.musicxml+xml"/>
+      </rootfiles>
+    </container>
+
+  (score-equal (read-mxl *mxl*) *hymn*)
+    => t   ; READ-MXL finds the rootfile through container.xml
+  (pathname-type (write-mxl *hymn* (tmp-path "new-britain.mxl"))) => "mxl"
+  (score-equal (read-mxl (tmp-path "new-britain.mxl")) *hymn*) => t
+  (read-mxl (babel:string-to-octets *written* :encoding :utf-8))
+    -> score-format-error: mxl format error: not a zip archive
+
+serdes-protocol. Loading the system registers two formats, :MUSICXML (text) and
+:MXL (binary). ENCODE and DECODE delegate to the functions above:
+
+  (serdes-protocol:format-media-type :musicxml)
+    => "application/vnd.recordare.musicxml+xml"
+  (serdes-protocol:format-media-type :mxl) => "application/vnd.recordare.musicxml"
+  (serdes-protocol:find-format-for-media-type "application/vnd.recordare.musicxml")
+    => :mxl
+  (serdes-protocol:format-binary-p :mxl) => t
+  (string= (serdes-protocol:encode *hymn* :format :musicxml) *written*) => t
+  (score-equal (serdes-protocol:decode *written* :format :musicxml) *hymn*) => t
+  (equalp (serdes-protocol:encode *hymn* :format :mxl) *mxl*) => t
+  (score-equal (serdes-protocol:decode *mxl* :format :mxl) *hymn*) => t
+
+========================================================================
+== 6. Schema check (optional)
+========================================================================
+The MusicXML 4.0 XSD is not part of this repository. To check the written files
+against it, put the schema/ directory of github.com/w3c/musicxml (tag v4.0:
+musicxml.xsd with xml.xsd, xlink.xsd, container.xsd and catalog.xml beside it)
+somewhere local and set MUSICXML_XSD to its musicxml.xsd. xmllint then runs
+with --nonet and the schema's catalog, so nothing is fetched.
+
+  MUSICXML_XSD names a musicxml.xsd and xmllint is on PATH.
+
+  the hymn as written (section 5):
+    xmllint exit 0: - validates
+  the split SATB excerpt as written:
+    xmllint exit 0: - validates
+  the hymn read back from .mxl, written again:
+    xmllint exit 0: - validates
+  META-INF/container.xml (container.xsd):
+    xmllint exit 0: - validates
+
+========================================================================
+== 7. External entities are refused
+========================================================================
+XML external entities (XXE) let a document pull in a local file or a URL. The
+reader parses with xml-backend-native, which never fetches anything: it refuses
+an external entity at its declaration, and the reader reports that as a
+SCORE-FORMAT-ERROR whose CAUSE is the XML-ENTITY-ERROR. The secret here is a
+file in the run's temp directory:
+
+    1  <?xml version="1.0" encoding="UTF-8"?>
+    2  <!DOCTYPE score-partwise [
+    3    <!ENTITY secret SYSTEM "file://<tmp>/secret.txt">
+    4  ]>
+  ...
+
+  (read-musicxml *xxe*)
+    -> score-format-error: musicxml format error: external entity declaration at (3 . 24)
+
+  (condition-line (score-format-error-cause c))
+    => "xml-protocol:xml-entity-error: XML error: external entity declaration at 3:24"
+  (score-format-error-position c) => (3 . 24)   ; line 3, column 24: the declaration
+  (search "42" (princ-to-string c)) => nil   ; the secret is nowhere in the report
+
+The refusal comes at the declaration, before any reference is read: a
+document that declares the entity and never uses it is refused just the same.
+A parameter entity naming a URL is refused at its declaration too. Had either
+been fetched, the error would be about a file or a connection (port 9 has no
+listener):
+
+    <!DOCTYPE score-partwise [<!ENTITY secret SYSTEM "file:///etc/hostname">]>
+  (read-musicxml *unused*)
+    -> score-format-error: musicxml format error: external entity declaration at (2 . 48)
+
+    <!DOCTYPE score-partwise [<!ENTITY % remote SYSTEM "http://127.0.0.1:9/evil.dtd"> %remote;]>
+  (read-musicxml *parameter*)
+    -> score-format-error: musicxml format error: external entity declaration at (2 . 50)
+
+Internal entities are not expanded either: xml-backend-native knows only the
+predefined entities and numeric character references. So the "billion laughs"
+document, eight nested entities that would expand to 20 million characters,
+stops at its first reference:
+
+    <!DOCTYPE score-partwise [<!ENTITY a "ha"><!ENTITY b "&a;&a;&a;&a;&a;&...
+  (read-musicxml *laughs*)
+    -> score-format-error: musicxml format error: unknown entity &h; at (3 . 49)
+
+The DOCTYPE every MusicXML file starts with names an external DTD subset by URL.
+The parser refuses to fetch it with an XML-ENTITY-ERROR that offers CONTINUE,
+and READ-MUSICXML takes that restart, so the files of sections 1 and 2 read
+without a network. Through xml-protocol directly:
+
+  (handler-bind ((xml-protocol:xml-entity-error #'continue))
+    (xml-protocol:decode *hymn-text*))
+    signalled: xml-protocol:xml-entity-error: XML error: external DTD subset is not fetched at 2:121, CONTINUE taken
+
+========================================================================
+== Summary
+========================================================================
+155 results checked against expected values: 0 mismatched.
+Every section ran to the end.
