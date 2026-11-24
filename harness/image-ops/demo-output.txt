@@ -9,7 +9,7 @@ It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
 WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-image-protocol 0.3.0: the BACKEND-RESIZE hook (rules R1-R8, sections 2-5);
+image-protocol 0.3.1: the BACKEND-RESIZE hook (rules R1-R8, sections 2-5);
 image-backend-stb 0.3.0: native resize on stb_image_resize2 (rules S1-S8, sections 6-8)
 
 ==============================================================================
@@ -285,19 +285,23 @@ not apply.
 Wall-clock milliseconds per resize, the median of 11 runs after one warm-up run,
 pure Lisp (:backend nil) against stb (:backend stb). These numbers depend on the
 machine and are not checked. With gap 2 the pure-Lisp resampler first box-reduces
-by 2, as Pillow's reducing_gap does, and keeps Pillow's samples. Here that costs
-more than it saves (image-protocol#9). stb ignores the gap.
+by an integer factor (2 for 2048² → 512², 8 for 4096² → 256²), as Pillow's
+reducing_gap does, and keeps Pillow's samples. Since image-protocol 0.3.1 that
+makes these reductions faster; in 0.3.0 the box reduce cost more than it saved
+(image-protocol#9). stb ignores the gap.
 This run: Darwin ARM64, SBCL 2.6.9.
 
   case                                       pure Lisp ms stb ms     pure / stb
-  :rgb 1024×768 → 256×192 :bicubic                    9.0        0.7 13.5×
-  :rgb 1024×768 → 256×192 :bilinear                   4.7        0.4 12.7×
-  :rgb 2048×2048 → 512×512 :bicubic                  46.6        3.6 12.9×
-  :rgb 2048×2048 → 512×512 :bicubic gap 2            62.0        3.7 16.9×
-  :gray 2048×2048 → 512×512 :bicubic                 16.8        1.1 15.0×
-  :rgba 2048×2048 → 512×512 :bicubic                 80.1       10.1 7.9×
-  :rgb 4096×4096 → 256×256 :bicubic                 155.2       23.9 6.5×
-  :rgb 512×384 → 2048×1536 :bicubic                  39.1        3.1 12.4×
+  :rgb 1024×768 → 256×192 :bicubic                    8.9        0.6 14.4×
+  :rgb 1024×768 → 256×192 :bilinear                   4.7        0.4 13.0×
+  :rgb 2048×2048 → 512×512 :bicubic                  46.7        3.5 13.1×
+  :rgb 2048×2048 → 512×512 :bicubic gap 2            24.5        3.5 6.9×
+  :gray 2048×2048 → 512×512 :bicubic                 16.8        1.1 15.7×
+  :gray 2048×2048 → 512×512 :bicubic gap 2            9.1        1.1 8.6×
+  :rgba 2048×2048 → 512×512 :bicubic                 80.2       10.2 7.8×
+  :rgb 4096×4096 → 256×256 :bicubic                 155.4       22.6 6.9×
+  :rgb 4096×4096 → 256×256 :bicubic gap 2            35.5       22.8 1.6×
+  :rgb 512×384 → 2048×1536 :bicubic                  38.5        2.7 14.1×
 
 ==============================================================================
 == Summary

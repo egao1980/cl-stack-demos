@@ -541,8 +541,10 @@ against EXPECTED, a list of (width height filter gap linear), with EQUAL, so
     (:rgb 2048 2048 512 512 :bicubic nil)
     (:rgb 2048 2048 512 512 :bicubic 2)
     (:gray 2048 2048 512 512 :bicubic nil)
+    (:gray 2048 2048 512 512 :bicubic 2)
     (:rgba 2048 2048 512 512 :bicubic nil)
     (:rgb 4096 4096 256 256 :bicubic nil)
+    (:rgb 4096 4096 256 256 :bicubic 2)
     (:rgb 512 384 2048 1536 :bicubic nil)))
 
 (defparameter *timing-runs* 11)
@@ -552,8 +554,10 @@ against EXPECTED, a list of (width height filter gap linear), with EQUAL, so
                 *timing-runs*)
         "pure Lisp (:backend nil) against stb (:backend stb). These numbers depend on the"
         "machine and are not checked. With gap 2 the pure-Lisp resampler first box-reduces"
-        "by 2, as Pillow's reducing_gap does, and keeps Pillow's samples. Here that costs"
-        "more than it saves (image-protocol#9). stb ignores the gap."
+        "by an integer factor (2 for 2048² → 512², 8 for 4096² → 256²), as Pillow's"
+        "reducing_gap does, and keeps Pillow's samples. Since image-protocol 0.3.1 that"
+        "makes these reductions faster; in 0.3.0 the box reduce cost more than it saved"
+        "(image-protocol#9). stb ignores the gap."
         (format nil "This run: ~a ~a, ~a ~a."
                 (software-type) (machine-type)
                 (lisp-implementation-type) (lisp-implementation-version)))
