@@ -1,0 +1,668 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (8 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+score-protocol 0.1.0 (slice SC0, the canonical score model) on music-theory 0.4.0
+
+========================================================================
+== 1. Building a score: a hymn tune in code
+========================================================================
+A SCORE is an immutable value: metadata, a measure map shared by all parts,
+the parts (each with staves and voices of events), a chord-symbol track and
+the spanners. Pitches, meters, keys, tempi and chord symbols are music-theory
+values. Durations and offsets are rationals in whole notes (1/4 is a quarter).
+
+The demo builds NEW BRITAIN, the tune of "Amazing Grace" (American folk
+melody, 1829; words by John Newton, 1779), on two staves: the melody with two
+verses of lyrics, and a bass line. 3/4, G major, a one-beat pickup. Bars 1-15
+are repeated, once per verse, with a first and a second ending. The tune is
+data (*MELODY*, *BASS*, *CHORDS*, *MEASURE-MARKS*, *VERSES* in demo.lisp); the
+constructors turn it into elements:
+
+  (make-measure-info :time (parse-meter "3/4") :key (parse-key "G major") :pickup-p t :length 1/4
+                     :tempo
+                     (list
+                      (make-tempo-mark :tempo (make-tempo :bpm 84 :beat-unit 1/4) :text
+                                       "Moderato")))
+
+  (make-note-event :pitch (parse-pitch "B4") :duration 1/8 :lyrics
+                   (list (make-lyric :verse 1 :text "ing" :syllabic :end :extender t)
+                         (make-lyric :verse 2 :text "that" :extender t)))
+
+  (make-chord-symbol-anchor :position '(2 . 1/2) :symbol (parse-chord-symbol "G7/B"))
+
+
+Ties and slurs refer to notes by id. So the score is built in two steps. Step 1
+(BUILD-HYMN) calls MAKE-SCORE with everything else and no ids at all: MAKE-SCORE
+mints one for every element. Step 2 (ADD-TIES-AND-SLURS) reads the minted ids
+of the notes and adds the tie (by rebuilding its start note, same id) and five
+slurs over the melismas, through COPY-SCORE.
+
+  (score-metadata *hymn*)
+    => (:title "Amazing Grace" :subtitle "NEW BRITAIN" :composer "American folk melody, 1829" :lyricist "John Newton, 1779")
+  (fset:size (score-measure-map *hymn*)) => 18
+  (mapcar #'part-name (fset:convert 'list (score-parts *hymn*))) => ("Hymn tune")
+  (mapcar #'staff-clef (part-staves (fset:first (score-parts *hymn*))))
+    => (:treble :bass)
+  (mapcar #'voice-name (part-voices (fset:first (score-parts *hymn*))))
+    => ("Melody" "Bass")
+  (fset:size (score-chord-symbols *hymn*)) => 18
+  (fset:size (score-spanners *hymn*)) => 5
+  (length (score-elements *draft*)) => 169   ; elements after step 1
+  (length (score-elements *hymn*)) => 175   ; + 1 tie, 5 slurs
+
+The whole score, read back through the readers. A note is PITCH:DURATION (e
+eighth, q quarter, h half, h. dotted half); ~ starts a tie, ( and ) mark slur
+ends, ' is a breath mark, ^ a fermata, [mp] a dynamic. A syllable with a
+hyphen continues the word, _ is an extender line. A chord @1/2 is anchored
+half a note into the bar. Bar 8's D7/F# sits under the tied D5, where no note
+starts: chord symbols are anchored to positions, not to notes.
+
+  bar  chords      melody              verse 1     verse 2         bass
+    0  N.C.        D4:q[mp]            A-                          r:q
+    1  G           G4:h B4:e( G4:e)    maz- ing_   grace that_     G2:h.[mp]
+    2  G7/B@1/2    B4:h A4:q           grace! how  taught my       G2:h B2:q
+    3  C           G4:h E4:q           sweet the   heart to        C3:h.
+    4  G           D4:h D4:q           sound That  fear, And       G2:h.
+    5              G4:h B4:e( G4:e)    saved a_    grace my_       G2:h.
+    6  Em          B4:h A4:q           wretch like fears re-       E2:h.
+    7  D           D5:h.~              me!_        lieved;_        D2:h.
+    8  D7/F#       D5:h' B4:q[mf]      I           How             F#2:h.
+    9  G           D5:h B4:e( D5:e)    once was_   pre- cious_     G2:h.
+   10  G7/B@1/2    B4:h G4:q           lost, but   did that        G2:h B2:q
+   11  C           D4:h E4:q           now am      grace ap-       C3:h.
+   12  G Em@1/2    G4:h( E4:q          found;_     pear_           G2:h E2:q
+   13  D           D4:h) D4:q          Was         The             D2:h.
+   14  G           G4:h B4:e( G4:e)    blind, but_ hour I_         G2:h.
+   15  D7          B4:h A4:q           now I       first be-       D2:h.
+   16  G           G4:h D4:q           see.        'Twas           G2:h r:q
+   17  G           G4:h.^                          lieved!         <G2 D3>:h.^
+
+Elements by class:
+
+  measure-info            18
+  tempo-mark               1
+  rehearsal-mark           2
+  ending                   2
+  part                     1
+  staff                    2
+  voice                    2
+  note-event              56
+  rest-event               2
+  chord-event              1
+  chord-note               2
+  tie                      1
+  lyric                   56
+  dynamic-mark             3
+  fermata                  2
+  breath-mark              1
+  chord-symbol-anchor     18
+  spanner                  5
+
+  (check-score *hymn*) => nil   ; no issues: section 4
+
+========================================================================
+== 2. Element ids
+========================================================================
+Every element has an id: a string, unique in the score. MAKE-SCORE mints the
+missing ones as PREFIX-SERIAL, the serial in base 36 (lower case), counting up
+in document order. The prefix names the kind of element: m measure, tm tempo
+mark, rh rehearsal mark, en ending, p part, st staff, v voice, e event (note,
+rest or chord), n chord note, ti tie, ly lyric, dy dynamic, fe fermata, br
+breath mark, h chord symbol, sp spanner. Ids are opaque: code asks
+FIND-ELEMENT, it never parses one. Document order is a pre-order walk: the
+measures (each followed by its marks), the part, its staves and voices, each
+event followed by its marks and lyrics, then chord symbols and spanners.
+
+Every id of the hymn, in document order (SCORE-ELEMENTS):
+
+  measure map   m-1 tm-2 m-3 rh-4 m-5 m-6 m-7 m-8 m-9 m-a m-b m-c rh-d m-e m-f
+                m-g m-h m-i m-j m-k en-l m-m en-n
+  part, staves  p-o st-p st-q
+  melody        v-r
+    bar 0       e-s dy-t ly-u
+    bar 1       e-v ly-w ly-x e-y ly-z ly-10 e-11
+    bar 2       e-12 ly-13 ly-14 e-15 ly-16 ly-17
+    bar 3       e-18 ly-19 ly-1a e-1b ly-1c ly-1d
+    bar 4       e-1e ly-1f ly-1g e-1h ly-1i ly-1j
+    bar 5       e-1k ly-1l ly-1m e-1n ly-1o ly-1p e-1q
+    bar 6       e-1r ly-1s ly-1t e-1u ly-1v ly-1w
+    bar 7       e-1x ti-4q ly-1y ly-1z
+    bar 8       e-20 br-21 e-22 dy-23 ly-24 ly-25
+    bar 9       e-26 ly-27 ly-28 e-29 ly-2a ly-2b e-2c
+    bar 10      e-2d ly-2e ly-2f e-2g ly-2h ly-2i
+    bar 11      e-2j ly-2k ly-2l e-2m ly-2n ly-2o
+    bar 12      e-2p ly-2q ly-2r e-2s
+    bar 13      e-2t e-2u ly-2v ly-2w
+    bar 14      e-2x ly-2y ly-2z e-30 ly-31 ly-32 e-33
+    bar 15      e-34 ly-35 ly-36 e-37 ly-38 ly-39
+    bar 16      e-3a ly-3b e-3c ly-3d
+    bar 17      e-3e fe-3f ly-3g
+  bass          v-3h e-3i e-3j dy-3k e-3l e-3m e-3n e-3o e-3p e-3q e-3r e-3s
+                e-3t e-3u e-3v e-3w e-3x e-3y e-3z e-40 e-41 e-42 e-43 e-44
+                n-45 n-46 fe-47
+  chord symbols h-48 h-49 h-4a h-4b h-4c h-4d h-4e h-4f h-4g h-4h h-4i h-4j
+                h-4k h-4l h-4m h-4n h-4o h-4p
+  spanners      sp-4r sp-4s sp-4t sp-4u sp-4v
+
+The prefixes, with the class each one stands for:
+
+  prefix  count  first  last   classes
+  m          18  m-1    m-m    measure-info
+  tm          1  tm-2   tm-2   tempo-mark
+  rh          2  rh-4   rh-d   rehearsal-mark
+  en          2  en-l   en-n   ending
+  p           1  p-o    p-o    part
+  st          2  st-p   st-q   staff
+  v           2  v-r    v-3h   voice
+  e          59  e-s    e-44   note-event, rest-event, chord-event
+  dy          3  dy-t   dy-3k  dynamic-mark
+  ly         56  ly-u   ly-3g  lyric
+  ti          1  ti-4q  ti-4q  tie
+  br          1  br-21  br-21  breath-mark
+  fe          2  fe-3f  fe-47  fermata
+  n           2  n-45   n-46   chord-note
+  h          18  h-48   h-4p   chord-symbol-anchor
+  sp          5  sp-4r  sp-4v  spanner
+
+The counter and the serials. Step 1 numbered its 169 elements 1 to 169 in
+document order. COPY-SCORE in step 2 passed the counter on, so the tie and the
+slurs got 170 to 175, although the tie sits inside a note of bar 7:
+
+  (score-id-counter *draft*) => 169
+  (score-id-counter *hymn*) => 175
+  (equal (mapcar #'id-serial step-1)
+         (loop for i from 1 to 169
+               collect i))
+    => t   ; serials 1, 2, ... 169
+  (element-id tie) => "ti-4q"
+  (id-serial (element-id tie)) => 170
+  (tie-end tie) => "e-20"
+  (element-parent *hymn* (element-id tie)) => #<note-event "e-1x">
+  (mapcar #'element-id (fset:convert 'list (score-spanners *hymn*)))
+    => ("sp-4r" "sp-4s" "sp-4t" "sp-4u" "sp-4v")
+  (= (length ids) (length (remove-duplicates ids :test #'string=)))
+    => t   ; all unique
+  (every #'valid-id-p ids) => t
+  (every #'ncname-p ids) => t   ; so MusicXML and MEI can carry them as xml ids
+  (list (valid-id-p "P1") (valid-id-p "tenor-1") (valid-id-p "1e")
+        (valid-id-p "m-3.p-4") (valid-id-p "e a"))
+    => (t t nil nil nil)
+  (make-note-event :id "1st" :pitch (parse-pitch "G4") :duration 1/4)
+    -> simple-type-error: The value of score-protocol::id is "1st", which is not NIL or an id string.
+
+Minting is deterministic: the same input gets the same ids, with no clock,
+randomness or global state.
+
+  (equal ids (mapcar #'element-id (score-elements (make-hymn)))) => t
+  (score-equal *hymn* (make-hymn)) => t
+
+Stable through COPY-SCORE. A copy with new metadata keeps every id and the
+counter, and shares every element with the original (EQ):
+
+  (getf (score-metadata copy) :arranger) => "demo"
+  (equal ids (mapcar #'element-id (score-elements copy))) => t
+  (every #'eq elements (score-elements copy)) => t
+  (score-id-counter copy) => 175
+
+Untouched subtrees stay EQ after a rebuild. Step 2 rebuilt the note that starts
+the tie, and with it the path above it: the melody voice and the part. Of the
+169 elements of step 1, the other 166 are the same objects in the hymn. The
+three rebuilt ones kept their ids:
+
+  (- 169 (length rebuilt)) => 166   ; EQ in both scores
+  (mapcar #'element-id rebuilt) => ("p-o" "v-r" "e-1x")
+  (mapcar (lambda (element) (class-name (class-of element))) rebuilt)
+    => (part voice note-event)
+  (eq (bar-measure *draft* 7) (bar-measure *hymn* 7)) => t
+  (eq (voice-at *draft* 1) (voice-at *hymn* 1)) => t   ; the bass voice
+  (eq (melody-at *draft* 7 0) (melody-at *hymn* 7 0)) => nil   ; the tied note
+  (equal (event-lyrics (melody-at *draft* 7 0)) (event-lyrics (melody-at *hymn* 7 0)))
+    => t   ; its lyrics: the same objects
+
+A deleted element's id is never reused. Removing the Em of bar 12 and then
+adding a C there gives the C a new serial, one past the counter, not the
+Em's id:
+
+  (element-id em) => "h-4k"
+  (find-element fewer (element-id em) :errorp nil) => nil
+  (score-id-counter fewer) => 175   ; deleting mints nothing
+  (element-id c) => "h-4w"
+  (id-serial (element-id c)) => 176
+  (find-element more (element-id em) :errorp nil) => nil
+
+Lookups. FIND-ELEMENT and ELEMENT-PARENT go from an id to its element and up
+the tree. An unknown id signals UNKNOWN-ELEMENT, with a USE-VALUE restart:
+
+  (lyric-text (find-element *hymn* (element-id lyric))) => "ing"
+  (loop for id = (element-id lyric) then (element-id parent)
+        for parent = (element-parent *hymn* id)
+        while parent
+        collect (element-id parent))
+    => ("e-y" "v-r" "p-o")   ; lyric -> note -> voice -> part
+  (find-element *hymn* "e-zzz" :errorp nil) => nil
+  (find-element *hymn* "e-zzz")
+    -> unknown-element: no element with id "e-zzz"
+  (handler-bind ((unknown-element (lambda (c) (use-value :missing c))))
+    (find-element *hymn* "e-zzz"))
+    => :missing
+
+Slice ids. A measure spans every part, so one voice's share of a measure (a
+part's <measure> in MusicXML) is named by joining two ids with a dot. A slice
+id is an NCName that no element can have, since element ids have no dot:
+
+  (slice-id (element-id measure) (element-id bass))
+    => "m-c.v-3h"   ; bar 9 of the bass
+  (list (ncname-p slice) (valid-id-p slice)) => (t nil)
+  (find-slice *hymn* "m-c.v-3h") => (values #<measure-info "m-c"> #<voice "v-3h">)
+  (find-slice *hymn* "m-c.e-26" :errorp nil) => nil   ; e-26 is an event: no slice
+  (element-id (melody-at *hymn* 9 0)) => "e-26"
+  (slice-id "m-1" "not an id")
+    -> simple-type-error: The value of element-id is "not an id", which is not an id string.
+
+========================================================================
+== 3. Bars and positions
+========================================================================
+Bar numbers are indices into the measure map. When the first measure is a
+pickup it is bar 0, so the first full bar is bar 1. Time and key signatures are
+inherited from the latest measure that has one. BAR-LENGTH is the meter's bar,
+or the measure's own LENGTH (the pickup's quarter). BAR-START adds them up:
+
+  (score-first-bar *hymn*) => 0
+  (score-last-bar *hymn*) => 17
+  (score-duration *hymn*) => 13   ; 1/4 + 17 bars of 3/4
+
+  bar  id     time  key      length  start  marks
+    0  m-1    3/4   G major  1/4     0      pickup Moderato q=84
+    1  m-3    3/4   G major  3/4     1/4    |: rehearsal A
+    2  m-5    3/4   G major  3/4     1
+    3  m-6    3/4   G major  3/4     7/4
+    4  m-7    3/4   G major  3/4     5/2
+    5  m-8    3/4   G major  3/4     13/4
+    6  m-9    3/4   G major  3/4     4
+    7  m-a    3/4   G major  3/4     19/4
+    8  m-b    3/4   G major  3/4     11/2
+    9  m-c    3/4   G major  3/4     25/4   rehearsal B
+   10  m-e    3/4   G major  3/4     7
+   11  m-f    3/4   G major  3/4     31/4
+   12  m-g    3/4   G major  3/4     17/2
+   13  m-h    3/4   G major  3/4     37/4
+   14  m-i    3/4   G major  3/4     10
+   15  m-j    3/4   G major  3/4     43/4
+   16  m-k    3/4   G major  3/4     23/2   [1. :| x2
+   17  m-m    3/4   G major  3/4     49/4   [2. final barline
+  (measure-info-time (bar-measure *hymn* 5)) => nil   ; inherited: nothing stored
+
+A position is (BAR . OFFSET), the offset a rational in whole notes from the
+start of the bar. ABSOLUTE-OFFSET turns it into whole notes from the start of
+the score, OFFSET-POSITION goes back. The end of a bar is the same instant as
+the start of the next, and OFFSET-POSITION gives the next bar. In a score with
+a pickup, (1 . 0) is the pickup's length:
+
+  (absolute-offset *hymn* '(0 . 0)) => 0
+  (absolute-offset *hymn* '(1 . 0)) => 1/4   ; the pickup's length
+  (absolute-offset *hymn* '(1 . 5/8)) => 7/8   ; the G eighth of "-ing"
+  (absolute-offset *hymn* '(9 . 5/8)) => 55/8
+  (absolute-offset *hymn* '(1 . 3/4)) => 1   ; the end of bar 1 ...
+  (absolute-offset *hymn* '(2 . 0)) => 1   ; ... is the start of bar 2
+  (offset-position *hymn* 1) => (2 . 0)
+  (offset-position *hymn* 1/8) => (0 . 1/8)
+  (offset-position *hymn* 55/8) => (9 . 5/8)
+  (offset-position *hymn* 13) => (17 . 3/4)   ; the very end
+
+ELEMENT-POSITION places any element: an event by its voice measure and the
+durations before it, a mark or lyric at its event, a tie at its start note, a
+slur at its first event, a measure mark at its bar. Parts, staves and voices
+have no position:
+
+  element  what                                   position
+  e-y      B4 eighth, "-ing"                      (1 . 1/2)
+  ly-10    its verse-2 lyric "that"               (1 . 1/2)
+  br-21    breath mark on the held D5             (8 . 0)
+  e-22     B4 quarter, "I"                        (8 . 1/2)
+  ti-4q    the tie D5 ~ D5                        (7 . 0)
+  sp-4u    the slur over "found"                  (12 . 0)
+  tm-2     tempo mark Moderato                    (0 . 0)
+  rh-d     rehearsal mark B                       (9 . 0)
+  en-n     second ending                          (17 . 0)
+  h-4f     chord symbol D7/F#                     (8 . 0)
+  e-43     bass rest, first ending                (16 . 1/2)
+  v-3h     the bass voice                         nil
+
+Round trips. OFFSET-POSITION of ABSOLUTE-OFFSET gives back the position of every
+event (59 of them, both voices), and the other way round every offset on the
+1/24 grid from 0 to 13 comes back (313 offsets, triplet eighths included):
+
+  (length events) => 59
+  (every
+   (lambda (event)
+     (let ((position (element-position *hymn* (element-id event))))
+       (equal (offset-position *hymn* (absolute-offset *hymn* position)) position)))
+   events)
+    => t
+  (loop for k from 0 to (* 13 24)
+        always (= (absolute-offset *hymn* (offset-position *hymn* (/ k 24)))
+                  (/ k 24)))
+    => t
+  (loop for bar from 0 to 17
+        always (equal (offset-position *hymn* (bar-start *hymn* bar)) (cons bar 0)))
+    => t   ; every bar-start is (bar . 0)
+
+INVALID-POSITION. A bar outside 0..17, an offset past its bar (the pickup is
+only a quarter long), or an absolute offset outside 0..13 signals
+INVALID-POSITION with the argument, inside a USE-VALUE restart. A position
+that isn't a cons, or a float offset, is a TYPE-ERROR:
+
+  (absolute-offset *hymn* '(0 . 1/2))
+    -> invalid-position: invalid position (0 . 1/2): outside the score
+  (absolute-offset *hymn* '(18 . 0))
+    -> invalid-position: invalid position (18 . 0): outside the score
+  (offset-position *hymn* 14)
+    -> invalid-position: invalid position 14: outside the score
+  (offset-position *hymn* -1/8)
+    -> invalid-position: invalid position -1/8: outside the score
+  (bar-length *hymn* 18)
+    -> invalid-position: invalid position 18: no such bar
+  (bar-start *hymn* -1)
+    -> invalid-position: invalid position -1: no such bar
+  (absolute-offset *hymn* 3)
+    -> simple-type-error: The value of position is 3, which is not a (bar . offset) position.
+  (offset-position *hymn* 0.5)
+    -> simple-type-error: The value of score-protocol::offset is 0.5, which is not of type rational.
+  (handler-case (absolute-offset *hymn* '(18 . 0))
+                (invalid-position (c) (invalid-position-position c)))
+    => (18 . 0)
+
+A handler can answer with USE-VALUE. Here a past-the-end offset is clamped to
+the last position, and a bar past the end to the score's duration:
+
+  (handler-bind ((invalid-position
+                  (lambda (c) (use-value (cons 17 (bar-length *hymn* 17)) c))))
+    (offset-position *hymn* 20))
+    => (17 . 3/4)
+  (handler-bind ((invalid-position
+                  (lambda (c) (use-value (score-duration *hymn*) c))))
+    (list (absolute-offset *hymn* '(4 . 1/4)) (absolute-offset *hymn* '(25 . 0))))
+    => (11/4 13)
+  (let ((empty (make-score)))
+    (list (score-first-bar empty) (score-last-bar empty) (score-duration empty)
+          (handler-case (absolute-offset empty '(1 . 0))
+                        (invalid-position nil :invalid))))
+    => (1 0 0 :invalid)   ; no measures: every position is invalid
+
+========================================================================
+== 4. Validation: CHECK-SCORE and VALIDATE-SCORE
+========================================================================
+MAKE-SCORE accepts any score whose values have the right types. Whether they
+fit together is reported, not refused: CHECK-SCORE returns a list of
+SCORE-ISSUEs (kind, subject id, bar, detail) and never signals. The hymn has
+none. Here is a copy with four mistakes, each made with REPLACE-EVENT or
+REPLACE-MEASURE (demo.lisp: rebuild one element, keep its id):
+
+  (check-score *hymn*) => nil
+
+1. An overfull bar: the E4 quarter of bar 3 becomes a half note.
+
+  (setf *broken* (replace-event *broken* (copy-note (melody-at *broken* 3 1) :duration 1/2)))
+
+2. A tie to a different pitch: the D5 that the bar-7 tie ends on becomes C5.
+
+  (setf *broken*
+          (replace-event *broken* (copy-note (melody-at *broken* 8 0) :pitch (parse-pitch "C5"))))
+
+3. A lyric on a rest: the bass rest of the pickup gets a syllable.
+
+  (setf *broken*
+          (replace-event *broken*
+                         (make-rest-event :id (element-id (bass-at *broken* 0 0)) :duration 1/4
+                                          :lyrics (list (make-lyric :text "Oh")))))
+
+4. An ending past the end: the second ending, on the last bar, claims three
+measures.
+
+  (setf *broken*
+          (let ((last (bar-measure *broken* 17)))
+            (replace-measure *broken*
+                             (copy-measure last :ending
+                                           (make-ending :id
+                                                        (element-id (measure-info-ending last))
+                                                        :passes '(2) :measures 3)))))
+
+  (length issues) => 4
+  (sort (mapcar #'score-issue-kind issues) #'string<)
+    => (:bad-ending :measure-duration :misplaced-lyric :tie-pitch)
+
+  kind               id     bar  the id names                     detail
+  :bad-ending        en-n    17  ending 2. over 3 measures        nil
+  :measure-duration  v-r      3  voice "Melody"                   (:expected 3/4 :actual 1)
+  :misplaced-lyric   ly-4w    0  lyric "Oh" on rest-event e-3i    nil
+  :tie-pitch         ti-4q    7  tie e-1x D5 ~ e-20 C5            nil
+
+  (score-issue-detail (funcall by-kind :measure-duration))
+    => (:expected 3/4 :actual 1)
+  (score-issue-bar (funcall by-kind :measure-duration)) => 3
+  (score-issue-id (funcall by-kind :measure-duration)) => "v-r"
+  (score-issue-id (funcall by-kind :tie-pitch)) => "ti-4q"
+  (score-issue-bar (funcall by-kind :bad-ending)) => 17
+
+CHECK-SCORE never signals, so even the broken score goes through it with no
+handler firing. It works from its own bar table, not ABSOLUTE-OFFSET:
+
+  (let ((signals 0))
+    (handler-bind ((condition (lambda (c) (declare (ignore c)) (incf signals))))
+      (check-score *broken*))
+    signals)
+    => 0
+
+VALIDATE-SCORE is the strict entry point: it returns a valid score as it is,
+and otherwise signals SCORE-INVARIANT-VIOLATION with the issues, inside a
+CONTINUE restart that returns the score as it is:
+
+  (eq (validate-score *hymn*) *hymn*) => t
+  (validate-score *broken*)
+    -> score-invariant-violation: score invariant violated: 4 issues, first #S(score-issue :kind :misplaced-lyric :id "ly-4w" :bar 0 :detail nil)
+  (handler-case (validate-score *broken*)
+                (score-invariant-violation (c)
+                 (length (score-invariant-violation-issues c))))
+    => 4
+  (eq
+   (handler-bind ((score-invariant-violation
+                   (lambda (c)
+                     (setf seen
+                             (mapcar #'score-issue-kind
+                                     (score-invariant-violation-issues c)))
+                     (continue c))))
+     (validate-score *broken*))
+   *broken*)
+    => t   ; resumed with CONTINUE
+  (sort seen #'string<)
+    => (:bad-ending :measure-duration :misplaced-lyric :tie-pitch)
+  (typep (make-condition 'score-invariant-violation) 'score-error) => t
+
+========================================================================
+== 5. Provenance and confidence
+========================================================================
+Every element can say where it came from and how sure its producer was.
+PROVENANCE is a struct: SOURCE (:user, :musicxml, :midi, :omr, :transcription
+...), BACKEND, PAGE, BBOX, TIME-RANGE. CONFIDENCE is NIL (not recorded:
+certain) or a real in 0..1. A recognizer marks its guesses, and a review step
+asks UNCERTAIN-ELEMENTS for the ones below a threshold (default 0.8).
+
+Here the same builder plays a recognition step reading the tune from page 1:
+every note, lyric and chord symbol gets provenance :OMR, and seven elements a
+confidence and a bounding box (*RECOGNITION* in demo.lisp):
+
+  (equal (mapcar #'element-id (score-elements read))
+         (mapcar #'element-id (score-elements *hymn*)))
+    => t   ; the same ids: same input, same order
+  (score-equal read *hymn*) => nil   ; provenance and confidence count
+  (provenance-source (element-provenance (melody-at read 1 0))) => :omr
+  (element-confidence (melody-at read 1 0)) => nil   ; certain
+  (element-provenance (melody-at *hymn* 1 0)) => nil   ; built by hand: none
+
+(uncertain-elements read), in document order:
+
+  id     class                what           position   confidence  page  bbox
+  br-21  breath-mark          on e-20        (8 . 0)    0.38        1     (1092 1340 14 22)
+  e-29   note-event           B4 e           (9 . 1/2)  0.55        1     (312 1612 22 64)
+  ly-2b  lyric                verse 2 "cious"  (9 . 1/2)  0.41        1     (300 1760 70 26)
+  e-2s   note-event           E4 q           (12 . 1/2)  0.72        1     (848 1630 20 58)
+  h-4f   chord-symbol-anchor  D7/F#          (8 . 0)    0.66        1     (1040 1250 96 30)
+
+  (mapcar #'element-confidence uncertain) => (0.38 0.55 0.41 0.72 0.66)
+  (mapcar #'element-confidence (uncertain-elements read :below 0.5)) => (0.38 0.41)
+  (mapcar #'element-confidence (uncertain-elements read :below 1))
+    => (0.85 0.38 0.55 0.41 0.72 0.93 0.66)   ; the tempo mark comes first: measures lead
+  (uncertain-elements read :below 0) => nil
+  (uncertain-elements *hymn*) => nil
+  (count-if #'element-provenance (score-elements read))
+    => 114   ; 37 notes, 56 lyrics, 18 chords, 3 marks
+  (count-if #'element-confidence (score-elements read)) => 7
+  (element-provenance note)
+    => #S(provenance :source :omr :backend "demo-omr" :page 1 :bbox (312 1612 22 64) :time-range nil)
+
+A reviewer who confirms the B4 eighth of bar 9 rebuilds it with the same id and
+confidence 1 (SC1's edits will do this, setting provenance :USER):
+
+  (element-id (melody-at fixed 9 1)) => "e-29"
+  (mapcar #'element-id (uncertain-elements fixed))
+    => ("br-21" "ly-2b" "e-2s" "h-4f")
+  (make-lyric :text "la" :confidence 1.5)
+    -> simple-type-error: The value of score-protocol::confidence is 1.5, which is not of type (or (float 0.0 1.0) null (rational 0 1)).
+
+========================================================================
+== 6. The canonical s-expression form
+========================================================================
+SCORE-TO-SEXP writes the reference serialization: a form of conses, keywords,
+strings and numbers, with every id and the id counter. Keys come in a fixed
+order and defaults are left out, so equal scores give EQUAL forms. Pitches,
+meters and keys are written as music-theory text ("F#2", "3/4", "G major").
+The hymn's form starts like this:
+
+  (:score :metadata
+   (:title "Amazing Grace" :subtitle "NEW BRITAIN" :composer "American folk melody, 1829"
+    :lyricist "John Newton, 1779")
+   :id-counter 175 :measures
+   ((:measure :id "m-1" :time "3/4" :key "G major" :pickup t :length 1/4 :tempo
+     ((:tempo-mark :id "tm-2" :bpm 84 :beat-unit 1/4 :text "Moderato")))
+    (:measure :id "m-3" :repeat-start t :rehearsal (:rehearsal :id "rh-4" :text "A"))
+    (:measure :id "m-5") (:measure :id "m-6") (:measure :id "m-7") (:measure :id "m-8")
+    (:measure :id "m-9") (:measure :id "m-a") (:measure :id "m-b")
+    (:measure :id "m-c" :rehearsal (:rehearsal :id "rh-d" :text "B")) (:measure :id "m-e")
+    (:measure :id "m-f") (:measure :id "m-g") (:measure :id "m-h") (:measure :id "m-i")
+    (:measure :id "m-j")
+    (:measure :id "m-k" :repeat-end 2 :ending (:ending :id "en-l" :passes (1)))
+    (:measure :id "m-m" :barline :final :ending (:ending :id "en-n" :passes (2))))
+   :parts
+   ((:part :id "p-o" :name "Hymn tune" :staves
+     ((:staff :id "st-p") (:staff :id "st-q" :clef :bass)) :voices
+     ((:voice :id "v-r" :name "Melody" :measures
+       (((:note :id "e-s" :pitch "D4" :duration 1/4 :dynamic (:dynamic :id "dy-t" :value :mp)
+          :lyrics ((:lyric :id "ly-u" :text "A" :syllabic :begin))))
+        ((:note :id "e-v" :pitch "G4" :duration 1/2 :lyrics
+          ((:lyric :id "ly-w" :text "maz" :syllabic :middle)
+           (:lyric :id "ly-x" :verse 2 :text "grace")))
+         (:note :id "e-y" :pitch "B4" :duration 1/8 :lyrics
+  ... 138 more lines
+
+  14494 characters when printed with PRIN1 under WITH-STANDARD-IO-SYNTAX.
+  (first form) => :score
+  (getf (rest form) :id-counter) => 175
+
+ELEMENT-TO-SEXP writes one element and everything inside it: the B4 eighth of
+bar 1 with its two lyrics, and the chord symbol in bar 8:
+
+  (:note :id "e-y" :pitch "B4" :duration 1/8 :lyrics
+   ((:lyric :id "ly-z" :text "ing" :syllabic :end :extender t)
+    (:lyric :id "ly-10" :verse 2 :text "that" :extender t)))
+  (:chord-symbol :id "h-4f" :bar 8 :offset 0 :symbol
+   (:root "D" :quality :dominant-7 :bass "F#" :text "D7/F#" :dialect :pop))
+  (element-id (sexp-to-element (element-to-sexp (melody-at *hymn* 1 1)))) => "e-y"
+
+Reading it back. The text goes through READ with *READ-EVAL* NIL, then
+SEXP-TO-SCORE. The copy is SCORE-EQUAL (model equality: content, ids,
+provenance and confidence), has the same counter, writes the same form, and
+mints the same next id:
+
+  (equal read-form form) => t
+  (score-equal copy *hymn*) => t
+  (eq copy *hymn*) => nil
+  (score-id-counter copy) => 175
+  (equal (score-to-sexp copy) form) => t
+  (check-score copy) => nil
+  (list (next-id *hymn*) (next-id copy)) => ("h-4w" "h-4w")
+
+SCORE-EQUAL ignores the counter, which is bookkeeping, and counts everything
+else:
+
+  (score-equal *hymn*
+               (sexp-to-score
+                (list* :score :id-counter 999
+                       (let ((plist (copy-list (rest form))))
+                         (remf plist :id-counter)
+                         plist))))
+    => t   ; the same score with counter 999
+  (score-equal *hymn* *draft*) => nil   ; no tie, no slurs
+  (score-equal *hymn* *broken*) => nil
+  (score-equal *broken* (sexp-to-score (score-to-sexp *broken*)))
+    => t   ; invalid scores round-trip too
+
+Reader errors. A form that isn't a kind keyword and a proper plist, a kind the
+key doesn't take, an unknown key or a key given twice signals
+SCORE-FORMAT-ERROR (FORMAT :SEXP). Its POSITION is the offending sub-form:
+
+  (:score :measures ((:measure :time "3/4" :key "G major" :pickup t :lenght 1/4))
+   :parts nil)
+    -> score-format-error: sexp format error: unknown key :LENGHT at (:measure :time "3/4" :key "G major" :pickup t :lenght 1/4)
+       position: (:measure :time "3/4" :key "G major" :pickup t :lenght 1/4)
+  (:score :measures ((:measure :time "3/4")) :parts
+   ((:part :staves ((:staff)) :voices
+     ((:voice :measures
+       (((:note :pitch "G4" :duration 3/4 :fermata (:tie :end "e-9")))))))))
+    -> score-format-error: sexp format error: expected a form of kind :FERMATA at (:tie :end "e-9")
+       position: (:tie :end "e-9")
+  (:score :measures ((:measure :time "3/4")) :parts
+   ((:part :staves ((:staff)) :voices
+     ((:voice :measures
+       (((:note :pitch "G4" :duration 3/4 :lyrics ((:lyric :text "la" :verse))))))))))
+    -> score-format-error: sexp format error: not a property list at (:lyric :text "la" :verse)
+       position: (:lyric :text "la" :verse)
+  (:score :measures ((:measure :time "3/4" :time "6/8")) :parts nil)
+    -> score-format-error: sexp format error: key :TIME given twice at (:measure :time "3/4" :time "6/8")
+       position: (:measure :time "3/4" :time "6/8")
+  (:scor :measures nil :parts nil)
+    -> score-format-error: sexp format error: expected a :score form at (:scor :measures nil :parts nil)
+       position: (:scor :measures nil :parts nil)
+
+Errors from the constructors and from music-theory's parsers are not wrapped:
+they reach the caller with their own restarts. A pitch that doesn't parse can
+be replaced with USE-VALUE, a duration that is out of range with STORE-VALUE,
+and the reading goes on:
+
+  (sexp-to-score bad-pitch)
+    -> invalid-pitch: invalid-pitch "H4": unknown letter
+  (let ((score
+         (handler-bind ((music-theory:invalid-pitch
+                         (lambda (c) (use-value (parse-pitch "B4") c))))
+           (sexp-to-score bad-pitch))))
+    (pitch-name (note-pitch (event-at score 0 1 0))))
+    => "B4"
+  (sexp-to-score bad-duration)
+    -> simple-type-error: The value of score-protocol::duration is -3/4, which is not of type (rational (0)).
+  (let ((score
+         (handler-bind ((type-error (lambda (c) (store-value 3/4 c))))
+           (sexp-to-score bad-duration))))
+    (list (event-duration (event-at score 0 1 0)) (check-score score)))
+    => (3/4 nil)
+
+========================================================================
+== Summary
+========================================================================
+226 results checked against expected values: 0 mismatched.
+Every section ran to the end.
