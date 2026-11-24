@@ -1,14 +1,16 @@
 (in-package #:harness-demos-score)
 
-;;;; A tour of score-protocol 0.2.0. Slice SC0 is the canonical, immutable
-;;;; model of a notated score; slice SC1 the edit-operation algebra and views.
+;;;; A tour of score-protocol 0.3.0. Slice SC0 is the canonical, immutable
+;;;; model of a notated score; slice SC1 the edit-operation algebra and views;
+;;;; slice SC3 drafts, whose ties and spanners name elements not minted yet.
 ;;;; One public-domain hymn tune, NEW BRITAIN ("Amazing Grace": American folk
 ;;;; melody, 1829; words by John Newton, 1779), is built in code (section 1).
 ;;;; The sections then cover its element ids (2), bars and positions (3),
 ;;;; validation (4), provenance and confidence (5), the canonical s-expression
 ;;;; form (6), editing (7), undo and composition (8), re-barring (9),
-;;;; transposition (10) and views (11). Section 11 also builds a four-part
-;;;; fragment of OLD HUNDREDTH (melody by Louis Bourgeois, 1551). Every result
+;;;; transposition (10), views (11) and the score builder (12). Section 11 also
+;;;; builds a four-part fragment of OLD HUNDREDTH (melody by Louis Bourgeois,
+;;;; 1551); section 12 the hymn's first line as a score of two parts. Every result
 ;;;; with a known answer is also checked: RUN-DEMOS returns NIL when one
 ;;;; differs or a section stops on an error.
 
@@ -336,7 +338,7 @@ or the stop note of a tie. Its syllable then gets an extender line."
                               :text (second tempo)
                               (funcall annotate (list :tempo bar))))))))
 
-(defun build-hymn (&key (annotate (constantly nil)))
+(defun build-hymn (&key (annotate (constantly nil)) spanners)
   "Step 1: every element but the tie and the slurs, which name notes by id.
 MAKE-SCORE mints an id for each element, in document order."
   (let ((lyrics (hymn-lyrics annotate)))
@@ -361,7 +363,8 @@ MAKE-SCORE mints an id for each element, in document order."
      :chord-symbols (loop for (position text) in *chords*
                           collect (apply #'make-chord-symbol-anchor
                                          :position position :symbol (parse-chord-symbol text)
-                                         (funcall annotate (list :anchor position)))))))
+                                         (funcall annotate (list :anchor position))))
+     :spanners spanners)))
 
 ;;; Reading and rebuilding ------------------------------------------------------
 
@@ -2071,12 +2074,446 @@ ending, then a four-bar interlude with rehearsal mark C and D.C. al Fine."
     (show (order-runs (playback-order view id-map passes *hymn*)) '((0 16 1) (1 15 2) (17 17 1))
           "(first last pass)")))
 
+;;; 12. Drafts: the score builder (0.3.0) ---------------------------------------------
+;;; score-protocol 0.3.0 (SC3). The first line of NEW BRITAIN as a score of two
+;;; parts, built in one MAKE-SCORE call: its tie and slurs name their notes
+;;; through the DRAFT-REFs of a SCORE-BUILDER. A key names each element that a
+;;; reference needs: (:MELODY bar j) a melody note, :MELODY and :BASS the parts.
+
+(defparameter *duet-melody*
+  (append (subseq *melody* 0 8) '((("D5" 1/2 :held) (:rest 1/4))))
+  "The melody of the pickup and bars 1-8. The line ends on the held D5: the B4
+that picks up the next line is a rest here.")
+
+(defparameter *duet-tie* '((:melody 7 0) (:melody 8 0))
+  "The D5 of bar 7 is tied to the D5 that starts bar 8.")
+
+(defparameter *duet-slurs* '(((:melody 1 1) (:melody 1 2)) ((:melody 5 1) (:melody 5 2)))
+  "The two melismas of the line, as the keys of their first and last notes.")
+
+(defparameter *duet-prefer* '((:melody . "P1") (:bass . "P2"))
+  "Preferred ids of the parts, as a reader would take them from its file.")
+
+(defun duet-prefer (key) (cdr (assoc key *duet-prefer*)))
+
+(defun duet-carrier-p (key)
+  "True when the element of KEY is one a reference names: a part, or a note at
+the end of the tie or of a slur."
+  (and (or (assoc key *duet-prefer*)
+           (equal key (second *duet-tie*))
+           (some (lambda (slur) (member key slur :test #'equal)) *duet-slurs*))
+       t))
+
+(defun builder-functions (builder)
+  "The CARRIER and TARGET functions of BUILD-DUET for BUILDER: both return the
+ref of the key, with the part's preferred id."
+  (flet ((ref (key) (builder-ref builder key :prefer (duet-prefer key))))
+    (values #'ref #'ref)))
+
+(defun duet-event (spec key lyrics carrier target)
+  (destructuring-bind (pitch duration &rest flags) spec
+    (if (eq pitch :rest)
+        (make-rest-event :duration duration)
+        (make-note-event :id (and (duet-carrier-p key) (funcall carrier key))
+                         :pitch (parse-pitch pitch) :duration duration
+                         :dynamic (dynamic-of flags)
+                         :tie (and (equal key (first *duet-tie*))
+                                   (make-tie :end (funcall target (second *duet-tie*))))
+                         :lyrics lyrics))))
+
+(defun build-duet (carrier target)
+  "The first line of NEW BRITAIN as two parts, the melody (with verse 1) and the
+bass, in one MAKE-SCORE call. CARRIER maps the key of an element that a
+reference names to its :ID (a DRAFT-REF, an id string or NIL). TARGET maps a key
+to what a tie's END or a slur's START or END holds for it."
+  (let ((lyrics (hymn-lyrics (constantly nil))))
+    (flet ((verse-1 (bar j)
+             (remove 1 (gethash (list bar j) lyrics) :key #'lyric-verse :test-not #'eql))
+           (voice (name staff measures)
+             (make-voice :name name :staff staff :measures measures)))
+      (make-score
+       :metadata '(:title "Amazing Grace" :subtitle "NEW BRITAIN, the first line"
+                   :composer "American folk melody, 1829" :lyricist "John Newton, 1779")
+       :measures (loop for bar from 0 to 8
+                       collect (case bar
+                                 (0 (hymn-measure 0 (constantly nil)))
+                                 (8 (make-measure-info :barline :final))
+                                 (t (make-measure-info))))
+       :parts (list (make-part
+                     :id (funcall carrier :melody) :name "Melody"
+                     :staves (list (make-staff :clef :treble))
+                     :voices (list (voice "Melody" 1
+                                          (loop for specs in *duet-melody*
+                                                for bar from 0
+                                                collect (loop for spec in specs
+                                                              for j from 0
+                                                              collect (duet-event spec (list :melody bar j)
+                                                                                  (verse-1 bar j)
+                                                                                  carrier target))))))
+                    (make-part
+                     :id (funcall carrier :bass) :name "Bass"
+                     :staves (list (make-staff :clef :bass))
+                     :voices (list (voice "Bass" 1 (mapcar (lambda (specs) (mapcar #'bass-event specs))
+                                                           (subseq *bass* 0 9))))))
+       :chord-symbols (loop for (position text) in *chords*
+                            when (<= (car position) 8)
+                              collect (make-chord-symbol-anchor :position position
+                                                                :symbol (parse-chord-symbol text)))
+       :spanners (loop for (start end) in *duet-slurs*
+                       collect (make-spanner :kind :slur :start (funcall target start)
+                                             :end (funcall target end)))))))
+
+(defun duet-part (score n) (fset:lookup (score-parts score) n))
+(defun duet-voice (score n) (first (part-voices (duet-part score n))))
+
+(defun duet-element (score key)
+  "The element of SCORE that KEY names."
+  (if (consp key)
+      (destructuring-bind (voice bar j) key
+        (fset:lookup (fset:lookup (voice-measures (duet-voice score (if (eq voice :melody) 0 1)))
+                                  (- bar (score-first-bar score)))
+                     j))
+      (duet-part score (if (eq key :melody) 0 1))))
+
+(defun print-duet (score)
+  "SCORE bar by bar: chord symbols, the melody part, verse 1 and the bass part."
+  (multiple-value-bind (starts ends) (slur-ends score)
+    (out "  bar  chords     ~19a verse 1        ~a~%"
+         (format nil "melody (~a)" (element-id (duet-part score 0)))
+         (format nil "bass (~a)" (element-id (duet-part score 1))))
+    (loop for bar from (score-first-bar score) to (score-last-bar score)
+          for i from 0
+          for melody = (fset:convert 'list (fset:lookup (voice-measures (duet-voice score 0)) i))
+          for bass = (fset:convert 'list (fset:lookup (voice-measures (duet-voice score 1)) i))
+          do (out "  ~3d  ~10a ~19a ~14a ~{~a~^ ~}~%" bar
+                  (format nil "~{~a~^ ~}"
+                          (mapcar #'chord-text
+                                  (remove bar (fset:convert 'list (score-chord-symbols score))
+                                          :key (lambda (a) (car (anchor-position a))) :test-not #'eql)))
+                  (format nil "~{~a~^ ~}" (mapcar (lambda (e) (event-text e starts ends)) melody))
+                  (verse-text melody 1)
+                  (mapcar (lambda (e) (event-text e starts ends)) bass)))))
+
+(defun print-duet-ids (score)
+  "Every id of SCORE in document order, grouped like PRINT-IDS-IN-ORDER: the
+measure map, each part with its staff and voice, the melody bar by bar, the
+bass, the chord symbols, the slurs."
+  (let ((groups '()) (voice nil))
+    (flet ((add (label id)
+             (if (equal (car (first groups)) label)
+                 (push id (cdr (first groups)))
+                 (push (list label id) groups))))
+      (dolist (element (score-elements score))
+        (let ((id (element-id element)))
+          (typecase element
+            ((or measure-info tempo-mark) (add "measure map" id))
+            (part (add (format nil "part ~a" (part-name element)) id))
+            ((or staff voice) (when (voice-p element) (setf voice element))
+             (add (car (first groups)) id))
+            (chord-symbol-anchor (add "chord symbols" id))
+            (spanner (add "slurs" id))
+            (t (add (if (string= (voice-name voice) "Melody")
+                        (format nil "  bar ~d" (car (element-position score id)))
+                        "  bass")
+                    id))))))
+    (loop for (label . ids) in (reverse groups)
+          do (print-wrapped label (reverse ids)))))
+
+(defun voice-p (object) (typep object 'voice))
+
+(defun all-strings-p (score)
+  "True when every id, tie end and spanner end of SCORE is a string: a score
+holds no DRAFT-REF."
+  (every (lambda (element)
+           (and (stringp (element-id element))
+                (typecase element
+                  (tie (stringp (tie-end element)))
+                  (spanner (and (stringp (spanner-start element)) (stringp (spanner-end element))))
+                  (t t))))
+         (score-elements score)))
+
+(defun ref-text (ref)
+  "A DRAFT-REF as it prints, without its address."
+  (strip-identities (code-text ref)))
+
+(defun shared-part-ref (builder)
+  "BUILD-DUET with BUILDER's refs, except that both parts carry the ref of :PART."
+  (build-duet (lambda (key) (builder-ref builder (if (keywordp key) :part key)))
+              (lambda (key) (builder-ref builder key))))
+
+(defvar *duet* nil "The first line of NEW BRITAIN as two parts, built from a draft.")
+
+(defun hymn-in-one-call ()
+  "Section 1's hymn from one draft: the tie and the five slurs refer to their
+notes through a builder, so MAKE-SCORE runs once."
+  (let* ((b (make-score-builder))
+         (tie (tie-notes))
+         (runs (slur-runs))
+         (carriers (cons (second tie) (reduce #'append runs))))
+    (build-hymn :annotate (lambda (key)
+                            (when (eq (first key) :note)
+                              (let ((at (rest key)))
+                                (append (when (member at carriers :test #'equal)
+                                          (list :id (builder-ref b at)))
+                                        (when (equal at (first tie))
+                                          (list :tie (make-tie :end (builder-ref b (second tie)))))))))
+                :spanners (loop for (start end) in runs
+                                collect (make-spanner :kind :slur :start (builder-ref b start)
+                                                      :end (builder-ref b end))))))
+
+(defun demo-builder ()
+  (para "score-protocol 0.3.0 adds drafts (slice SC3). Section 1 built the hymn in two"
+        "steps, because a tie or a slur names its notes by id and MAKE-SCORE mints the"
+        "ids. A reader of a file meets this in every score: a tie is written on a note"
+        "before the note it ends on. A SCORE-BUILDER hands out DRAFT-REFs, placeholders"
+        "for ids that are not minted yet. An element CARRIES a ref when the ref is its"
+        ":ID (every constructor takes one), and a tie's END or a spanner's START and END"
+        "REFER to it. MAKE-SCORE puts the minted ids in their place in the same call."
+        ""
+        "BUILDER-REF makes a ref on first use of a key and returns the same one after:")
+  (let ((b (make-score-builder))
+        (other (make-score-builder)))
+    (show (ref-text (builder-ref b '(:melody 8 0))) "#<draft-ref (:melody 8 0)>")
+    (show (eq (builder-ref b '(:melody 8 0)) (builder-ref b (list :melody 8 0))) t
+          "keys compare with EQUAL")
+    (show (eq (builder-ref b :melody) (builder-ref other :melody)) nil
+          "another builder, another ref")
+    (show (draft-ref-prefer (builder-ref b :melody :prefer "P1")) "P1")
+    (show (draft-ref-prefer (builder-ref b :melody)) "P1" "PREFER NIL keeps it")
+    (show-signal (builder-ref b :bass :prefer "1st") type-error)
+    (show (builder-id b :melody :errorp nil) nil "no score has carried it yet")
+    (show-signal (builder-id b :melody) unresolved-reference))
+  (format t "~%")
+  (para "A score of two parts: the first line of NEW BRITAIN, the pickup and bars 1-8,"
+        "with the melody and verse 1 in part \"Melody\" and the bass line in part"
+        "\"Bass\". The line ends on the held D5 (the B4 that picks up the next line is"
+        "a rest here). BUILD-DUET writes the draft in document order. The D5 of bar 7"
+        "is tied forward to a note that does not exist yet, so its tie refers to a ref;"
+        "the D5 of bar 8, built after it, carries that ref. Each slur refers to two"
+        "refs, and the parts carry refs that prefer the ids P1 and P2, as a reader"
+        "would take them from a file. The pieces of the draft:")
+  (let ((b (make-score-builder)))
+    (shown (make-note-event :pitch (parse-pitch "D5") :duration 3/4
+                            :tie (make-tie :end (builder-ref b '(:melody 8 0)))
+                            :lyrics (list (make-lyric :text "me!" :extender t))))
+    (shown (make-note-event :id (builder-ref b '(:melody 8 0)) :pitch (parse-pitch "D5")
+                            :duration 1/2))
+    (shown (make-spanner :kind :slur :start (builder-ref b '(:melody 1 1))
+                         :end (builder-ref b '(:melody 1 2))))
+    (para "and (MAKE-PART :ID (BUILDER-REF B :MELODY :PREFER \"P1\") ...) for the melody part."
+          "One call builds the score:")
+    (shown (setf *duet* (multiple-value-call #'build-duet (builder-functions b))))
+    (print-duet *duet*)
+    (format t "~%")
+    (show (check-score *duet*) nil)
+    (show (all-strings-p *duet*) t "every id, tie end and slur end is a string: no ref is left")
+    (show (length (score-elements *duet*)) 71)
+    (format t "~%")
+    (para "Every id in document order. The carriers of P1 and P2 took their preferred"
+          "ids. Every other element was minted, counting up in document order: unlike"
+          "section 2, where the tie got serial 170, the tie here gets the serial of its"
+          "place in bar 7.")
+    (print-duet-ids *duet*)
+    (format t "~%")
+    (let* ((ids (mapcar #'element-id (score-elements *duet*)))
+           (minted (remove-if-not (lambda (id) (find #\- id)) ids)))
+      (show (remove-if (lambda (id) (find #\- id)) ids) '("P1" "P2") "the preferred ids")
+      (show (equal (mapcar #'id-serial minted) (loop for i from 1 to 69 collect i)) t
+            "the 69 minted ids have serials 1 to 69, in document order")
+      (show (score-id-counter *duet*) 69 "P1 and P2 have no serial: the counter ignores them"))
+    (format t "~%")
+    (para "Each ref, its key, the id its carrier got (BUILDER-ID) and what refers to it."
+          "The tie (an element of bar 7) comes before the note it ends on:")
+    (let ((tie (note-tie (duet-element *duet* '(:melody 7 0)))))
+      (out "  key            id     carrier            referred to by~%")
+      (dolist (key (list :melody :bass '(:melody 1 1) '(:melody 1 2) '(:melody 5 1) '(:melody 5 2)
+                         '(:melody 8 0)))
+        (let ((id (builder-id b key)))
+          (out "  ~14a ~6a ~18a ~a~%" (code-text key) id
+               (if (keywordp key) (format nil "part ~s" (part-name (find-element *duet* id)))
+                   (id-what *duet* id))
+               (or (loop for spanner in (fset:convert 'list (score-spanners *duet*))
+                         when (or (equal id (spanner-start spanner)) (equal id (spanner-end spanner)))
+                           return (format nil "slur ~a ~:[(end)~;(start)~]" (element-id spanner)
+                                          (equal id (spanner-start spanner))))
+                   (and (equal id (tie-end tie)) (format nil "tie ~a in bar 7" (element-id tie)))
+                   "-"))
+          (check (element-id (duet-element *duet* key)) id (format nil "builder-id ~s" key))))
+      (format t "~%")
+      (show (tie-end tie) (builder-id b '(:melody 8 0)))
+      (show (< (id-serial (element-id tie)) (id-serial (tie-end tie))) t
+            "the tie points forward in document order")))
+  (format t "~%")
+  (para "The builder file's promise: MAKE-SCORE of a draft gives the score a caller would"
+        "get by building twice. The first build gives each carrier its preferred id (or"
+        "NIL) and every reference the placeholder \"zz\", to read off the minted ids. The"
+        "second build sets each reference to the id its note got in the first:")
+  (let* ((placeholders (build-duet #'duet-prefer (constantly "zz")))
+         (resolved (build-duet #'duet-prefer
+                               (lambda (key) (element-id (duet-element placeholders key))))))
+    (show (tie-end (note-tie (duet-element placeholders '(:melody 7 0)))) "zz")
+    (show (mapcar #'score-issue-kind (check-score placeholders)) '(:spanner-endpoint :spanner-endpoint :tie-target)
+          "two slurs and a tie to nothing")
+    (show (score-equal resolved *duet*) t)
+    (show (equal (mapcar #'element-id (score-elements resolved))
+                 (mapcar #'element-id (score-elements *duet*)))
+          t "the same ids in the same order"))
+  (format t "~%")
+  (para "Preferred ids. A given id always wins, the first carrier in document order wins"
+        "a preferred id, and a preferred id that has a serial raises the counter as a"
+        "given one does:")
+  (flet ((part-ids (score) (list (element-id (duet-part score 0)) (element-id (duet-part score 1)))))
+    (let* ((b (make-score-builder))
+           (given (build-duet (lambda (key) (if (eq key :bass) "P1" (builder-ref b key :prefer (duet-prefer key))))
+                              (lambda (key) (builder-ref b key)))))
+      (show (part-ids given) '("p-b" "P1") "the bass is given P1, so the melody's part is minted"))
+    (let* ((b (make-score-builder))
+           (both (build-duet (lambda (key) (builder-ref b key :prefer (if (keywordp key) "P1" nil)))
+                             (lambda (key) (builder-ref b key)))))
+      (show (part-ids both) '("P1" "p-1b") "both prefer P1: the melody comes first"))
+    (let* ((b (make-score-builder))
+           (high (build-duet (lambda (key) (builder-ref b key :prefer (if (eq key :melody) "p-zz" (duet-prefer key))))
+                             (lambda (key) (builder-ref b key)))))
+      (show (part-ids high) '("p-zz" "P2"))
+      (show (element-id (first (score-elements high))) "m-100"
+            "p-zz is serial 1295, so minting starts at 1296, even before the part")
+      (show (score-id-counter high) (+ 1295 69))))
+  (format t "~%")
+  (para "Refs that can't be resolved signal UNRESOLVED-REFERENCE. A ref that no element"
+        "carries is signalled once per ref, in document order, inside a USE-VALUE"
+        "restart whose value, an id string, stands for it. Here COPY-SCORE adds a slur"
+        "over bar 3 whose ends are refs nobody carries, and a handler answers with the"
+        "ids of the notes:")
+  (let ((b (make-score-builder))
+        (keys '()))
+    (flet ((slur-over-bar-3 ()
+             (copy-score *duet*
+                         :spanners (append (fset:convert 'list (score-spanners *duet*))
+                                           (list (make-spanner :kind :slur
+                                                               :start (builder-ref b '(:melody 3 0))
+                                                               :end (builder-ref b '(:melody 3 1))))))))
+      (show-signal (slur-over-bar-3) unresolved-reference)
+      (let ((score (handler-bind ((unresolved-reference
+                                    (lambda (c)
+                                      (push (unresolved-reference-key c) keys)
+                                      (use-value (element-id (duet-element *duet* (unresolved-reference-key c)))
+                                                 c))))
+                     (slur-over-bar-3))))
+        (show (reverse keys) '((:melody 3 0) (:melody 3 1)) "signalled in document order")
+        (show (fset:size (score-spanners score)) 3)
+        (show (check-score score) nil)
+        (show (builder-id b '(:melody 3 0) :errorp nil) nil
+              "no element carried that ref, so the builder has no id for it"))))
+  (format t "~%")
+  (para "A ref carried by two elements is an error with no restart, and a build that"
+        "signals records no ids. SHARED-PART-REF builds the duet with both parts"
+        "carrying the ref of the key :PART:")
+  (let ((b (make-score-builder)))
+    (show-signal (shared-part-ref b) unresolved-reference)
+    (show (handler-case (shared-part-ref b)
+            (unresolved-reference (c) (and (find-restart 'use-value c) t)))
+          nil "no USE-VALUE here")
+    (show (builder-id b '(:melody 8 0) :errorp nil) nil "nothing recorded, although that note was fine"))
+  (format t "~%")
+  (para "Refs are for building. An edit whose elements hold a ref is refused before its"
+        "other preconditions:")
+  (let ((b (make-score-builder)))
+    (show-signal (apply-edit *duet* (make-add-mark :target (element-id (duet-element *duet* '(:melody 8 0)))
+                                                   :mark (make-fermata :id (builder-ref b :fermata))))
+                 invalid-edit))
+  (format t "~%")
+  (para "An edit on the built score. ADD-MARK puts a fermata on the held D5 that ends"
+        "the line (its id from BUILDER-ID would do as well). The change set names one"
+        "element, and every subtree the edit does not touch is the old object (EQ):"
+        "the whole bass part, the measure map, the chord symbols, the slurs, the"
+        "melody's staff and its voice measures for bars 0-7. Only the path down to the"
+        "note is rebuilt: part P1, its voice, bar 8's voice measure and the note.")
+  (let* ((before *duet*)
+         (target (element-id (duet-element before '(:melody 8 0)))))
+    (shown (apply-edit *duet* (make-add-mark :target target :mark (make-fermata))))
+    (multiple-value-bind (after changes) (apply-edit before (make-add-mark :target target :mark (make-fermata)))
+      (out "  bar 8  before  ~a~%         after   ~a~%~%"
+           (bar-of-duet before 8) (bar-of-duet after 8))
+      (print-change-set before after changes)
+      (report-sharing before after)
+      (format t "~%")
+      (flet ((all-eq (a b) (and (= (length a) (length b)) (every #'eq a b) t))
+             (seq (s) (fset:convert 'list s)))
+        (let ((p1 (duet-part before 0)) (p1* (duet-part after 0)))
+          (out "  subtree                                          EQ~%")
+          (dolist (row (list (list "part P2, the bass, and everything in it"
+                                   (eq (duet-part before 1) (duet-part after 1)) t)
+                             (list "the measure map (9 measures, 1 tempo mark)"
+                                   (all-eq (seq (score-measure-map before)) (seq (score-measure-map after))) t)
+                             (list "the 8 chord symbols"
+                                   (all-eq (seq (score-chord-symbols before)) (seq (score-chord-symbols after))) t)
+                             (list "the 2 slurs"
+                                   (all-eq (seq (score-spanners before)) (seq (score-spanners after))) t)
+                             (list "P1's staff"
+                                   (all-eq (part-staves p1) (part-staves p1*)) t)
+                             (list "P1's voice measures for bars 0-7"
+                                   (all-eq (subseq (seq (voice-measures (duet-voice before 0))) 0 8)
+                                           (subseq (seq (voice-measures (duet-voice after 0))) 0 8))
+                                   t)
+                             (list "part P1" (eq p1 p1*) nil)
+                             (list "P1's voice" (eq (duet-voice before 0) (duet-voice after 0)) nil)
+                             (list "bar 8's voice measure"
+                                   (eq (fset:lookup (voice-measures (duet-voice before 0)) 8)
+                                       (fset:lookup (voice-measures (duet-voice after 0)) 8))
+                                   nil)
+                             (list "the D5 itself"
+                                   (eq (find-element before target) (find-element after target)) nil)))
+            (destructuring-bind (label value expected) row
+              (out "  ~48a ~a~%" label (if value "T" "NIL"))
+              (check value expected label))))
+        (format t "~%")
+        (show (list (change-set-created changes) (change-set-removed changes) (change-set-modified changes))
+              (list (list (element-id (event-fermata (find-element after target)))) '() (list target)))
+        (show (score-id-counter after) 70 "the fermata took the next serial"))))
+  (format t "~%")
+  (para "Section 1's hymn in one call. With a builder, the tie and the five slurs go"
+        "into the draft, and MAKE-SCORE runs once (HYMN-IN-ONE-CALL):")
+  (let* ((one (hymn-in-one-call))
+         (ids (mapcar #'element-id (score-elements one))))
+    (show (length ids) 175)
+    (show (equal (mapcar #'id-serial ids) (loop for i from 1 to 175 collect i)) t
+          "serials 1 to 175 in document order")
+    (show (element-id (note-tie (melody-at one 7 0))) "ti-1y" "serial 70, in its place in bar 7")
+    (show (element-id (note-tie (melody-at *hymn* 7 0))) "ti-4q" "two steps: serial 170")
+    (show (equal (mapcar #'type-of (score-elements one)) (mapcar #'type-of (score-elements *hymn*))) t
+          "the same elements in the same order")
+    (show (score-equal one *hymn*) nil "only the ids differ")
+    (show (check-score one) nil))
+  (format t "~%")
+  (para "Two smaller changes in 0.3.0. ABSOLUTE-OFFSET says what is wrong with a"
+        "position (section 3 shows the first two; 0.2.0 said \"outside the score\" for"
+        "all three):")
+  (show-signal (absolute-offset *hymn* '(0 . 1/2)) invalid-position)
+  (show-signal (absolute-offset *hymn* '(18 . 0)) invalid-position)
+  (show-signal (absolute-offset *hymn* '(3 . -1/4)) invalid-position)
+  (para ""
+        "LOSSY-CONVERSION has a direction, :TO when a score is written (the default)"
+        "and :FROM when a file is read, and its report names it:")
+  (show (princ-to-string (make-condition 'lossy-conversion :format :midi :what "ids"))
+        "lossy conversion to midi: ids dropped")
+  (show (princ-to-string (make-condition 'lossy-conversion :format :musicxml :direction :from
+                                                           :what "a trill"))
+        "lossy conversion from musicxml: a trill dropped"))
+
+(defun bar-of-duet (score bar)
+  "The events of BAR in the melody part of the duet SCORE."
+  (multiple-value-bind (starts ends) (slur-ends score)
+    (format nil "~{~a~^ ~}"
+            (mapcar (lambda (event) (event-text event starts ends))
+                    (fset:convert 'list (fset:lookup (voice-measures (duet-voice score 0))
+                                                     (- bar (score-first-bar score))))))))
+
 ;;; Running -------------------------------------------------------------------------
 
 (defun run-demos ()
   "Print the tour. Returns T when every check matched and no section failed."
   (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '()))
-    (format t "~&score-protocol ~a (slices SC0, the score model, and SC1, edits and views) on music-theory ~a~%"
+    (format t "~&score-protocol ~a (slices SC0, the score model; SC1, edits and views; SC3, drafts and the score builder) on music-theory ~a~%"
             (asdf:component-version (asdf:find-system "score-protocol"))
             (asdf:component-version (asdf:find-system "music-theory")))
     (section "1. Building a score: a hymn tune in code" (demo-build))
@@ -2090,6 +2527,7 @@ ending, then a four-bar interlude with rehearsal mark C and D.C. al Fine."
     (section "9. Re-barring with SET-TIME" (demo-rebarring))
     (section "10. Transposition" (demo-transposition))
     (section "11. Views: EXTRACT-PART, CONDENSED-VIEW and UNFOLD" (demo-views))
+    (section "12. Drafts: the score builder and forward references (0.3.0)" (demo-builder))
     (banner "Summary")
     (format t "~d results checked against expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
