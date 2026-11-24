@@ -157,6 +157,40 @@
         (check "message names Chrome's errorText"
                (and (search "ERR_NAME_NOT_RESOLVED" (princ-to-string c)) t) t)))))
 
+(defun demo-navigate-own-document (browser)
+  (section "4b. NAVIGATE waits for its own document (#2, round 3)"
+           (para "After a :commit or :domcontentloaded navigation, that page's load event is still"
+                 "unread when the next NAVIGATE starts. PR #4's round-2 build took it as the next"
+                 "page's load. NAVIGATE now follows the main frame's documents (Page.frameNavigated"
+                 "and its loaderId) and waits for the one its own navigation committed.")
+           (b:navigate browser "data:text/html,<title>one</title>" :wait-until :commit)
+           (b:navigate browser "data:text/html,<title>two</title><p>2</p>")
+           (check "navigate(one, :commit), then navigate(two): readyState and title"
+                  (list (b:eval-js browser "document.readyState") (b:eval-js browser "document.title"))
+                  '("complete" "two"))
+           (let ((slow "data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>")
+                 (start nil))
+             (b:navigate browser "data:text/html,<title>three</title>" :wait-until :domcontentloaded)
+             (sleep 0.5)
+             (para ""
+                   "navigate(three, :domcontentloaded), 0.5 s, then navigate(slow, :timeout 2), whose"
+                   "image never arrives: three's load event must not end it.")
+             (setf start (get-internal-real-time))
+             (handler-case (progn (b:navigate browser slow :timeout 2)
+                             (check "navigate(slow) after three signals" :returned 'b:browser-timeout))
+               (b:browser-timeout (c)
+                 (show "navigate(slow) →" (format nil "~a after ~,1fs" (type-of c) (seconds-since start)))
+                 (show "message" c)
+                 (check "readyState of slow" (b:eval-js browser "document.readyState") "interactive")))
+             (let ((titles (loop for n below 6
+                                 for wait = (if (evenp n) :commit :load)
+                                 do (b:navigate browser (format nil "data:text/html,<title>t~d</title>" n)
+                                                :wait-until wait)
+                                 when (eq wait :load)
+                                   collect (b:eval-js browser "document.title"))))
+               (check "six navigations, :commit and :load in turn: title after each :load"
+                      titles '("t1" "t3" "t5"))))))
+
 (defun demo-events (browser)
   (section "5. Events: ON-CDP-EVENT and WAIT-FOR-CDP-EVENT"
            (para "Handlers run on the reading thread for every event read while a command or a"
@@ -323,6 +357,7 @@
             (demo-launch browser)
             (demo-replies-by-id browser)
             (demo-navigate browser)
+            (demo-navigate-own-document browser)
             (demo-events browser)
             (demo-octets browser)
             (demo-route browser)

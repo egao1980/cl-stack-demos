@@ -25,9 +25,9 @@ page with a flattened session: one socket, page commands carry the sessionId.
 
   find-browser-executable                /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
   process alive-p                        T
-  profile                                <tmp>/browser-protocol-1U85NCY-3UYZ8I/profile/
-  browser websocket                      ws://127.0.0.1:52522
-  session id (flatten)                   CCF5337C… (32 chars)
+  profile                                <tmp>/browser-protocol-1U85Q5Q-RO84EE/profile/
+  browser websocket                      ws://127.0.0.1:63993
+  session id (flatten)                   A6AD4B92… (32 chars)
   user agent                             Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
   ok       connected: T
 
@@ -39,7 +39,7 @@ Target.targetCreated event per target before the reply. 0.1.0 took the first eve
 as the reply and every later EVAL-JS read the next event (NIL, NIL, NIL). 0.2.0
 reads until the reply with its id and keeps the events in a bounded buffer.
 
-  Target.targetCreated events buffered   2: browser_ui, page
+  Target.targetCreated events buffered   5: page, service_worker, browser_ui, service_worker, service_worker
   ok       at least the page: T
   ok       eval-js 1+1, 2+2, 3+3: (2 4 6)
 
@@ -59,11 +59,29 @@ fires at once, load does not.
   :domcontentloaded returned after       0.0s
   ok       :domcontentloaded: readyState: "interactive"
   :load, :timeout 2 →                    BROWSER-TIMEOUT after 2.0s
-  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: no Page.loadEventFired within 2s
+  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: its document fired no load within 2s
   ok       browser-error-url: "data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>"
   ok       #fragment (same document, no load event): "#part"
   unresolvable host →                    BROWSER-ERROR
   ok       message names Chrome's errorText: T
+
+========================================================================
+== 4b. NAVIGATE waits for its own document (#2, round 3)
+========================================================================
+After a :commit or :domcontentloaded navigation, that page's load event is still
+unread when the next NAVIGATE starts. PR #4's round-2 build took it as the next
+page's load. NAVIGATE now follows the main frame's documents (Page.frameNavigated
+and its loaderId) and waits for the one its own navigation committed.
+
+  ok       navigate(one, :commit), then navigate(two): readyState and title: ("complete" "two")
+
+navigate(three, :domcontentloaded), 0.5 s, then navigate(slow, :timeout 2), whose
+image never arrives: three's load event must not end it.
+
+  navigate(slow) →                       BROWSER-TIMEOUT after 2.0s
+  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: its document fired no load within 2s
+  ok       readyState of slow: "interactive"
+  ok       six navigations, :commit and :load in turn: title after each :load: ("t1" "t3" "t5")
 
 ========================================================================
 == 5. Events: ON-CDP-EVENT and WAIT-FOR-CDP-EVENT
@@ -167,4 +185,4 @@ use *BROWSER-BACKEND* (0.1.0 ignored it).
   ok       (eval-js nil "document.title"): "with-browser"
   ok       closed on the way out: NIL
 
-47 checks, 0 mismatched
+50 checks, 0 mismatched
