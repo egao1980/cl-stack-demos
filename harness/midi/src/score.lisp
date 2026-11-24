@@ -1,11 +1,14 @@
-;;;; Part 2: score-backend-midi 0.1.0 (slice SC4), notated scores to and from
+;;;; Part 2: score-backend-midi 0.1.1 (slice SC4), notated scores to and from
 ;;;; Standard MIDI Files. It runs on midi-protocol (part 1), score-protocol
-;;;; 0.2.0, music-theory and sat-protocol 0.2.0 with sat-backend-cdcl 0.1.0.
+;;;; (0.3.0 in the last run), music-theory 0.5.2 and sat-protocol 0.2.0 with
+;;;; sat-backend-cdcl 0.1.0.
 ;;;; A four-part OLD HUNDREDTH is built in code and exported as written and with
 ;;;; its repeat played out (section 9), as a rehearsal set (10), and read back
 ;;;; (11). A humanised performance of a melody is then imported, with the grid
 ;;;; chosen per beat, the spelling and the uncertainty report (12), and mido
-;;;; reads the exported file (13). The checks and sections are part 1's.
+;;;; reads the exported file (13). Section 14 shows the two 0.1.1 fixes: the
+;;;; spelling confidence from the deciding rule and the late last note. The
+;;;; checks and sections are part 1's.
 
 (in-package #:harness-demos-midi)
 
@@ -860,14 +863,16 @@ notes. No time or key signature: the keyboard didn't know them."
               ~a is the key, and its correlation would be the key's confidence; the first~%~
               measure takes the lesser of the two, ~a, and is reported as \"meter\".~%~
               Spelling follows the key: MIDI 66 is F#4, not Gb4, in D major, and the chromatic~%~
-              68 of the triplet is G#4, the raised fourth rising to A4. It is not in the key,~%~
-              so its confidence is 1 - its ambiguity: ~a (~,3f).~%"
+              68 of the triplet is G#4, the raised fourth rising to A4. It is not in the key, but~%~
+              rule S4 (a semitone resolution) decides it. Since 0.1.1 its spelling confidence is~%~
+              1, so the note keeps its onset's quantisation confidence, ~a (~,3f), and is not~%~
+              flagged (0.1.0 gave it 14/45; section 14).~%"
              smidi:+guess-confidence+
              (mapcar (lambda (cell) (list (mt:key-name (car cell)) (cdr cell))) (subseq ranking 0 4))
              (mt:key-name (car (first ranking))) (sp:element-confidence first-measure)
              (sp:element-confidence sharp) (float (sp:element-confidence sharp)))
         (check (mt:key-name (car (first ranking))) "D major" "first of the ranking")
-        (check (sp:element-confidence sharp) 14/45 "G#4 spelling confidence"))
+        (check (sp:element-confidence sharp) 99/100 "G#4 confidence"))
       (check (mt:key-name (sp:bar-key score (sp:score-first-bar score))) "D major" "detected key")
       (out "~%The uncertainty report, (uncertain-elements score) in document order:~%~%")
       (out "  id      kind          position  confidence  what~%")
@@ -988,3 +993,172 @@ print(' '.join(out))
                   (check (< (abs (- (getf mido :seconds) seconds)) 1d-9) t "mido length"))
                 (out "~%mido agrees with midi-protocol on every track's name, channel, program, note and~%~
                       velocity counts, lyrics, chord text events, tempi, time and key signatures.~%")))))))
+
+;;; 14. The 0.1.1 fixes --------------------------------------------------------------------------
+;;; score-backend-midi 0.1.1 changes two import rules: a note's spelling
+;;; confidence follows the music-theory rule that decided its spelling
+;;; (score-backend-midi#4), and a start snapped to the end of the last bar moves
+;;; back into it, flagged (#3, item 1).
+
+(defun quarter-notes-smf (key-name midis)
+  "Format 1, 480 ticks a quarter: track 0 holds 4/4 and the signature of the
+key KEY-NAME, track 1 the MIDIS as quarter notes from tick 0."
+  (let ((key (mt:parse-key key-name)))
+    (midi:make-smf
+     :format 1 :division +ppq+
+     :tracks (list (midi:track-from-absolute
+                    (list (cons 0 (midi:make-time-signature-event :numerator 4 :denominator 4))
+                          (cons 0 (midi:make-key-signature-event
+                                   :sharps (mt:key-signature key) :minor-p (eq :minor (mt:key-mode key))))))
+                   (midi:track-from-absolute
+                    (loop for midi in midis
+                          for tick from 0 by +ppq+
+                          collect (cons tick (midi:make-note-on-event :key midi :velocity 80))
+                          collect (cons (+ tick +ppq+) (midi:make-note-off-event :key midi))))))))
+
+(defparameter *spelling-rows*
+  '(("D major" (62 66 67 68 69)    "a semitone resolution: G#4 rises to A4")
+    ("C major" (64 68 71)          "an interval from the note before")
+    ("C major" (60 66 60)          "the key's center decides F#4 / Gb4")
+    ("C major" (60 66 60 66 60)    "the second F#4 copies the first")
+    ("C major" (68)                "a single G#4 / Ab4: a tie between the spellings"))
+  "Short note runs, one for each kind of deciding rule: key, MIDI numbers, what decides.")
+
+(defun spelling-table (key-name midis)
+  "((pitch rule ambiguity confidence) ...) for MIDIS imported as quarter notes in KEY-NAME."
+  (multiple-value-bind (pitches ambiguities rules)
+      (mt:spell-sequence midis :key (mt:parse-key key-name))
+    (let* ((score (smidi:import-midi (midi:write-smf (quarter-notes-smf key-name midis) nil)))
+           (events (mapcar #'second (voice-events score (first (score-voices score))))))
+      (loop for pitch in pitches
+            for a in ambiguities
+            for rule in rules
+            for event in events
+            do (check (mt:pitch-name (sp:note-pitch event)) (mt:pitch-name pitch) "import spells as SPELL-SEQUENCE")
+            collect (list (mt:pitch-name pitch) rule a (or (sp:element-confidence event) 1))))))
+
+(defun joyful-smf ()
+  "One bar of 4/4 in D major, the first bar of the \"Ode to Joy\" melody with the
+words \"Joy-ful, joy-ful\" (Henry van Dyke, 1907) as lyric events. The first
+three notes are on the beat and held for 90% of a quarter. The last, A4,
+belongs on beat 4 (tick 1440) but is played at tick 1882 and released at 1910,
+10 ticks before the barline. Nothing follows it: the file ends at 1910."
+  (flet ((note (tick off key text)
+           (list (cons tick (midi:make-note-on-event :key key :velocity 80))
+                 (cons tick (midi:make-lyric-event :text text))
+                 (cons off (midi:make-note-off-event :key key)))))
+    (midi:make-smf
+     :format 1 :division +ppq+
+     :tracks (list (midi:track-from-absolute
+                    (list (cons 0 (midi:make-time-signature-event :numerator 4 :denominator 4))
+                          (cons 0 (midi:make-key-signature-event :sharps 2))))
+                   (midi:track-from-absolute
+                    (append (note 0 432 66 "Joy-") (note 480 912 66 "ful,")
+                            (note 960 1392 67 "joy-") (note 1882 1910 69 "ful,")))))))
+
+(defun demo-fixes ()
+  (out "score-backend-midi 0.1.1 changes two import rules. For each, the case below shows~%~
+        what 0.1.1 imports and what 0.1.0 did (from the issue, the 0.1.1 contract, or the~%~
+        0.1.0 run of section 12 in this demo's history).~%~%")
+  (out "(a) Spelling confidence from the deciding rule (score-backend-midi#4). The import~%~
+        spells pitches with music-theory's SPELL-SEQUENCE, which since music-theory 0.5.2~%~
+        also returns the rule that decided each note (:S0 .. :S7). 0.1.0 gave every note~%~
+        outside the key the confidence 1 - its ambiguity, whatever decided it, so a G#4~%~
+        that resolves up to A4, which no musician would spell Ab4, was flagged. 0.1.1 maps~%~
+        the rule to a confidence through +SPELLING-RULE-CONFIDENCE+:~%~%")
+  (dolist (row smidi:+spelling-rule-confidence+)
+    (out "  ~(~s~)  ~a~%" (car row)
+         (let ((source (cdr row)))
+           (case source
+             (:copied "the confidence of the note whose spelling it copies")
+             (:before "the confidence of the note before (the interval's start)")
+             (:ambiguity "1 - ambiguity")
+             (t (format nil "~a" source))))))
+  (check (mapcar #'car smidi:+spelling-rule-confidence+) '(:s0 :s1 :s2 :s3 :s4 :s5 :s6 :s7) "the rules")
+  (out "~%Short runs imported as quarter notes, each in its key (QUARTER-NOTES-SMF). Every~%~
+        onset is exact, so a note's confidence is its spelling's; +FLAG-BELOW+ is ~a:~%~%"
+       smidi:+flag-below+)
+  (out "  key      MIDI              spelled (rule, confidence)~%")
+  (let ((results '()))
+    (loop for (key-name midis what) in *spelling-rows*
+          for table = (spelling-table key-name midis)
+          do (push table results)
+             (out "  ~8a ~17a ~{~a~^  ~}~%           ~a~%" key-name (format nil "~{~d~^ ~}" midis)
+                  (mapcar (lambda (r) (format nil "~a (~(~s~), ~a)~:[~; flagged~]" (first r) (second r) (fourth r)
+                                              (< (fourth r) smidi:+flag-below+)))
+                          table)
+                  what))
+    (setf results (nreverse results))
+    (check (mapcar (lambda (table) (mapcar #'second table)) results)
+           '((:s1 :s1 :s1 :s4 :s1) (:s1 :s5 :s1) (:s1 :s6 :s1) (:s1 :s6 :s1 :s3 :s1) (:s7))
+           "deciding rules")
+    (check (mapcar (lambda (table) (mapcar #'fourth table)) (subseq results 0 4))
+           '((1 1 1 1 1) (1 1 1) (1 7/24 1) (1 7/24 1 7/24 1))
+           "confidences")
+    (let ((tie (first (fifth results))))
+      (check (fourth tie) (- 1 (third tie)) "a tie keeps 1 - ambiguity")))
+  (out "~%Settled notes (key notes, a resolution, an interval) are no longer flagged. The~%~
+        notes only the center or a tie decides still are, and so is a note that copies~%~
+        one of them.~%~%")
+  (out "The performance of section 12, imported again. Its triplet G#4 is decided by :S4,~%~
+        the resolution to A4:~%~%")
+  (let* ((midis (mapcar #'third (ode-notes)))
+         (k (position 68 midis))
+         (rule (nth k (nth-value 2 (mt:spell-sequence midis :key (mt:parse-key "D major")))))
+         (score (handler-bind ((sp:lossy-conversion #'muffle-warning))
+                  (smidi:import-midi (midi:write-smf (ode-smf) nil))))
+         (sharp (second (find-if (lambda (row) (and (typep (second row) 'sp:note-event)
+                                                    (equal "G#4" (mt:pitch-name (sp:note-pitch (second row))))))
+                                 (voice-events score (first (score-voices score))))))
+         (report (mapcar (lambda (e) (list (sp:element-id e) (type-of e) (sp:element-confidence e)))
+                         (sp:uncertain-elements score))))
+    (out "  rule ~(~s~), confidence ~a (its onset's quantisation confidence), uncertain: ~a~%"
+         rule (sp:element-confidence sharp) (if (< (sp:element-confidence sharp) smidi:+flag-below+) "yes" "no"))
+    (out "  0.1.0: confidence 14/45 (0.311), and the uncertainty report listed it:~%")
+    (out "    e-14    note-event    7:5/12         0.311  spelling  G#4:e3~%")
+    (out "  0.1.1 report: ~{~{~a ~(~a~) ~a~}~^, ~}~%" report)
+    (check rule :s4 "the triplet G#4's rule")
+    (check (sp:element-confidence sharp) 99/100 "the triplet G#4's confidence")
+    (check (length report) 1 "the report: the assumed meter alone")
+    (check (second (first report)) 'sp:measure-info "the meter guess"))
+  (out "~%(b) A late last note stays in the last bar (score-backend-midi#3, item 1).~%~
+        JOYFUL-SMF is one bar of the \"Ode to Joy\" melody in D major with the words~%~
+        \"Joy-ful, joy-ful\" (Henry van Dyke, 1907). The last note, A4, belongs on beat 4~%~
+        but is played 442 ticks late, at 1882, and released at 1910, just before the~%~
+        barline at 1920. The file ends there, so the import finds one bar. On the beat's~%~
+        grid the start snaps to 1920, the end of the bar, which no bar holds.~%~%")
+  (let* ((bytes (midi:write-smf (joyful-smf) nil))
+         (log '())
+         (score (handler-bind ((sp:low-confidence-guess
+                                 (lambda (g)
+                                   (push (list (sp:low-confidence-guess-element-id g)
+                                               (sp:low-confidence-guess-what g)
+                                               (sp:low-confidence-guess-confidence g))
+                                         log)))
+                               (sp:lossy-conversion #'muffle-warning))
+                  (smidi:import-midi bytes)))
+         (voice (first (score-voices score)))
+         (rows (voice-events score voice))
+         (late (second (car (last rows)))))
+    (setf log (nreverse log))
+    (out "  (import-midi bytes)~%  bars ~d, the melody ~a~%  lyrics ~{~{~a ~s ~(~a~)~}~^, ~}~%"
+         (fset:size (sp:score-measure-map score)) (voice-text voice) (voice-lyrics score voice))
+    (out "  guesses ~{~{~a ~a ~a~}~^, ~}~%" log)
+    (check (fset:size (sp:score-measure-map score)) 1 "no bar is added")
+    (check (mapcar #'first (voice-notes score voice)) '(0 1/4 1/2 3/4) "A4 on beat 4")
+    (check (mt:pitch-name (sp:note-pitch late)) "A4" "the last note")
+    (check (sp:element-confidence late) smidi:+guess-confidence+ "flagged at +GUESS-CONFIDENCE+")
+    (check (assoc (sp:element-id late) log :test #'equal) (list (sp:element-id late) "quantization" 1/2)
+           "its guess")
+    (check (mapcar #'second (voice-lyrics score voice)) '("Joy" "ful," "joy" "ful,") "every syllable on its note")
+    (check (sp:check-score score) '() "a valid score")
+    (out "~%The start moved back to the last point of beat 4's own grid below the barline,~%~
+          the beat itself, at confidence ~a (+GUESS-CONFIDENCE+), and it is reported as a~%~
+          quantisation guess. Its lyric stays on it. 0.1.0 made no event for the A4, and~%~
+          placing its lyric then failed with an error. With :QUANTIZE NIL the ticks are~%~
+          kept, and the A4 starts inside the bar:~%~%" smidi:+guess-confidence+)
+    (let* ((exact (handler-bind ((sp:lossy-conversion #'muffle-warning))
+                    (smidi:import-midi bytes :quantize nil)))
+           (starts (mapcar #'first (voice-notes exact (first (score-voices exact))))))
+      (out "  (import-midi bytes :quantize nil) starts ~{~a~^ ~}~%" starts)
+      (check starts '(0 1/4 1/2 941/960) "unquantised starts"))))

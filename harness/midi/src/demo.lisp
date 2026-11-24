@@ -942,6 +942,7 @@ as a Lisp plist.")
     (section "12. Importing a performance: grid per beat, spelling, uncertainty"
       (demo-performance))
     (section "13. Cross-read of the exported hymn with mido" (demo-score-mido))
+    (section "14. The 0.1.1 fixes: spelling confidence, the late last note" (demo-fixes))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"

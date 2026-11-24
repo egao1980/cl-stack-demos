@@ -1,5 +1,4 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable names
 ; cl-repo: dependencies from cl-repo.lock (17 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
@@ -8,10 +7,6 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-; compiling file "<tmp>/harness/midi/src/score.lisp" (written 24 NOV 2026 06:12:45 AM):
-
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<tmp>/harness/midi/src/score-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.102
 midi-protocol 0.1.0 (SBCL 2.6.9): MIDI 1.0 events and Standard MIDI Files,
 files only
 
@@ -420,7 +415,7 @@ mido counts every event, the end of track included, as a message, and it agrees
 on every count, name and syllable. Its length (playback time through the tempo
 map, in floats) matches TICKS-TO-SECONDS.
 
-Part 2: score-backend-midi 0.1.0, scores to and from Standard MIDI Files (SC4)
+Part 2: score-backend-midi 0.1.1, scores to and from Standard MIDI Files (SC4)
 
 ==============================================================================
 == 9. Export a four-part hymn: channels, meta events, velocities, tie, repeat
@@ -695,7 +690,6 @@ confidence is below +FLAG-BELOW+ (0.8). The signal is silent unless handled; her
 HANDLER-BIND logs each one:
 
   LOW-CONFIDENCE-GUESS low-confidence guess for "m-1" (meter): 1/2
-  LOW-CONFIDENCE-GUESS low-confidence guess for "e-14" (spelling): 14/45
 
 The imported melody:
   F#4:q F#4:q G4:q A4:q | A4:q G4:q F#4:q E4:q | D4:q D4:q E4:q F#4:q | F#4:q. E4:e E4:h
@@ -709,14 +703,15 @@ pitch-class histogram of the notes, music-theory's DETECT-KEY; the first four:
 D major is the key, and its correlation would be the key's confidence; the first
 measure takes the lesser of the two, 1/2, and is reported as "meter".
 Spelling follows the key: MIDI 66 is F#4, not Gb4, in D major, and the chromatic
-68 of the triplet is G#4, the raised fourth rising to A4. It is not in the key,
-so its confidence is 1 - its ambiguity: 14/45 (0.311).
+68 of the triplet is G#4, the raised fourth rising to A4. It is not in the key, but
+rule S4 (a semitone resolution) decides it. Since 0.1.1 its spelling confidence is
+1, so the note keeps its onset's quantisation confidence, 99/100 (0.990), and is not
+flagged (0.1.0 gave it 14/45; section 14).
 
 The uncertainty report, (uncertain-elements score) in document order:
 
   id      kind          position  confidence  what
   m-1     measure-info  1:0            0.500  meter  4/4, D major
-  e-14    note-event    7:5/12         0.311  spelling  G#4:e3
 
 The HANDLER-BIND saw exactly these ids, in this order. No onset is in doubt: a
 20 ms slip is small against a 300 ms eighth or a 200 ms triplet eighth, and the
@@ -762,7 +757,77 @@ mido agrees with midi-protocol on every track's name, channel, program, note and
 velocity counts, lyrics, chord text events, tempi, time and key signatures.
 
 ==============================================================================
+== 14. The 0.1.1 fixes: spelling confidence, the late last note
+==============================================================================
+score-backend-midi 0.1.1 changes two import rules. For each, the case below shows
+what 0.1.1 imports and what 0.1.0 did (from the issue, the 0.1.1 contract, or the
+0.1.0 run of section 12 in this demo's history).
+
+(a) Spelling confidence from the deciding rule (score-backend-midi#4). The import
+spells pitches with music-theory's SPELL-SEQUENCE, which since music-theory 0.5.2
+also returns the rule that decided each note (:S0 .. :S7). 0.1.0 gave every note
+outside the key the confidence 1 - its ambiguity, whatever decided it, so a G#4
+that resolves up to A4, which no musician would spell Ab4, was flagged. 0.1.1 maps
+the rule to a confidence through +SPELLING-RULE-CONFIDENCE+:
+
+  :s0  the confidence of the note whose spelling it copies
+  :s1  1
+  :s2  1
+  :s3  the confidence of the note whose spelling it copies
+  :s4  1
+  :s5  the confidence of the note before (the interval's start)
+  :s6  1 - ambiguity
+  :s7  1 - ambiguity
+
+Short runs imported as quarter notes, each in its key (QUARTER-NOTES-SMF). Every
+onset is exact, so a note's confidence is its spelling's; +FLAG-BELOW+ is 0.8:
+
+  key      MIDI              spelled (rule, confidence)
+  D major  62 66 67 68 69    D4 (:s1, 1)  F#4 (:s1, 1)  G4 (:s1, 1)  G#4 (:s4, 1)  A4 (:s1, 1)
+           a semitone resolution: G#4 rises to A4
+  C major  64 68 71          E4 (:s1, 1)  G#4 (:s5, 1)  B4 (:s1, 1)
+           an interval from the note before
+  C major  60 66 60          C4 (:s1, 1)  F#4 (:s6, 7/24) flagged  C4 (:s1, 1)
+           the key's center decides F#4 / Gb4
+  C major  60 66 60 66 60    C4 (:s1, 1)  F#4 (:s6, 7/24) flagged  C4 (:s1, 1)  F#4 (:s3, 7/24) flagged  C4 (:s1, 1)
+           the second F#4 copies the first
+  C major  68                G#4 (:s7, 0) flagged
+           a single G#4 / Ab4: a tie between the spellings
+
+Settled notes (key notes, a resolution, an interval) are no longer flagged. The
+notes only the center or a tie decides still are, and so is a note that copies
+one of them.
+
+The performance of section 12, imported again. Its triplet G#4 is decided by :S4,
+the resolution to A4:
+
+  rule :s4, confidence 99/100 (its onset's quantisation confidence), uncertain: no
+  0.1.0: confidence 14/45 (0.311), and the uncertainty report listed it:
+    e-14    note-event    7:5/12         0.311  spelling  G#4:e3
+  0.1.1 report: m-1 measure-info 1/2
+
+(b) A late last note stays in the last bar (score-backend-midi#3, item 1).
+JOYFUL-SMF is one bar of the "Ode to Joy" melody in D major with the words
+"Joy-ful, joy-ful" (Henry van Dyke, 1907). The last note, A4, belongs on beat 4
+but is played 442 ticks late, at 1882, and released at 1910, just before the
+barline at 1920. The file ends there, so the import finds one bar. On the beat's
+grid the start snaps to 1920, the end of the bar, which no bar holds.
+
+  (import-midi bytes)
+  bars 1, the melody F#4 F#4 G4 A4
+  lyrics 0 "Joy" begin, 1/4 "ful," end, 1/2 "joy" begin, 3/4 "ful," end
+  guesses e-b quantization 1/2
+
+The start moved back to the last point of beat 4's own grid below the barline,
+the beat itself, at confidence 1/2 (+GUESS-CONFIDENCE+), and it is reported as a
+quantisation guess. Its lyric stays on it. 0.1.0 made no event for the A4, and
+placing its lyric then failed with an error. With :QUANTIZE NIL the ticks are
+kept, and the A4 starts inside the bar:
+
+  (import-midi bytes :quantize nil) starts 0 1/4 1/2 941/960
+
+==============================================================================
 == Summary
 ==============================================================================
-218 results checked against their expected values: 0 mismatched.
+251 results checked against their expected values: 0 mismatched.
 Every section ran to the end.
