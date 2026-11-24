@@ -42,8 +42,9 @@
 
 (defun show-log (mark)
   (dolist (e (origin-log-since mark))
-    (destructuring-bind (conn path ua secs) e
-      (note "    origin  conn ~D  ~6,2F s  ~22A  User-Agent: ~A" conn secs path ua))))
+    (destructuring-bind (conn method path ua secs octets) e
+      (note "    origin  conn ~D  ~6,2F s  ~6A ~22A  User-Agent: ~A~@[  (body ~D octets)~]"
+            conn secs method path ua (and (plusp octets) octets)))))
 
 (defun libuv ()
   (event-backend-libuv:make-libuv-backend))
@@ -149,7 +150,7 @@
       (note "  ~D requests over ~D connection~:P, User-Agents: ~{~A~^, ~}"
             (length log)
             (length (remove-duplicates (mapcar #'first log)))
-            (remove-duplicates (mapcar #'third log) :test #'string=))))
+            (remove-duplicates (mapcar #'fourth log) :test #'string=))))
   (note "~%A default session: blocking calls on dexador, -async calls on async:")
   (http:with-session (s :trust-env nil)
     (note "  (session-backend s) => ~A" (hp:backend-name (http:session-backend s)))
@@ -398,21 +399,25 @@
   "alice:made-up in base64: the made-up Authorization of demo 4's redirects.")
 
 (defun %redirect-via (kinds from status to)
-  "SESSION-GET of FROM on http-backend-async in a trust-env session, with
-   made-up Authorization, through fresh loopback proxies of KINDS named by
-   http_proxy and https_proxy: one proxy for both, or with (:http :https)
-   the plain one for http:// and the TLS one for https://. FROM answers
-   STATUS with Location TO. → (values result ((proxy . hops) …) seconds)"
+  "SESSION-GET of FROM on http-backend-async with made-up Authorization,
+   through fresh loopback proxies of KINDS given as the session's :PROXY
+   (cl-stack-http#34): one proxy URL for both schemes, or with (:http :https)
+   a per-scheme table, the plain one for http:// and the TLS one for
+   https://. No proxy variable is set. FROM answers STATUS with Location TO.
+   → (values result ((proxy . hops) …) seconds)"
   (let* ((routes (list (list from status to)))
          (proxies (mapcar (lambda (kind) (start-redirect-proxy kind routes)) kinds))
          (http (redirect-proxy-url (first proxies)))
-         (https (redirect-proxy-url (car (last proxies)))))
+         (https (redirect-proxy-url (car (last proxies))))
+         (session-proxy (if (rest kinds)
+                            (list (cons "http" http) (cons "https" https))
+                            http)))
     (multiple-value-bind (secs res)
         (%call-with-proxy-env
          (lambda ()
-           (timed (http:with-session (s :backend :async :verify nil :timeout 10)
-                    (http:session-get s from :auth '(:basic "alice" "made-up")))))
-         :http http :https https)
+           (timed (http:with-session (s :backend :async :verify nil :timeout 10
+                                        :proxy session-proxy)
+                    (http:session-get s from :auth '(:basic "alice" "made-up"))))))
       (values res
               (mapcar (lambda (proxy) (cons proxy (stop-redirect-proxy proxy))) proxies)
               secs))))
@@ -436,9 +441,10 @@
 
 (defun demo-4-redirects ()
   (banner "Demo 4, continued: a redirect through the proxy (http-backend-async#82)")
-  (note "Each run follows one 301 on http-backend-async in a trust-env session. http_proxy and")
-  (note "https_proxy name loopback proxies (redirect-proxy.lisp) that play origin.test themselves:")
-  (note "one https:// or http:// proxy for both, or a plain one for http:// and a TLS one for https://.")
+  (note "Each run follows one 301 on http-backend-async. The session's :proxy (cl-stack-http#34) names")
+  (note "loopback proxies (redirect-proxy.lisp) that play origin.test themselves; no proxy variable is set.")
+  (note "One https:// or http:// proxy URL serves both schemes, or a per-scheme table names a plain one")
+  (note "for http:// and a TLS one for https://.")
   (note "The proxy URLs carry user:secret, the request :auth alice:made-up (both made up). The proxy")
   (note "logs the head it reads, and the head the origin reads inside a CONNECT tunnel. Each hop is")
   (note "built for its own URL: http:// in absolute-form with Proxy-Authorization, https:// through")
@@ -458,8 +464,8 @@
         (note "~%  ~A -> ~D -> ~A, ~A => ~A (~,2F s)"
               from status to
               (if (rest kinds)
-                  "http_proxy=http://… https_proxy=https://…"
-                  (format nil "both proxies ~(~A~)://…" (first kinds)))
+                  ":proxy ((\"http\" . http://…) (\"https\" . https://…))"
+                  (format nil ":proxy ~(~A~)://…" (first kinds)))
               (%result-text res) secs)
         (when (typep res 'hp:http-response)
           (note "      history: ~{~A~^, ~}"
@@ -472,6 +478,92 @@
                 when (rp-errors proxy)
                   do (note "      ~(~A~):// proxy errors: ~{~A~^; ~}" (rp-kind proxy)
                            (rp-errors proxy))))))))
+
+(defun %precedence-run (backend &key session-proxy request-proxy (trust-env t))
+  "GET http://origin.test/p on BACKEND while http_proxy names the :ENV proxy.
+   With SESSION-PROXY the session's :PROXY names the :SESSION proxy, with
+   REQUEST-PROXY the request's names the :REQUEST one; TRUST-ENV goes to the
+   session. The three are plain loopback proxies that play origin.test.
+   → (values result the roles of the proxies that read the request)"
+  (let* ((proxies (loop for role in '(:env :session :request)
+                        collect (cons role (start-redirect-proxy :http '()))))
+         (env-url (redirect-proxy-url (cdr (assoc :env proxies))))
+         (session-url (and session-proxy
+                           (redirect-proxy-url (cdr (assoc :session proxies)))))
+         (request-url (and request-proxy
+                           (redirect-proxy-url (cdr (assoc :request proxies)))))
+         (res (%call-with-proxy-env
+               (lambda ()
+                 (handler-case
+                     (http:with-session (s :backend backend :timeout 5
+                                           :trust-env trust-env :proxy session-url)
+                       (apply #'http:session-get s "http://origin.test/p"
+                              (when request-url (list :proxy request-url))))
+                   (error (e) e)))
+               :http env-url)))
+    (values res
+            (loop for (role . proxy) in proxies
+                  when (stop-redirect-proxy proxy)
+                    collect role))))
+
+(defun demo-4-precedence ()
+  (banner "Demo 4, continued: which proxy a session uses (cl-stack-http#34, #35)")
+  (note "http_proxy names a loopback proxy, and two more stand by for the session's :proxy and the")
+  (note "request's. Each request is GET http://origin.test/p; origin.test does not resolve, so a")
+  (note "request that goes direct fails. As in requests: a request :proxy wins over the session's,")
+  (note "the session's over the environment, which applies under :trust-env (the default);")
+  (note ":trust-env nil does not read it.")
+  (note "Before: cl-stack-http 0.2.0 gave each request the system proxy config, which wins over the")
+  (note "session's, so a session :proxy went through http_proxy (or direct when none was set), and")
+  (note ":trust-env nil still went through http_proxy (http-protocol's default config reads it).")
+  (dolist (backend '(:dexador :async))
+    (dolist (run '(("session :proxy" :session-proxy t)
+                   ("session and request :proxy" :session-proxy t :request-proxy t)
+                   ("no :proxy" )
+                   ("no :proxy, :trust-env nil" :trust-env nil)
+                   ("session :proxy, :trust-env nil" :session-proxy t :trust-env nil)))
+      (destructuring-bind (label &rest keys) run
+        (multiple-value-bind (res readers) (apply #'%precedence-run backend keys)
+          (note "  ~(~8A~) ~31A => ~A~%~44Tread by: ~:[nobody (direct)~;~:*~{the ~(~A~) proxy~^, ~}~]"
+                backend label (%result-text res) readers))))))
+
+(defun %redirect-run (backend method status)
+  "METHOD /redirect/STATUS on BACKEND in a new session, with a 3-octet body
+   for POST and PUT. The session uses the backend's default pool, shared with
+   the other runs. → (values result origin-log-mark)"
+  (let ((mark (origin-mark)))
+    (values (handler-case
+                (http:with-session (s :backend backend :trust-env nil)
+                  (apply #'http:session-request s method
+                         (url (format nil "/redirect/~D" status))
+                         (when (member method '(:post :put))
+                           (list :content (babel:string-to-octets "x=1")))))
+              (error (e) e))
+            mark)))
+
+(defun demo-5 ()
+  (banner "Demo 5: a redirect keeps HEAD and its connection (http-backend-async#84, #85)")
+  (note "The origin answers /redirect/S with S and Location: /target over keep-alive connections;")
+  (note "it logs each request's method, connection and body. Each run is one request in a new session;")
+  (note "sessions share the backend's pool, so a run can start on the connection the last one left.")
+  (note "RFC 9110 §15.4: 303 turns anything but HEAD into GET, 301 and 302 turn only POST into GET,")
+  (note "and a method that stays sends its body again.")
+  (note "Before: http-backend-async 0.2.30 sent GET /target after a HEAD's 301, 302 or 303 and got a")
+  (note "body; both backends turned a 301/302 PUT or DELETE into a GET without its body; and async")
+  (note "closed the redirect's kept-alive connection, so /target came on a second one (#85).")
+  (dolist (backend '(:dexador :async))
+    (dolist (run '((:head 301) (:head 302) (:head 303) (:post 302) (:put 301)
+                   (:delete 302) (:put 303)))
+      (destructuring-bind (method status) run
+        (multiple-value-bind (res mark) (%redirect-run backend method status)
+          (let ((log (origin-log-since mark)))
+            (note "~%  ~(~8A~) ~(~6A~) /redirect/~D => ~A, history ~A, ~D connection~:P"
+                  backend method status (%result-text res)
+                  (if (typep res 'hp:http-response)
+                      (mapcar #'hp:response-status (hp:response-history res))
+                      "-")
+                  (length (remove-duplicates (mapcar #'first log)))))
+          (show-log mark))))))
 
 (defun run-demos ()
   (setf *maker-at-start* http-backend-async:*event-backend-maker*)
@@ -494,7 +586,7 @@
             (ignore-errors
               (http:with-backend (:dexador) (http:get (url "/warm-up")))))
           (note "(a warm-up request on dexador loaded the optional content-encoding codecs)")
-          (demo-1) (demo-2) (demo-3) (demo-4) (demo-4-redirects))
+          (demo-1) (demo-2) (demo-3) (demo-4) (demo-4-redirects) (demo-4-precedence) (demo-5))
       (funcall stop)))
   (banner "done")
   t)

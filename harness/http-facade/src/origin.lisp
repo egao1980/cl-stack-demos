@@ -10,7 +10,7 @@
 
 (defvar *origin-t0* 0)
 (defvar *origin-lock* (bt:make-lock "origin log"))
-(defvar *origin-log* '() "(conn path user-agent seconds), newest first.")
+(defvar *origin-log* '() "(conn method path user-agent seconds), newest first.")
 (defvar *origin-open* 0 "Connections the client still holds open.")
 (defvar *origin-conns* 0 "Connections accepted.")
 
@@ -56,18 +56,55 @@
                       (let ((*read-eval* nil)) (read-from-string text)))))
              (and (realp n) n))))))
 
-(defun %respond (stream status body)
-  (let ((octets (babel:string-to-octets body)))
+(defun %respond (stream status body &key location head)
+  "Answer STATUS with BODY as text/plain, and a Location header when
+   LOCATION. With HEAD the Content-Length is BODY's and no body follows, as
+   a server answers HEAD."
+  (let ((octets (babel:string-to-octets body))
+        (location-line (if location
+                           (format nil "Location: ~A~C~C" location #\Return #\Newline)
+                           "")))
     (write-sequence
      (babel:string-to-octets
-      (format nil "HTTP/1.1 ~D ~A~C~CContent-Type: text/plain~C~CContent-Length: ~D~C~C~C~C"
+      (format nil "HTTP/1.1 ~D ~A~C~C~AContent-Type: text/plain~C~CContent-Length: ~D~C~C~C~C"
               status (if (< status 400) "OK" "Error")
-              #\Return #\Newline #\Return #\Newline
+              #\Return #\Newline location-line #\Return #\Newline
               (length octets) #\Return #\Newline #\Return #\Newline)
       :encoding :latin-1)
      stream)
-    (write-sequence octets stream)
+    (unless head
+      (write-sequence octets stream))
     (finish-output stream)))
+
+(defun %request-method (lines)
+  (let ((line (first lines)))
+    (subseq line 0 (or (position #\Space line) (length line)))))
+
+(defun %read-body (stream lines)
+  "The request body the Content-Length in LINES announces, read off STREAM."
+  (let* ((length (%header lines "content-length"))
+         (body (make-array (or (and length (parse-integer length :junk-allowed t)) 0)
+                           :element-type '(unsigned-byte 8))))
+    (read-sequence body stream)
+    body))
+
+(defun %answer (stream conn lines)
+  "Log and answer one request on connection CONN. /redirect/S answers S with
+   Location /target; /delay/S and /status/N as above."
+  (let* ((method (%request-method lines))
+         (path (%request-path lines))
+         (sent (%read-body stream lines))
+         (delay (%prefixed-number path "/delay/"))
+         (redirect (%prefixed-number path "/redirect/"))
+         (status (or redirect (%prefixed-number path "/status/") 200)))
+    (bt:with-lock-held (*origin-lock*)
+      (push (list conn method path (or (%header lines "user-agent") "-")
+                  (%seconds-since *origin-t0*) (length sent))
+            *origin-log*))
+    (when delay (sleep delay))
+    (%respond stream status (format nil "conn=~D path=~A" conn path)
+              :location (and redirect "/target")
+              :head (string-equal method "HEAD"))))
 
 (defun %serve (client conn)
   (unwind-protect
@@ -75,15 +112,7 @@
            (let ((stream (usocket:socket-stream client)))
              (loop for lines = (%read-head stream)
                    while lines
-                   do (let* ((path (%request-path lines))
-                             (delay (%prefixed-number path "/delay/"))
-                             (status (or (%prefixed-number path "/status/") 200)))
-                        (bt:with-lock-held (*origin-lock*)
-                          (push (list conn path (or (%header lines "user-agent") "-")
-                                      (%seconds-since *origin-t0*))
-                                *origin-log*))
-                        (when delay (sleep delay))
-                        (%respond stream status (format nil "conn=~D path=~A" conn path)))))
+                   do (%answer stream conn lines)))
          (error () nil))
     (ignore-errors (usocket:socket-close client))
     (bt:with-lock-held (*origin-lock*) (decf *origin-open*))))
