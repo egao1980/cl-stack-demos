@@ -1,0 +1,145 @@
+WARNING: System definition file #P"/Users/nikolaimatiushev/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (71 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"/Users/nikolaimatiushev/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining LLM-PROTOCOL:INVOKE-RETRY in DEFUN
+WARNING: redefining LLM-PROTOCOL:INVOKE-USE-VALUE in DEFUN
+WARNING: redefining LLM-PROTOCOL:AUTO-RETRY in DEFUN
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+
+
+========================================================================
+== Loaded systems
+========================================================================
+  lisp-mcp               0.7.2
+  lisp-mcp/agent         0.7.2
+  lisp-source-protocol   0.2.5
+  repl-protocol          0.2.9
+  repl-backend-swank     0.2.2
+  ai-agent-protocol      0.15.0
+  llm-protocol           0.6.0
+  llm-protocol-openai    0.7.0
+
+========================================================================
+== Model
+========================================================================
+API key found (HARNESS_DEMOS_API_KEY or LM_API_TOKEN): T
+GET /v1/models:
+  | ("zai-org/glm-4.6v-flash" "nvidia/nemotron-3-nano-4b" "qwen3.5-2b"
+  |  "unlimited-ocr" "text-embedding-qwen3-embedding-0.6b" "text-embedding-bge-m3"
+  |  "text-embedding-nomic-embed-text-v1.5")
+MODEL THAT RAN: zai-org/glm-4.6v-flash at 127.0.0.1:1234 for the real-model run (picked by the heuristic: coder, then first chat model)
+SAMPLING PRESET SENT: thinking (HARNESS_DEMOS_MODE) {"temperature":1.0,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repeat_penalty":1.0,"chat_template_kwargs":{"enable_thinking":true,"preserve_thinking":true}}
+
+========================================================================
+== Demo 11: #+sbcl / #-sbcl top-level forms through the edit tools (lisp-source-protocol#9)
+========================================================================
+this image reads with :sbcl in *features*: T
+hooks.lisp:
+  | (in-package #:cl-user)
+  | 
+  | (defun %reset-boundary-random-state ()
+  |   (setf *random-state* (make-random-state t)))
+  | 
+  | #+sbcl (defun impl () :sbcl)
+  | 
+  | #-sbcl (defun impl () :other)
+
+--- the outline and the locators see both branches
+> source-outline {"path":"hooks.lisp"}
+  =:
+  | hooks.lisp (hash 9914fe5b04e3be72, 4 forms)
+  |      L1  in-package cl-user  [path:0]
+  |      L3  defun %reset-boundary-random-state ()  [path:1]
+  |      L6  #+sbcl defun impl ()  [path:2.1]
+  |      L8  #-sbcl defun impl ()  [path:3.1]
+outline lists #+sbcl defun impl: T
+outline lists #-sbcl defun impl: T
+> source-read {"locator":"path:3","path":"hooks.lisp"}
+  =:
+  | hooks.lisp path:3 lines 8-8 (file hash 9914fe5b04e3be72)
+  | #-sbcl (defun impl () :other)
+path:3 is the #-sbcl form: T
+> source-read {"locator":"defun impl","path":"hooks.lisp"}
+  signalled ai-agent-protocol:tool-input-error:
+  | Locator (:DEFINITION "defun" "impl") matches 2 forms; use one of:
+  |   path:2.1  under #+sbcl
+  |   path:3.1  under #-sbcl
+defun impl names two definitions, the #-sbcl one included: T
+
+--- edit-insert writes both forms of the http-protocol#58 save hook
+> edit-insert {"code":"#+sbcl (pushnew '%reset-boundary-random-state sb-ext:*save-hooks*)\n#-sbcl (uiop:register-image-dump-hook '%reset-boundary-random-state)","dry_run":true,"locator":"defun %reset-boundary-random-state","path":"hooks.lisp"}
+  =:
+  | Dry run, nothing written to hooks.lisp: insert-after; new file hash 85774fb663f32ffe
+  | --- a/hooks.lisp
+  | +++ b/hooks.lisp
+  | @@ -4,4 +4,8 @@
+  |    (setf *random-state* (make-random-state t)))
+  |  
+  |   … [demo output: 3 of 12 lines not printed]
+  | +
+  |  #+sbcl (defun impl () :sbcl)
+  |  
+the whole dry-run diff:
+  | --- a/hooks.lisp
+  | +++ b/hooks.lisp
+  | @@ -4,4 +4,8 @@
+  |    (setf *random-state* (make-random-state t)))
+  |  
+  | +#+sbcl (pushnew '%reset-boundary-random-state sb-ext:*save-hooks*)
+  | +
+  | +#-sbcl (uiop:register-image-dump-hook '%reset-boundary-random-state)
+  | +
+  |  #+sbcl (defun impl () :sbcl)
+  |  
+the dry-run diff adds the #+sbcl form: T
+the dry-run diff adds the #-sbcl form: T
+> edit-insert {"code":"#+sbcl (pushnew '%reset-boundary-random-state sb-ext:*save-hooks*)\n#-sbcl (uiop:register-image-dump-hook '%reset-boundary-random-state)","locator":"defun %reset-boundary-random-state","path":"hooks.lisp"}
+  =: Wrote hooks.lisp: insert-after; new file hash 85774fb663f32ffe (+4 -0 lines)
+
+--- edit-replace inside the #-sbcl branch, transpose of whole branches
+> edit-replace {"code":":portable","locator":"path:5.1.3","path":"hooks.lisp"}
+  =: Wrote hooks.lisp: replace; new file hash 7eb24bb7d9c47f7d (+1 -1 lines)
+> edit-structure {"locator":"path:4","op":"transpose","path":"hooks.lisp"}
+  =: Wrote hooks.lisp: transpose; new file hash 381ed5cc64425c8d (+2 -2 lines)
+hooks.lisp now:
+  | (in-package #:cl-user)
+  | 
+  | (defun %reset-boundary-random-state ()
+  |   (setf *random-state* (make-random-state t)))
+  | 
+  | #+sbcl (pushnew '%reset-boundary-random-state sb-ext:*save-hooks*)
+  | 
+  | #-sbcl (uiop:register-image-dump-hook '%reset-boundary-random-state)
+  | 
+  | #-sbcl (defun impl () :portable)
+  | 
+  | #+sbcl (defun impl () :sbcl)
+every branch is in the file, as written: T
+> source-check {"path":"hooks.lisp","rules":"none"}
+  =: hooks.lisp: clean (6 top-level forms, hash 381ed5cc64425c8d)
+the file reads clean with 6 top-level forms: T
+> source-outline {"path":"hooks.lisp"}
+  =:
+  | hooks.lisp (hash 381ed5cc64425c8d, 6 forms)
+  |      L1  in-package cl-user  [path:0]
+  |      L3  defun %reset-boundary-random-state ()  [path:1]
+  |     L10  #-sbcl defun impl ()  [path:4.1]
+  |     L12  #+sbcl defun impl ()  [path:5.1]
+  (demo-reader-conditionals: 0.0 s wall time)
+
+========================================================================
+== Summary
+========================================================================
+demos run: demo-reader-conditionals
+demos that failed: none
+peak input tokens of a real-model request: none (no real model ran)
+wall time: 0.3 s
