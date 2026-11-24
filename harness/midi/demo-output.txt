@@ -1,0 +1,427 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (7 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+; compiling file "<tmp>/harness/midi/src/demo.lisp" (written 24 NOV 2026 01:22:54 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<tmp>/harness/midi/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.080
+midi-protocol 0.1.0 (SBCL 2.6.9): MIDI 1.0 events and Standard MIDI Files,
+files only
+
+==============================================================================
+== 1. Build a type-1 SMF in code and write it to bytes
+==============================================================================
+Twinkle, Twinkle, Little Star in C major, 4/4, two phrases of two bars, at 480 ticks per
+quarter note. Each track is built as (tick . event) pairs at absolute ticks, and
+TRACK-FROM-ABSOLUTE turns the list into delta times and appends the end of track
+(section 4). Events are immutable structs made by MAKE-<TYPE> keyword constructors.
+
+(make-smf :format 1 :division 480 :tracks (list tempo melody bass)):
+  track 0   8 events  tempo, meter, key, title and markers
+  track 1  47 events  flute on channel 0: track name, program, volume, pan, one lyric per note
+  track 2  37 events  bass on channel 1: track name, program, volume, pan, root and fifth
+
+(write-smf smf nil) returns 527 bytes as a (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (527)).
+
+The header chunk, 14 bytes, big-endian:
+  offset  bytes         field
+       0  4D 54 68 64   "MThd"
+       4  00 00 00 06   header length 6
+       8  00 01         format 1
+      10  00 03         3 track chunks follow
+      12  01 E0         division: 480 ticks per quarter note
+
+The first track chunk, the tempo track: "MTrk", its length, then each event as
+a delta time (a variable-length quantity) and the event's bytes. Meta events are
+FF <type> <length> <data>.
+  offset  bytes
+      14  4D 54 72 6B   "MTrk"
+      18  00 00 00 5B   chunk length 91
+  offset  delta  event
+      22      0  track-name      "Twinkle, Twinkle, Little Star"
+                 00 FF 03 1D 54 77 69 6E 6B 6C 65 2C 20 54 77 69
+                 6E 6B 6C 65 2C 20 4C 69 74 74 6C 65 20 53 74 61
+                 72
+      55      0  time-signature  4/4, 24 clocks per click, 8 32nds per quarter
+                 00 FF 58 04 04 02 18 08
+      63      0  key-signature   0 sharps, major (C major)
+                 00 FF 59 02 00 00
+      69      0  tempo           600000 us per quarter (100 bpm)
+                 00 FF 51 03 09 27 C0
+      76      0  marker          "Phrase 1"
+                 00 FF 06 08 50 68 72 61 73 65 20 31
+      88   3840  tempo           750000 us per quarter (80 bpm)
+                 9E 00 FF 51 03 0B 71 B0
+      96      0  marker          "Phrase 2"
+                 00 FF 06 08 50 68 72 61 73 65 20 32
+     108   3840  end-of-track
+                 9E 00 FF 2F 00
+
+The delta 3840 is 9E 00: 7 bits per byte, bit 7 set on all but the last
+(30 * 128 + 0). 600000 us is 09 27 C0 and 750000 us is 0B 71 B0 (u24). The time
+signature stores the denominator 4 as its base-2 logarithm, 02.
+
+==============================================================================
+== 2. Read it back: the event listing and the round trip
+==============================================================================
+(read-smf bytes) gives format 1, division 480, 3 tracks of 8, 47, 37 events.
+It is EQUALP to the SMF that was written, and writing it again gives the same
+527 bytes: a byte-for-byte round trip.
+
+Track 0, "Twinkle, Twinkle, Little Star" (delta, absolute tick from TRACK-TO-ABSOLUTE, event):
+  delta   tick  event
+      0      0  track-name      "Twinkle, Twinkle, Little Star"
+      0      0  time-signature  4/4, 24 clocks per click, 8 32nds per quarter
+      0      0  key-signature   0 sharps, major (C major)
+      0      0  tempo           600000 us per quarter (100 bpm)
+      0      0  marker          "Phrase 1"
+   3840   3840  tempo           750000 us per quarter (80 bpm)
+      0   3840  marker          "Phrase 2"
+   3840   7680  end-of-track
+
+Track 1, "Melody" (delta, absolute tick from TRACK-TO-ABSOLUTE, event):
+  delta   tick  event
+      0      0  track-name      "Melody"
+      0      0  program-change  ch 0  73 (Flute)
+      0      0  control-change  ch 0  cc 7 (volume) = 100
+      0      0  control-change  ch 0  cc 10 (pan) = 40
+      0      0  lyric           "Twin-"
+      0      0  note-on         ch 0  C4   vel 80
+    480    480  note-off        ch 0  C4   vel 64
+      0    480  lyric           "kle"
+      0    480  note-on         ch 0  C4   vel 80
+    480    960  note-off        ch 0  C4   vel 64
+      0    960  lyric           "twin-"
+      0    960  note-on         ch 0  G4   vel 80
+    480   1440  note-off        ch 0  G4   vel 64
+      0   1440  lyric           "kle"
+      0   1440  note-on         ch 0  G4   vel 80
+    480   1920  note-off        ch 0  G4   vel 64
+      0   1920  lyric           "lit-"
+      0   1920  note-on         ch 0  A4   vel 80
+    480   2400  note-off        ch 0  A4   vel 64
+      0   2400  lyric           "tle"
+      0   2400  note-on         ch 0  A4   vel 80
+    480   2880  note-off        ch 0  A4   vel 64
+      0   2880  lyric           "star,"
+      0   2880  note-on         ch 0  G4   vel 80
+    960   3840  note-off        ch 0  G4   vel 64
+      0   3840  lyric           "how"
+      0   3840  note-on         ch 0  F4   vel 80
+    480   4320  note-off        ch 0  F4   vel 64
+      0   4320  lyric           "I"
+      0   4320  note-on         ch 0  F4   vel 80
+    480   4800  note-off        ch 0  F4   vel 64
+      0   4800  lyric           "won-"
+      0   4800  note-on         ch 0  E4   vel 80
+    480   5280  note-off        ch 0  E4   vel 64
+      0   5280  lyric           "der"
+      0   5280  note-on         ch 0  E4   vel 80
+    480   5760  note-off        ch 0  E4   vel 64
+      0   5760  lyric           "what"
+      0   5760  note-on         ch 0  D4   vel 80
+    480   6240  note-off        ch 0  D4   vel 64
+      0   6240  lyric           "you"
+      0   6240  note-on         ch 0  D4   vel 80
+    480   6720  note-off        ch 0  D4   vel 64
+      0   6720  lyric           "are."
+      0   6720  note-on         ch 0  C4   vel 80
+    960   7680  note-off        ch 0  C4   vel 64
+      0   7680  end-of-track
+
+Track 2, "Bass" (delta, absolute tick from TRACK-TO-ABSOLUTE, event):
+  delta   tick  event
+      0      0  track-name      "Bass"
+      0      0  program-change  ch 1  32 (Acoustic Bass)
+      0      0  control-change  ch 1  cc 7 (volume) = 90
+      0      0  control-change  ch 1  cc 10 (pan) = 80
+      0      0  note-on         ch 1  C2   vel 70
+      0      0  note-on         ch 1  G2   vel 70
+    960    960  note-off        ch 1  C2   vel 64
+      0    960  note-off        ch 1  G2   vel 64
+      0    960  note-on         ch 1  C2   vel 70
+      0    960  note-on         ch 1  G2   vel 70
+    960   1920  note-off        ch 1  C2   vel 64
+      0   1920  note-off        ch 1  G2   vel 64
+      0   1920  note-on         ch 1  F2   vel 70
+      0   1920  note-on         ch 1  C3   vel 70
+    960   2880  note-off        ch 1  F2   vel 64
+      0   2880  note-off        ch 1  C3   vel 64
+      0   2880  note-on         ch 1  C2   vel 70
+      0   2880  note-on         ch 1  G2   vel 70
+    960   3840  note-off        ch 1  C2   vel 64
+      0   3840  note-off        ch 1  G2   vel 64
+      0   3840  note-on         ch 1  F2   vel 70
+      0   3840  note-on         ch 1  C3   vel 70
+    960   4800  note-off        ch 1  F2   vel 64
+      0   4800  note-off        ch 1  C3   vel 64
+      0   4800  note-on         ch 1  C2   vel 70
+      0   4800  note-on         ch 1  G2   vel 70
+    960   5760  note-off        ch 1  C2   vel 64
+      0   5760  note-off        ch 1  G2   vel 64
+      0   5760  note-on         ch 1  G2   vel 70
+      0   5760  note-on         ch 1  D3   vel 70
+    960   6720  note-off        ch 1  G2   vel 64
+      0   6720  note-off        ch 1  D3   vel 64
+      0   6720  note-on         ch 1  C2   vel 70
+      0   6720  note-on         ch 1  G2   vel 70
+    960   7680  note-off        ch 1  C2   vel 64
+      0   7680  note-off        ch 1  G2   vel 64
+      0   7680  end-of-track
+
+Events print readably, and what READ makes of the text is EQUALP to the event:
+  #S(MIDI-PROTOCOL:NOTE-ON-EVENT :DELTA 0 :CHANNEL 0 :KEY 60 :VELOCITY 80)
+COPY-EVENT makes a changed copy (slots are read-only):
+  (copy-event note :key 67 :channel 2) -> note-on         ch 2  G4   vel 80, delta 0
+  the note itself is still note-on         ch 0  C4   vel 80
+
+==============================================================================
+== 3. Running status
+==============================================================================
+With running status (the default, as mido writes) a channel event leaves out its
+status byte when the event before it in the track is a channel event with the same
+status. A meta, sysex or escape event in between resets it. :RUNNING-STATUS NIL
+writes every status byte.
+
+  track    :running-status t   nil   saved   repeated statuses
+      0                   91    91       0           0
+      1                  256   257       1           1
+      2                  142   159      17          17
+  file                   527   545      18
+
+The melody saves one byte (pan after volume): every note-on follows a lyric, a meta
+event, and every note-off follows a note-on. The bass plays two notes at once, so
+the second note-on and the second note-off of each pair go without a status byte.
+Its first events, encoded both ways:
+
+  event                                        running status t   nil
+  control-change  ch 1  cc 7 (volume) = 90     00 B1 07 5A        00 B1 07 5A
+  control-change  ch 1  cc 10 (pan) = 80       00 0A 50           00 B1 0A 50
+  note-on         ch 1  C2   vel 70            00 91 24 46        00 91 24 46
+  note-on         ch 1  G2   vel 70            00 2B 46           00 91 2B 46
+  note-off        ch 1  C2   vel 64            87 40 81 24 40     87 40 81 24 40
+  note-off        ch 1  G2   vel 64            00 2B 40           00 81 2B 40
+  note-on         ch 1  C2   vel 70            00 91 24 46        00 91 24 46
+  note-on         ch 1  G2   vel 70            00 2B 46           00 91 2B 46
+
+Both files read back to the same events, and the one without running status,
+written again with the default, gives the shorter file byte for byte.
+
+==============================================================================
+== 4. Absolute time: ticks, merging, the tempo map, seconds
+==============================================================================
+TRACK-TO-ABSOLUTE pairs each event with its absolute tick, the sum of the deltas
+so far. The first ten of the melody:
+  (   0 . track-name      "Melody")  delta 0
+  (   0 . program-change  ch 0  73 (Flute))  delta 0
+  (   0 . control-change  ch 0  cc 7 (volume) = 100)  delta 0
+  (   0 . control-change  ch 0  cc 10 (pan) = 40)  delta 0
+  (   0 . lyric           "Twin-")  delta 0
+  (   0 . note-on         ch 0  C4   vel 80)  delta 0
+  ( 480 . note-off        ch 0  C4   vel 64)  delta 480
+  ( 480 . lyric           "kle")  delta 0
+  ( 480 . note-on         ch 0  C4   vel 80)  delta 0
+  ( 960 . note-off        ch 0  C4   vel 64)  delta 480
+TRACK-FROM-ABSOLUTE turns them back into the same track (EQUALP). It sorts by tick
+with a stable sort, so events at the same tick keep their input order. Given the
+pairs in reverse, the events at tick 480 come out reversed too:
+  in order:   note-off        ch 0  C4   vel 64
+              lyric           "kle"
+              note-on         ch 0  C4   vel 80
+  reversed:   note-on         ch 0  C4   vel 80
+              lyric           "kle"
+              note-off        ch 0  C4   vel 64
+The second C4 would be switched off at the tick it starts. Give note-offs before
+the note-ons at the same tick, as the builders in section 1 do.
+
+MERGE-TRACKS puts every event of the three tracks into one track at its absolute
+tick (ties keep track order, then order in the track) with one end of track: the
+type-0 view of the piece. 8 + 47 + 37 events become 90. The 17 events at tick 0:
+  track-name      "Twinkle, Twinkle, Little Star"
+  time-signature  4/4, 24 clocks per click, 8 32nds per quarter
+  key-signature   0 sharps, major (C major)
+  tempo           600000 us per quarter (100 bpm)
+  marker          "Phrase 1"
+  track-name      "Melody"
+  program-change  ch 0  73 (Flute)
+  control-change  ch 0  cc 7 (volume) = 100
+  control-change  ch 0  cc 10 (pan) = 40
+  lyric           "Twin-"
+  note-on         ch 0  C4   vel 80
+  track-name      "Bass"
+  program-change  ch 1  32 (Acoustic Bass)
+  control-change  ch 1  cc 7 (volume) = 90
+  control-change  ch 1  cc 10 (pan) = 80
+  note-on         ch 1  C2   vel 70
+  note-on         ch 1  G2   vel 70
+As a type-0 file it is 493 bytes (type 1: 527). Running status saves less now that
+the channels interleave.
+
+TEMPO-MAP of the SMF (all tracks merged): ((0 . 600000) (3840 . 750000))
+  from tick    0: 600000 us per quarter, 100 bpm
+  from tick 3840: 750000 us per quarter, 80 bpm
+TEMPO-MAP of the melody track alone, which has no tempo event: ((0 . 500000))
+(+default-tempo+, 500000 us, 120 bpm).
+
+TICKS-TO-SECONDS gives exact rationals. When each syllable is sung:
+  syllable  tick   bpm   seconds  exact
+  Twin-        0   100  0.000    0
+  kle        480   100  0.600    3/5
+  twin-      960   100  1.200    6/5
+  kle       1440   100  1.800    9/5
+  lit-      1920   100  2.400    12/5
+  tle       2400   100  3.000    3
+  star,     2880   100  3.600    18/5
+  how       3840    80  4.800    24/5
+  I         4320    80  5.550    111/20
+  won-      4800    80  6.300    63/10
+  der       5280    80  7.050    141/20
+  what      5760    80  7.800    39/5
+  you       6240    80  8.550    171/20
+  are.      6720    80  9.300    93/10
+  end       7680        10.800   54/5
+The lyric line: "Twinkle twinkle little star, how I wonder what you are."
+Without a tempo map (120 bpm throughout) the end is at 8 s. With an SMPTE
+division the tempo map is ignored: at 25 fps and 40 ticks per frame, tick 7680
+is at 192/25 s; at 29.97 drop frame (29) it is 6.4064 s = 4004/625.
+
+Type 2 holds independent sequences, each with its own tempo. Here: the tune at
+100 bpm, and a copy up a fourth (COPY-EVENT :KEY) at 150 bpm. Give TEMPO-MAP one
+track at a time:
+  pattern 1  first note C4  tempo map ((0 . 600000))  ends at 48/5 s
+  pattern 2  first note F4  tempo map ((0 . 400000))  ends at 32/5 s
+Given the type-2 SMF, TEMPO-MAP merges the tracks and the last tempo at tick 0
+wins: ((0 . 400000)).
+
+==============================================================================
+== 5. Bad bytes: MIDI-PARSE-ERROR, its restarts, MIDI-FORMAT-WARNING
+==============================================================================
+A file cut 20 bytes short, inside the bass track:
+  MIDI parse error at byte 507 in track 2: data ends inside a track chunk
+    offset 507, track 2, reason "data ends inside a track chunk"
+    restarts: skip-chunk, use-partial-smf
+USE-PARTIAL-SMF returns what was read: 3 tracks of 8, 47, 31 events. The bass track
+stops at tick 6720, after
+  note-off        ch 1  G2   vel 64
+and no end of track is added.
+SKIP-CHUNK drops the bass track instead. It still counts toward the 3 tracks the
+header announced, so the read ends there: 2 tracks.
+
+Every one of the 527 proper prefixes of the file (lengths 0 to 526): 527 signal
+MIDI-PARSE-ERROR at their own length. For the 513 that hold the whole header,
+USE-PARTIAL-SMF gives whole tracks and a prefix of the cut one in 513.
+
+Errors in the header chunk have no restarts:
+  cut after 10 bytes         byte 10  data ends inside the header chunk  restarts: none
+  "RThd" instead of "MThd"   byte  0  not a Standard MIDI File: no MThd chunk  restarts: none
+  header length 5            byte  4  header chunk length 5, below 6  restarts: none
+  format 3                   byte  8  format 3, not 0, 1 or 2  restarts: none
+  division 0                 byte 12  division of 0 ticks per quarter note  restarts: none
+  SMPTE rate -26 (E6)        byte 12  SMPTE division of 26 frames per second  restarts: none
+Called there, the function USE-PARTIAL-SMF finds no restart and returns NIL.
+
+Corrupted bytes inside track chunks. The note-on of "lit-" is 90 45 50 at byte 218;
+the bass program change starts with C1 20 at byte 394.
+status 90 -> F4 (system common):
+  MIDI parse error at byte 218 in track 1: system common or real-time message in a file
+    offset 218, track 1, reason "system common or real-time message in a file"
+    restarts: skip-chunk, use-partial-smf
+key 45 -> 90 (a status byte):
+  MIDI parse error at byte 219 in track 1: data byte expected
+    offset 219, track 1, reason "data byte expected"
+    restarts: skip-chunk, use-partial-smf
+program change C1 -> 20:
+  MIDI parse error at byte 394 in track 2: data byte with no running status
+    offset 394, track 2, reason "data byte with no running status"
+    restarts: skip-chunk, use-partial-smf
+With F4: SKIP-CHUNK reads on at the chunk's declared end and returns 2 tracks
+(tempo and bass); USE-PARTIAL-SMF returns the tempo track and the first 17
+melody events, the ones before the bad note-on.
+
+A bad meta event. The tempo change at bar 3, at byte 88, is 9E 00 FF 51 03 0B 71 B0.
+Its type byte 51 becomes 59, a key signature, which must have 2 data bytes, not 3:
+  MIDI parse error at byte 90 in track 0: key-signature-event of length 3, not 2
+    offset 90, track 0, reason "key-signature-event of length 3, not 2"
+    restarts: skip-event, use-value, skip-chunk, use-partial-smf
+SKIP-EVENT drops it and adds its delta (3840) to the next event, so the marker
+"Phrase 2" keeps its tick 3840 (its delta is now 3840). The tempo map loses the change,
+((0 . 600000)), and the piece ends at 48/5 s instead of 54/5 s.
+USE-VALUE with (make-tempo-event :tempo 750000) puts a tempo change in its place,
+with the bad event's delta: the result is EQUALP to the original SMF: T.
+
+A last chunk without its end of track: the final 00 FF 2F 00 removed and the
+chunk length set to 138. That loses no events, so READ-SMF warns and goes on:
+  MIDI format warning at byte 523: track chunk ends without an end-of-track event  (MIDI-PROTOCOL:MIDI-FORMAT-WARNING)
+The bass track has 36 events, no end of track added. WRITE-SMF appends one, as
+mido does, so writing it gives the original file again: T.
+
+==============================================================================
+== 6. Bad values: MIDI-ENCODE-ERROR
+==============================================================================
+At SBCL's default safety the constructors check the slot types themselves:
+  (make-note-on-event :key 128)            -> TYPE-ERROR
+  (make-note-on-event :delta #x10000000)   -> TYPE-ERROR
+
+Values a slot type lets through are checked by WRITE-SMF, which checks the whole
+SMF before it writes a byte and signals MIDI-ENCODE-ERROR with the track and the
+element at fault:
+  a sysex data byte 300                track 1   sysex-event            sysex-event-data holds an element that isn't an octet
+  a lyric of U+266A (code above 255)   track 1   lyric-event            text has a character whose code is above 255
+  a 4/6 time signature                 track 0   time-signature-event   time signature denominator 6 is not a power of two from 1 to 2^255
+  an end of track mid-track            track 2   end-of-track-event     end-of-track event before the last event of the track
+  a (tick . event) pair as an element  track 1   cons                   track element is not a MIDI-EVENT
+  an unknown meta event of type 51     track 0   unknown-meta-event     unknown meta event with the known type byte #x51
+  format 0 with three tracks           track -   -                      format 0 with 3 tracks, not 1
+The report of the first: MIDI encode error in track 1: sysex-event-data holds an element that isn't an octet (#S(MIDI-PROTOCOL:SYSEX-EVENT :DELTA 0 :DATA #(240 126 127 9 300 247)))
+Writing that SMF to a file signals before the file is opened: it does not exist
+afterwards (probe-file -> NIL).
+
+==============================================================================
+== 7. Files and streams
+==============================================================================
+(write-smf smf path) wrote harness/midi/twinkle.mid, 527 bytes. (read-smf path)
+reads it back: T.
+It is byte-identical to the copy committed with this demo: T.
+
+Streams: the type-0 and the type-1 file written one after the other to one
+octet stream (493 + 527 bytes). READ-SMF on a stream stops after the last track
+chunk it needs, so two calls read them back: format 0 at position 493, then
+format 1 at position 1020, and then the stream is at its end (:EOF).
+
+==============================================================================
+== 8. Cross-read with mido
+==============================================================================
+uv run --no-project --with mido==1.3.3 python -I -c '<script>' twinkle.mid
+reads the file with mido and prints what mido sees (exit 0).
+
+  type             midi-protocol  1
+                   mido 1.3.3     1
+  ticks-per-beat   midi-protocol  480
+                   mido 1.3.3     480
+  names            midi-protocol  ("Twinkle, Twinkle, Little Star" "Melody" "Bass")
+                   mido 1.3.3     ("Twinkle, Twinkle, Little Star" "Melody" "Bass")
+  messages         midi-protocol  (8 47 37)
+                   mido 1.3.3     (8 47 37)
+  note-ons         midi-protocol  30
+                   mido 1.3.3     30
+  lyric line       midi-protocol  Twinkle twinkle little star, how I wonder what you are.
+                   mido 1.3.3     Twinkle twinkle little star, how I wonder what you are.
+  length (s)       midi-protocol  54/5 = 10.800000
+                   mido 1.3.3     10.8
+
+mido counts every event, the end of track included, as a message, and it agrees
+on every count, name and syllable. Its length (playback time through the tempo
+map, in floats) matches TICKS-TO-SECONDS.
+
+==============================================================================
+== Summary
+==============================================================================
+103 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
