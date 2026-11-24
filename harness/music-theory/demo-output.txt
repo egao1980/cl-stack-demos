@@ -8,11 +8,12 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-music-theory 0.4.0: spelled pitches, the line of fifths and intervals (slice MT0,
+music-theory 0.5.0: spelled pitches, the line of fifths and intervals (slice MT0,
 sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale
 degrees and Roman numerals (slice MT2, sections 12-16); chord symbols: the
 grammar, dialects, realisation, essential tones, transposition (slice MT3,
-sections 17-22)
+sections 17-22); spelling MIDI notes, key detection, transposition to a key
+(slice MT4, sections 23-25)
 
 ========================================================================
 == 1. Spelled pitches: letter, accidental, octave
@@ -1134,26 +1135,35 @@ read back in each dialect and style.
 
   15,147 texts, 3,789 of them rejected (outside the grammar, or against R1-R6)
   2,388 distinct values, 14,328 round trips (3 dialects x 2 styles each):
-    14,238 give the same value back, and the same text when printed again
-    90 fail, all of the shape of music-theory#10 (below)
-    0 fail in any other way
+    14,328 give the same value back, and the same text when printed again
+    0 fail
 
-Known issue, egao1980/music-theory#10 (open): a diminished triad or a
-half-diminished seventh without its 5 prints in :POP (the triad in :JAZZ too)
-as the minor chord with b5 and omit5, and rule R5 then rejects an omitted 5 that
-is also altered. Half of the failures are ASCII texts and half the same texts
-in Unicode. The ASCII ones with the root C, then the example from the issue:
-
-  45 ASCII, 45 Unicode
-  root C   C-(b5,add9,omit5) C-(b5,b9,omit5) C-(b5,omit5) Cm(b5,add9,omit5)
-           Cm(b5,b9,omit5) Cm(b5,omit5) Cm11(b5,b9,omit5) Cm11(b5,omit5)
-           Cm13(b5,b9,omit5) Cm13(b5,omit5) Cm7(b5,add9,omit5) Cm7(b5,b9,omit5)
-           Cm7(b5,omit5) Cm9(b5,b9,omit5) Cm9(b5,omit5)
+Up to 0.4.0, 90 of these round trips failed (egao1980/music-theory#10, fixed in
+0.5.0). A diminished triad or a half-diminished seventh without its 5 prints in
+:POP (the triad in :JAZZ too) as the minor chord with b5 and omit5, and rule R5
+rejected an omitted 5 that is also altered. Since 0.5.0, R5 accepts a written b5
+next to omit5 when the flat fifth names the quality, in either order, so the
+printed text reads back as the same chord:
 
   (print-chord-symbol (parse-chord-symbol "C°(omit5)" :dialect :classical) :dialect :pop)
     => "Cm(b5,omit5)"
-  (parse-chord-symbol "Cm(b5,omit5)")
-    -> chord-symbol-parse-error "Cm(b5,omit5)" at 6: expected an omitted degree that is not altered (breaks rule R5)
+  (chord-symbol-quality (parse-chord-symbol "Cm(b5,omit5)")) => :diminished
+  (same-chord-p (parse-chord-symbol "Cm(b5,omit5)") (parse-chord-symbol "C°(omit5)" :dialect :classical))
+    => t
+  (same-chord-p (parse-chord-symbol "Cm(omit5,b5)") (parse-chord-symbol "Cm(b5,omit5)"))
+    => t   ; either order
+  (print-chord-symbol (parse-chord-symbol "Cm7(b5,omit5)") :dialect :jazz)
+    => "Cø7(omit5)"
+  (tone-names (chord-tones (parse-chord-symbol "Cm7(b5,omit5)"))) => "C Eb Bb"
+
+Where the altered 5 does not name the quality, R5 stands: a dominant seventh's
+fifth is perfect, so its b5 is an alteration, and a minor triad with #5 is no
+named chord. Both still fail:
+
+  (parse-chord-symbol "C7(b5,omit5)")
+    -> chord-symbol-parse-error "C7(b5,omit5)" at 6: expected an omitted degree that is not altered (breaks rule R5)
+  (parse-chord-symbol "Cm(#5,omit5)")
+    -> chord-symbol-parse-error "Cm(#5,omit5)" at 6: expected an omitted degree that is not altered (breaks rule R5)
 
 ========================================================================
 == 19. Unicode and ASCII, slash chords
@@ -1410,7 +1420,390 @@ INVALID-PITCH for a tone or a transposed root beyond two accidentals:
     -> invalid-pitch: needs more than two accidentals
 
 ========================================================================
+== 23. Spelling a MIDI melody
+========================================================================
+Sections 23-25 are slice MT4, new in 0.5.0. A MIDI number says which key of a
+keyboard sounds, not how the note is written: 63 is D#4, Eb4 or Fbb4. SPELL-MIDI
+and SPELL-SEQUENCE choose a spelling by distance on the line of fifths (section
+3). The spellings of one MIDI number are 12 positions apart there, and the
+library looks for the one nearest a center: the mean position of the key's notes
+and of the last WINDOW notes spelled (8 by default). Rules S0-S7 decide, the
+first that applies:
+
+  S0  SPELL-MIDI's :PREVIOUS with the same MIDI number: its spelling
+  S1  a spelling in the key (a minor key's raised 7th included)
+  S2  only one spelling within two accidentals on one side of the center
+  S3  the accidental of the same pitch class earlier in the window
+  S4  a semitone step to the next note is diatonic: D# up to E, Eb down to D
+  S5  no augmented or diminished interval with the note before
+  S6  the spelling nearer the center
+  S7  a tie: the sharper one, after signalling AMBIGUOUS-SPELLING
+
+Each note also gets an ambiguity, d/6 with d the distance from its center to the
+nearest spelling: 0 on the center, 1 midway between two spellings. Rules S1-S5
+can pick the farther spelling, so a high ambiguity does not mean a wrong one. One
+note in C major, with no context (the center of C major alone is D):
+
+  midi       60   61   62   63   64   65   66   67   68   69   70   71
+  spelled    C4   C#4  D4   Eb4  E4   F4   F#4  G4   G#4  A4   Bb4  B4
+  ambiguity  1/3  5/6  0    5/6  1/3  1/2  2/3  1/6  1    1/6  2/3  1/2
+
+A key or the note before changes the choice:
+
+  (pitch-name (spell-midi 61 :key (parse-key "Db major"))) => "Db4"
+  (pitch-name (spell-midi 61 :key (parse-key "D minor")))
+    => "C#4"   ; S1: the raised 7th
+  (pitch-name (spell-midi 63 :previous (parse-pitch "E4")))
+    => "D#4"   ; S5: E to D# is a m2
+  (pitch-name (spell-midi 63 :previous (parse-pitch "D4")))
+    => "Eb4"   ; S5: D to Eb is a m2
+  (pitch-name (spell-midi 63 :previous (parse-pitch "D#4"))) => "D#4"   ; S0
+
+The rules at work on short phrases. The rule named is the one that decides the
+chromatic note:
+
+  midi                key       spelled               why
+  70                  F major   Bb4                   S1: Bb is in F major
+  70                  B major   A#4                   S1: A# is in B major
+  61 62               D minor   C#4 D4                S1: the raised 7th of D minor
+  62 63 64            C major   D4 D#4 E4             S4: up a semitone to E
+  64 63 62            C major   E4 Eb4 D4             S4: down a semitone to D
+  64 68 71            C major   E4 G#4 B4             S5: E-G# a M3, not E-Ab a d4
+  65 68 72            C major   F4 Ab4 C5             S5: F-Ab a m3, not F-G# an A2
+  66 65 61 65 64      B minor   F#4 E#4 C#4 E#4 E4    S3: the second E# keeps its sharp
+
+A tune. The opening of The Entertainer (Scott Joplin, 1902) as a MIDI file would
+give it, 36 MIDI numbers:
+
+  midi     74 75 76 84 76 84 76 84 84 86 87 88 84 86 88 83 86 84 74 75 76 84 76 84
+           76 84 81 79 78 81 84 88 86 84 81 86
+
+With no key hint, SPELL-SEQUENCE detects the key from the note counts (section 24)
+and spells in it. Each note's spelling and ambiguity:
+
+  (key-name (car (first (detect-key (pitch-class-histogram *entertainer* :weight :count)))))
+    => "C major"
+
+  midi       74     75     76     84     76     84     76     84     84
+  spelled    D5     D#5    E5     C6     E5     C6     E5     C6     C6
+  ambiguity  0      5/6    11/54  29/60  5/22   11/24  19/78  37/84  37/90
+
+  midi       86     87     88     84     86     88     83     86     84
+  spelled    D6     D#6    E6     C6     D6     E6     B5     D6     C6
+  ambiguity  1/18   73/90  3/10   37/90  1/30   5/18   4/9    1/9    7/15
+
+  midi       74     75     76     84     76     84     76     84     81
+  spelled    D5     D#5    E5     C6     E5     C6     E5     C6     A5
+  ambiguity  1/9    13/15  11/45  7/15   2/9    4/9    5/18   37/90  4/45
+
+  midi       79     78     81     84     88     86     84     81     86
+  spelled    G5     F#5    A5     C6     E6     D6     C6     A5     D6
+  ambiguity  23/90  2/3    13/90  7/18   29/90  1/18   11/30  2/15   1/30
+
+Every note is spelled as printed. The D#5 has ambiguity 5/6: near the center,
+about D, Eb is the nearer spelling (5 positions against 7), but S4 decides
+first, because the next note is E, a semitone up. With the key hint :KEY C
+major the result is the same, spellings and ambiguities alike, since C major is
+the key detected:
+
+  (equalp (spell-sequence *entertainer* :key (parse-key "C major")) (spell-sequence *entertainer*))
+    => t
+  (equal (nth-value 1 (spell-sequence *entertainer* :key (parse-key "C major"))) (nth-value 1 (spell-sequence *entertainer*)))
+    => t
+
+A key hint matters in remote keys. Moved up a semitone, the tune is in C# major
+(seven sharps) or Db major (five flats): the same MIDI numbers, two spellings.
+Without a hint, detection returns one of its 24 candidates, which are spelled
+with the fewest accidentals, so Db major; :KEY C# major gives the sharps. The
+first 12 notes of each, moved up and down a semitone and by a tritone:
+
+  up a semitone
+    no key (Db major)  Eb5 E5 F5 Db6 F5 Db6 F5 Db6 Db6 Eb6 E6 F6 ...
+    :key C# major      D#5 D##5 E#5 C#6 E#5 C#6 E#5 C#6 C#6 D#6 D##6 E#6 ...
+  down a semitone
+    no key (B major)   C#5 C##5 D#5 B5 D#5 B5 D#5 B5 B5 C#6 C##6 D#6 ...
+    :key Cb major      Db5 D5 Eb5 Cb6 Eb5 Cb6 Eb5 Cb6 Cb6 Db6 D6 Eb6 ...
+  up a tritone
+    no key (F# major)  G#5 G##5 A#5 F#6 A#5 F#6 A#5 F#6 F#6 G#6 G##6 A#6 ...
+    :key Gb major      Ab5 A5 Bb5 Gb6 Bb5 Gb6 Bb5 Gb6 Gb6 Ab6 A6 Bb6 ...
+
+In each pair the spelling is the C major text moved to that key, and every note
+keeps its ambiguity: the key moves the center along with the notes. Only the
+choice of key differs, and only the caller can make it.
+
+Rule S7 is the last resort: a note exactly midway between its two nearest
+spellings when no other rule decides. The library then signals
+AMBIGUOUS-SPELLING, a MUSIC-THEORY-WARNING, with SIGNAL rather than WARN, so
+nothing is printed unless a handler is bound, and takes the sharper spelling.
+MIDI 68 alone in C major is such a note: G# and Ab are both six fifths from D:
+
+  (handler-case (spell-midi 68) (ambiguous-spelling (c) (princ-to-string c)))
+    => "ambiguous spelling of MIDI 68: Ab4 or G#4"
+  ambiguous-spelling-midi 68, ambiguous-spelling-candidates Ab4 G#4
+  restarts: use-value, muffle-warning
+  (pitch-name (spell-midi 68)) => "G#4"   ; no handler: silent, the sharper spelling
+  (pitch-name
+   (handler-bind ((ambiguous-spelling #'muffle-warning))
+     (spell-midi 68)))
+    => "G#4"
+  (pitch-name
+   (handler-bind ((ambiguous-spelling (lambda (c) (use-value (parse-pitch "Ab4") c))))
+     (spell-midi 68)))
+    => "Ab4"
+  (handler-case
+   (handler-bind ((ambiguous-spelling (lambda (c) (use-value (parse-pitch "A4") c))))
+     (spell-midi 68))
+   (type-error (e) (list (type-error-datum e) (type-error-expected-type e))))
+    => (69 (eql 68))   ; USE-VALUE takes only a spelling of MIDI 68
+
+In a sequence the spelling chosen enters the window like any other. The handler
+LOG-AND-TAKE-FLATTER pushes the MIDI number onto *SPELLING-LOG* and answers
+USE-VALUE with the flatter candidate. It runs once here: the second 68 is decided
+by S3, which keeps the accidental of the first:
+
+  (handler-bind ((ambiguous-spelling #'log-and-take-flatter))
+    (names (spell-sequence '(68 60 68 67) :key (parse-key "C major"))))
+    => ("Ab4" "C4" "Ab4" "G4")
+  *spelling-log* => (68)
+  (names (spell-sequence '(68 60 68 67) :key (parse-key "C major")))
+    => ("G#4" "C4" "G#4" "G4")   ; no handler
+
+The package's tests hold the rules to 50 public-domain melodies re-encoded
+for it (folk tunes, hymns, carols, themes by Bach, Mozart, Beethoven and
+others), and to 100 copies moved five fifths up and down into every key. The
+fixtures ship with the package, so the demo counts again:
+
+  50 melodies, 1699 notes: 1699 spelled as notated with the key, 1699 without
+  100 transposed copies, 3398 notes: 3398 with the key, 3072 without (90.41%)
+
+Without a key the transposed copies lose 9.6%: for F# or Gb major, C# or Db
+major and the like, detection returns one of the two keys, and a copy
+written in the other is spelled in the wrong one.
+
+Open issue egao1980/music-theory#14, found with this demo: a chromatic step can
+take a spelling far from the key, because S4 makes a semitone step diatonic and
+S5 avoids the augmented unison (C# to C). The ground bass of Purcell's lament
+When I am laid in earth (1689) is G F# F E Eb D in G minor; the E comes out Fb:
+
+  (names (spell-sequence '(55 54 53 52 51 50) :key (parse-key "G minor")))
+    => ("G3" "F#3" "F3" "Fb3" "Eb3" "D3")
+  (names (spell-sequence '(62 61 60) :key (parse-key "D major")))
+    => ("D4" "C#4" "B#3")
+
+========================================================================
+== 24. Key detection: histograms and key profiles
+========================================================================
+PITCH-CLASS-HISTOGRAM sums a list of events into 12 cells, C to B. An event is
+(pitch . duration) or a bare pitch, which counts 1; a pitch is a MIDI number, a
+SPELLED-PITCH or a PITCH-CLASS-NAME. :WEIGHT :COUNT counts each event once. Sums
+are exact:
+
+  (pitch-class-histogram '((60 . 1/4) (64 . 1/4) (67 . 1/2)))
+    => #(1/4 0 0 0 1/4 0 0 1/2 0 0 0 0)
+  (pitch-class-histogram (list (parse-pitch "B#3") (parse-pitch-class "Cb") '(61 . 3/8) -11))
+    => #(1 11/8 0 0 0 0 0 0 0 0 0 1)   ; B#3 is class 0, Cb 11, -11 is 1
+
+Twinkle, Twinkle in C major, by duration in whole notes and by count:
+
+  class      C   C#  D   Eb  E   F   F#  G   Ab  A   Bb  B
+  duration   2   0   2   0   2   2   0   3   0   1   0   0
+  count      6   0   6   0   8   8   0   10  0   4   0   0
+
+DETECT-KEY correlates the histogram with a key profile, a weight per scale
+degree for major and for minor, rotated to each of 24 tonics, and returns all 24
+keys as (key . r), best first. r is the Pearson correlation, computed exactly in
+rationals and rounded once to a double float; equal r keep a fixed candidate
+order. Three published profiles: :KRUMHANSL-KESSLER (the default; listeners'
+ratings of probe tones, 1982), :TEMPERLEY (counts from a harmony textbook's
+examples, 2007) and :AARDEN (counts from a folksong corpus, 2003):
+
+  (length ranking) => 24
+  (ranked ranking 3)
+    => (("C major" "0.858") ("G major" "0.684") ("F major" "0.561"))
+
+The profiles do not always agree. Jingle Bells is in F major, but its chorus sits
+on A, the third, and Krumhansl-Kessler hears A as a tonic. The three best keys
+under each profile:
+
+  :krumhansl-kessler    :temperley            :aarden
+  A minor 0.673         F major 0.609         F major 0.663
+  F major 0.475         D minor 0.551         D minor 0.492
+  A major 0.436         A minor 0.363         G minor 0.466
+
+The first key under each profile for seven tunes; * marks a key other than the
+notated one:
+
+  tune             notated  :krumhansl-kessler :temperley       :aarden
+  Twinkle, Twinkle C major  C major  0.858     C major  0.899   C major  0.962
+  Für Elise        A minor  A minor  0.745     A minor  0.831   A minor  0.830
+  Greensleeves     A minor  A minor  0.763     G major* 0.696   A minor  0.796
+  Jingle Bells     F major  A minor* 0.673     F major  0.609   F major  0.663
+  Drunken Sailor   D minor  D major* 0.705     D minor  0.691   D minor  0.779
+  The Entertainer  C major  C major  0.717     C major  0.621   A minor* 0.614
+  Symphony No. 40  G minor  C minor* 0.538     G minor  0.760   G minor  0.718
+  notated key first         4 of 7             6 of 7           6 of 7
+
+Krumhansl-Kessler misses three: the relative minor (Jingle Bells), the parallel
+major of a Dorian tune (Drunken Sailor) and the subdominant (Mozart's Symphony
+No. 40). Temperley reads the G naturals of Greensleeves as G major, and Aarden
+takes The Entertainer for its relative minor.
+
+Weighting matters too. Für Elise by count is in E minor (its many short E and D#
+notes); by duration, the default, the long As make it A minor. TUNE-EVENTS gives
+a tune's (MIDI . duration) pairs:
+
+  (key-name (car (first (detect-key (pitch-class-histogram (tune-events (second *tunes*)) :weight :count)))))
+    => "E minor"
+  (key-name (car (first (detect-key (pitch-class-histogram (tune-events (second *tunes*)))))))
+    => "A minor"
+
+Over the package's 50-melody corpus, the counts its tests hold each profile
+to (a key counts when tonic pitch class and mode match; music21 ranks the same
+way):
+
+  profile             top 1     top 2
+  :krumhansl-kessler  39 (78%)  47 (94%)
+  :temperley          45 (90%)  49 (98%)
+  :aarden             41 (82%)  48 (96%)
+
+A profile can be the caller's own, a list (major minor) of 12 weights each, tonic
+first. With plain scale membership (1 in the scale, 0 outside; harmonic minor),
+Twinkle fits C major and F major equally (it has no B and no Bb), and the tie
+keeps the candidate order, C before F:
+
+  *scale-profile*  ((1 0 1 0 1 1 0 1 0 1 0 1) (1 0 1 1 0 1 0 1 1 0 0 1))
+
+  (ranked (detect-key (pitch-class-histogram (tune-events (first *tunes*))) :profiles *scale-profile*) 2)
+    => (("C major" "0.782") ("F major" "0.782"))
+
+No evidence, no key: a histogram with 12 equal cells (here the chromatic scale)
+correlates with nothing, and DETECT-KEY returns NIL. A profile with 12 equal
+weights is an error, and anything but a histogram or a profile a TYPE-ERROR:
+
+  (detect-key (pitch-class-histogram '(60 61 62 63 64 65 66 67 68 69 70 71))) => nil
+  (detect-key #(1 0 0 0 0 0 0 0 0 0 0 0) :profiles '((1 1 1 1 1 1 1 1 1 1 1 1) (2 2 2 2 2 2 2 2 2 2 2 2)))
+    -> music-theory-error: constant key profile
+  (handler-case (detect-key '(1 2 3)) (type-error nil :type-error)) => :type-error
+  (handler-case (detect-key #(1 0 0 0 0 0 0 0 0 0 0 0) :profiles :equal-tempered) (type-error nil :type-error))
+    => :type-error
+
+========================================================================
+== 25. Transposing to a key; enharmonic keys
+========================================================================
+TRANSPOSE-TO-KEY moves a spelled pitch from one key to another and spells it for
+the new key: the scale degree and its alteration are kept. The tonic's letter
+moves at most three steps up or down, so C to G is a fourth down and C to F a
+fourth up, and moving back is the exact inverse:
+
+  (pitch-name (transpose-to-key (parse-pitch "F#4") (parse-key "C") (parse-key "D")))
+    => "G#4"   ; #4 of C is #4 of D
+  (pitch-name (transpose-to-key (parse-pitch "F#4") (parse-key "C") (parse-key "Db")))
+    => "G4"
+  (pitch-name (transpose-to-key (parse-pitch "F#4") (parse-key "C") (parse-key "C#")))
+    => "F##4"
+  (pitch-name (transpose-to-key (parse-pitch "C4") (parse-key "C") (parse-key "G")))
+    => "G3"
+  (pitch-name (transpose-to-key (parse-pitch "C4") (parse-key "C") (parse-key "Gb")))
+    => "Gb3"
+  (pitch-name (transpose-to-key (parse-pitch "C4") (parse-key "C") (parse-key "F#")))
+    => "F#4"
+  (pitch-class-string (transpose-to-key (parse-pitch-class "Bb") (parse-key "F") (parse-key "E")))
+    => "A"   ; a pitch class moves as a class
+
+Only the tonics count, as in TRANSPOSE-CHORD-SYMBOL with two keys (section 21):
+E4 from C major to A minor is C#4. Chord symbols and notes move by the same rule,
+so a melody and its chords stay consistent: a note that is a chord tone before is
+the same chord tone after, spelled the same way. Greensleeves in A minor, then in
+E minor, Eb minor and D# minor (six flats or six sharps, the same sounds):
+
+  (pitch-name (transpose-to-key (parse-pitch "E4") (parse-key "C") (parse-key "A minor")))
+    => "C#4"
+
+  A minor
+         Am                G                Am
+    A4 | C5 D5 E5 F#5 E5 | D5 B4 G4 A4 B4 | C5 A4 A4 G#4 A4 |
+    E7             Am                G
+    B4 G#4 E4 A4 | C5 D5 E5 F#5 E5 | D5 B4 G4 A4 B4 |
+    Am E7                  Am
+    C5 B4 A4 G#4 F#4 G#4 | A4 A4 |
+
+  E minor
+         Em                D                  Em
+    E4 | G4 A4 B4 C#5 B4 | A4 F#4 D4 E4 F#4 | G4 E4 E4 D#4 E4 |
+    B7              Em                D
+    F#4 D#4 B3 E4 | G4 A4 B4 C#5 B4 | A4 F#4 D4 E4 F#4 |
+    Em B7                   Em
+    G4 F#4 E4 D#4 C#4 D#4 | E4 E4 |
+
+  Eb minor
+          Ebm                  Db                  Ebm
+    Eb4 | Gb4 Ab4 Bb4 C5 Bb4 | Ab4 F4 Db4 Eb4 F4 | Gb4 Eb4 Eb4 D4 Eb4 |
+    Bb7             Ebm                  Db
+    F4 D4 Bb3 Eb4 | Gb4 Ab4 Bb4 C5 Bb4 | Ab4 F4 Db4 Eb4 F4 |
+    Ebm Bb7               Ebm
+    Gb4 F4 Eb4 D4 C4 D4 | Eb4 Eb4 |
+
+  D# minor
+          D#m                   C#                    D#m
+    D#5 | F#5 G#5 A#5 B#5 A#5 | G#5 E#5 C#5 D#5 E#5 | F#5 D#5 D#5 C##5 D#5 |
+    A#7                D#m                   C#
+    E#5 C##5 A#4 D#5 | F#5 G#5 A#5 B#5 A#5 | G#5 E#5 C#5 D#5 E#5 |
+    D#m A#7                     D#m
+    F#5 E#5 D#5 C##5 B#4 C##5 | D#5 D#5 |
+
+  melody notes on a chord tone, in the three keys: 84; still a chord tone, spelled
+  as in the chord: 84
+
+The raised 7th of the melody (G# in A minor) is the 3rd of E7 in every key: D#
+under B7, D under Bb7, C## under A#7. Eb minor moves down (A to Eb is three
+letters down) and D# minor up (A to D, three letters up).
+
+CHOOSE-ENHARMONIC-KEY picks between keys that sound alike: of the 30 keys, Db and
+C# major, Gb and F# major, Cb and B major, and Bb/A#, Eb/D#, Ab/G# minor. It
+returns a key with at most :MAX-ACCIDENTALS (default 6) sharps or flats when there
+is one; when both qualify it keeps the key given, unless :PREFER :SHARPS or
+:FLATS says otherwise:
+
+  key        default    :prefer :sharps  :prefer :flats   :max-accidentals 7
+  C# major   Db major   Db major         Db major         C# major
+  Db major   Db major   Db major         Db major         Db major
+  F# major   F# major   F# major         Gb major         F# major
+  Gb major   Gb major   F# major         Gb major         Gb major
+  Cb major   B major    B major          B major          Cb major
+  B major    B major    B major          B major          B major
+  D# minor   D# minor   D# minor         Eb minor         D# minor
+  Eb minor   Eb minor   D# minor         Eb minor         Eb minor
+  A# minor   Bb minor   Bb minor         Bb minor         A# minor
+  Ab minor   G# minor   G# minor         G# minor         Ab minor
+
+D♭ against C♯: seven sharps is one more than the default allows, so C# major
+becomes Db major (five flats). G♭ against F♯: six each, so either stays as given.
+A key beyond seven, built with MAKE-KEY, comes back to one of the 30:
+
+  (key-name (choose-enharmonic-key (parse-key "C# major")) :accidentals :unicode)
+    => "D♭ major"
+  (key-name (choose-enharmonic-key (parse-key "F# major") :prefer :flats) :accidentals :unicode)
+    => "G♭ major"
+  (key-name (choose-enharmonic-key (make-key :tonic (parse-pitch-class "G#"))))
+    => "Ab major"
+  (key-name (choose-enharmonic-key (parse-key "B major") :max-accidentals 4))
+    => "B major"   ; Cb major has seven
+  (handler-case (choose-enharmonic-key (parse-key "C") :max-accidentals 8) (type-error nil :type-error))
+    => :type-error
+
+Together: The Entertainer (section 23) up a semitone. C major up an A1 (seven
+fifths on the line) is C# major, CHOOSE-ENHARMONIC-KEY makes it Db major, and
+TRANSPOSE-TO-KEY writes the printed melody there. That is what SPELL-SEQUENCE
+gave for the raised MIDI numbers with no key hint:
+
+  (pitch-class-string (fifths-pitch-class (+ 7 (pitch-fifths (parse-pitch-class "C")))))
+    => "C#"
+  (key-name (choose-enharmonic-key (parse-key "C# major"))) => "Db major"
+  melody   Eb5 E5 F5 Db6 F5 Db6 F5 Db6 Db6 Eb6 E6 F6 Db6 Eb6 F6 C6 Eb6 Db6 Eb5 E5 F5
+           Db6 F5 Db6 F5 Db6 Bb5 Ab5 G5 Bb5 Db6 F6 Eb6 Db6 Bb5 Eb6
+
+========================================================================
 == Summary
 ========================================================================
-445 results checked against their expected values: 0 mismatched.
+530 results checked against their expected values: 0 mismatched.
 Every section ran to the end.
