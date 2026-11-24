@@ -1,0 +1,186 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: dependencies from cl-repo.lock (14 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
+audio-protocol 0.1.0 on midi-protocol 0.1.0 and binary-protocol 0.1.1 (SBCL 2.6.9)
+
+==============================================================================
+== 1. Three voices of a C-major triad, one sine buffer each
+==============================================================================
+Three voices of a C-major triad, each a mono sine buffer made in code:
+1.5 s at 44100 Hz, amplitude 1/2, a 20 ms linear fade in and out.
+
+  voice  key  frequency (Hz)   frames  duration  peak
+  C4      60        261.6256    66150  3/2       0.50000
+  E4      64        329.6276    66150  3/2       0.50000
+  G4      67        391.9954    66150  3/2       0.50000
+
+(note-frequency 69) = 440.0d0: A4 is exact. (seconds-to-frame 3/2 44100) = 66150.
+
+==============================================================================
+== 2. MIX: per-voice gain and pan
+==============================================================================
+PAN-GAINS for a mono input is the constant-power sine law:
+
+  voice  gain dB  linear   pan   left     right    left^2+right^2
+  C4          -3  0.7079  -0.6  0.95106  0.30902  1.000000000000
+  E4          -6  0.5012     0  0.70711  0.70711  1.000000000000
+  G4          -6  0.5012   0.6  0.30902  0.95106  1.000000000000
+
+  centre: 0.70711 per side (-3.01 dB); hard left (pan -1): (1.0d0 0.0d0)
+
+(mix voices :gains '(-3 -6 -6) :pans '(-0.6 0 0.6))
+  -> #<PCM-BUFFER 44100 Hz, 2 channels, 66150 frames {800929C633}> in 13.0 ms
+  peak left 0.59054 (-4.57 dB), right 0.52420 (-5.61 dB): below 1, so :CLIP clamps nothing
+  every one of the 132300 samples equals the file header's formula worked out here: T
+  frame 4410 (0.1 s): left 0.3195921, right 0.2786483
+
+Muting E4 and G4 and soloing C4 give the same buffer: T
+
+==============================================================================
+== 3. A 16-bit WAV: header, checksum, round trip
+==============================================================================
+(write-wav mix nil :encoding :pcm16) -> 264,644 bytes. The 44-byte header, unpacked
+with binary-protocol's "<4sI4s4sIHHIIHH4sI":
+
+  riff               "RIFF"
+  riff-size          264636
+  wave               "WAVE"
+  fmt                "fmt "
+  fmt-size           16
+  format-tag         1
+  channels           2
+  sample-rate        44100
+  bytes-per-second   176400
+  block-align        4
+  bits               16
+  data               "data"
+  data-size          264600
+
+Sample checksum: 132,300 codes, sum 7,910, sum of |code| 890,379,746, min -19,341, max 19,351
+SHA-256 of the data chunk  358bdb12c24672e1caa630bb2e7fa4c46caa5a63cbcf2c77721dfa46b82d8e09
+SHA-256 of the whole file  ba7d2cf58b3cd3fb1482bbbc17b859da4ea063c0925240c64d4d143e822f55c7
+
+(read-wav bytes) -> #<PCM-BUFFER 44100 Hz, 2 channels, 66150 frames {80084C4C73}>, :PCM16
+  every sample is code / 32768 exactly: T; the codes are the file's: T
+  largest difference from the float mix: 1.526e-5 (half a code is 1.526e-5)
+
+Round trip: write-wav of what was read gives the same 264,644 bytes: T
+(SHA-256 ba7d2cf58b3cd3fb1482bbbc17b859da4ea063c0925240c64d4d143e822f55c7)
+
+Written to <tmp>/triad.wav: 264,644 bytes, the same bytes as the vector: T
+As float32 (529,258 bytes: fmt 18, fact, data) it reads back EQUALP to the float mix: T
+
+==============================================================================
+== 4. RESAMPLE: 44.1 kHz to 16 kHz
+==============================================================================
+(resample triad 16000), the 16-bit triad read back in section 3:
+
+             rate   channels  frames  duration  peak left  peak right
+  before    44100         2   66150  3/2         0.59055     0.52420
+  after     16000         2   24000  3/2         0.59014     0.52373
+
+  0.04 s for 48,000 output samples (about 93 multiply-adds each)
+  written as 16-bit to <tmp>/triad-16k.wav: 96,044 bytes
+
+The kernel's passband and stopband, on 0.5 s tones of amplitude 0.5 at 44.1 kHz
+(peaks away from the ramped edges, 64 output frames at each end):
+
+  tone      peak at 16 kHz   gain dB
+   1000 Hz        0.500005   0.00   
+   5000 Hz        0.499990   -0.00  
+   7000 Hz        0.457365   -0.77  
+  10000 Hz        0.000055   -79.24 
+  15000 Hz        0.000000   -120.39
+
+Below 6.3 kHz the tone passes; past 8.9 kHz (the end of the transition band
+for 44100 -> 16000) it is gone by more than 60 dB, as resample.lisp states.
+
+==============================================================================
+== 5. Rendering an SMF with the reference engine: a mix and stems
+==============================================================================
+A type-1 SMF built in code with midi-protocol: a conductor track (120 bpm, 4/4),
+"Melody" C4 E4 G4 C5 (quarters, velocity 100, channel 1) and "Bass" C3 G2
+(halves, velocity 80, channel 2). write-smf -> 155 bytes.
+
+  smf-duration 2 s; (render-frames smf 44100) with the default 1 s tail: 132,300
+  engine: AUDIO-PROTOCOL:REFERENCE-ENGINE, waveform :SINE, amplitude 1/4
+
+(render-midi engine bytes) -> #<PCM-BUFFER 44100 Hz, 2 channels, 132300 frames {80055F32A3}> in 19.8 ms
+  duration 3 s, sounding until 2 s, peak 0.35432 (-9.01 dB)
+
+(render-stems engine smf) -> 2 stems in 16.5 ms:
+
+  name     track  channel  frames   duration  sounding  peak     expected A*v/127
+  Melody       1  NIL       132300  3         2         0.19685  0.19685
+  Bass         2  NIL       132300  3         2         0.15748  0.15748
+
+  (mix stems :clip :none) against the whole render: largest difference 2.98e-8
+  a rehearsal mix, bass at -12 dB: peak left 0.22058, right 0.15766
+
+(render-stems engine smf :by :channel :sample-rate 16000 :channels 1):
+  Channel 1  channel 0  #<PCM-BUFFER 16000 Hz, 1 channel, 48000 frames {80067CEE13}>  3 s, peak 0.19685
+  Channel 2  channel 1  #<PCM-BUFFER 16000 Hz, 1 channel, 48000 frames {8006C2EE13}>  3 s, peak 0.15748
+
+The whole render written as 16-bit to <tmp>/arpeggio.wav: 529,244 bytes
+With *max-render-seconds* 2: AUDIO-LIMIT-EXCEEDED, limit 2, value 3;
+CONTINUE renders anyway: #<PCM-BUFFER 8000 Hz, 2 channels, 24000 frames {800906EE13}>
+
+==============================================================================
+== 6. Conditions and restarts
+==============================================================================
+a. A truncated file: the first 4,045 of the 264,644 bytes (1,000 whole frames and one
+byte of the next).
+
+  (read-wav truncated) signals AUDIO-PROTOCOL:AUDIO-FORMAT-ERROR
+    offset 36 (the data chunk), reason "the data chunk declares 264600 bytes and 4001 are there"
+    "Audio format error at byte 36: the data chunk declares 264600 bytes and 4001 are there"
+
+  restarts offered: use-partial-data
+  with USE-PARTIAL-DATA: #<PCM-BUFFER 44100 Hz, 2 channels, 1000 frames {8009076DE3}>, :PCM16
+  and a WAV-FORMAT-WARNING: offset 4044, "partial frame"
+  its 2,000 samples are the first 2,000 of the full read: T
+
+  Without a handler the error is not resumed: (audio:use-partial-data) outside
+  one returns NIL.
+
+b. A non-finite sample on write. WRITE-WAV checks the whole buffer before it
+writes a byte, so the error leaves no file behind.
+
+  +infinity  at sample  37, :PCM16  : AUDIO-PROTOCOL:AUDIO-ENCODE-ERROR index 37, "a NaN or infinite sample"; <tmp>/bad-pcm16-37.wav exists: NIL
+  +infinity  at sample  37, :FLOAT32: AUDIO-PROTOCOL:AUDIO-ENCODE-ERROR index 37, "a NaN or infinite sample"; <tmp>/bad-float32-37.wav exists: NIL
+  a NaN      at sample 151, :PCM16  : AUDIO-PROTOCOL:AUDIO-ENCODE-ERROR index 151, "a NaN or infinite sample"; <tmp>/bad-pcm16-151.wav exists: NIL
+  a NaN      at sample 151, :FLOAT32: AUDIO-PROTOCOL:AUDIO-ENCODE-ERROR index 151, "a NaN or infinite sample"; <tmp>/bad-float32-151.wav exists: NIL
+  The error has no restart: there is no sample to write in its place, the buffer
+is the caller's to fix.
+
+c. A float32 file whose sample 2 is +infinity (bytes 00 00 80 7F at offset 66).
+
+  (read-wav bytes) signals AUDIO-PROTOCOL:AUDIO-FORMAT-ERROR at offset 66: "a NaN or infinite float32 sample"
+  with (use-value 0): (0.25 -0.5 0.0 1.0)
+
+==============================================================================
+== 7. The files written
+==============================================================================
+The WAV files of this run come to 889,932 bytes. WAV outputs are committed only when
+they come to less than 200 KB together, so these stay in a temporary directory
+that is removed at the end; their sizes and SHA-256 are the record:
+
+  <tmp>/triad.wav          264,644  ba7d2cf58b3cd3fb1482bbbc17b859da4ea063c0925240c64d4d143e822f55c7
+  <tmp>/triad-16k.wav       96,044  b80f45970287ea7a72ca977180a0a94e988d2d90f729e595cddca9f14722f7cc
+  <tmp>/arpeggio.wav       529,244  120b75ad18d590fdc31e5b70873c294470d6d359f48c2e6ca310e4e03507b7af
+
+The renders are deterministic: the same SHA-256 on every run of this version.
+
+==============================================================================
+== Summary
+==============================================================================
+75 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
