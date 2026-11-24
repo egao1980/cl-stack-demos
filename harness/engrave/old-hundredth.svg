@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2100 2970" width="210mm" height="297mm" class="engrave-page" data-page="1">
+  <g class="parts">
+    <g id="P1" class="part">
+      <text>Soprano</text>
+      <g id="st-6" class="staff"/>
+      <g id="v-7" class="voice"/>
+    </g>
+    <g id="P2" class="part">
+      <text>Alto</text>
+      <g id="st-p" class="staff"/>
+      <g id="v-q" class="voice"/>
+    </g>
+    <g id="P3" class="part">
+      <text>Tenor</text>
+      <g id="st-10" class="staff"/>
+      <g id="v-11" class="voice"/>
+    </g>
+    <g id="P4" class="part">
+      <text>Bass</text>
+      <g id="st-1b" class="staff"/>
+      <g id="v-1c" class="voice"/>
+    </g>
+  </g>
+  <g id="system.1" class="system" transform="translate(100,100)">
+    <g id="m-1" class="measure" transform="translate(0,0)">
+      <rect width="400" height="400"/>
+      <g id="tm-2" class="tempo-mark"/>
+      <g id="e-8" class="note">
+        <g id="ly-9" class="lyric"/>
+      </g>
+      <g id="e-r" class="note"/>
+      <g id="e-12" class="note"/>
+      <g id="e-1d" class="note"/>
+    </g>
+    <g id="m-3" class="measure" transform="translate(400,0)">
+      <rect width="400" height="400"/>
+      <g id="e-a" class="note">
+        <g id="ly-b" class="lyric"/>
+      </g>
+      <g id="e-c" class="note">
+        <g id="ly-d" class="lyric"/>
+      </g>
+      <g id="e-e" class="note">
+        <g id="ly-f" class="lyric"/>
+      </g>
+      <g id="e-g" class="note">
+        <g id="ly-h" class="lyric"/>
+      </g>
+      <g id="e-s" class="note"/>
+      <g id="e-t" class="note"/>
+      <g id="e-u" class="note"/>
+      <g id="e-v" class="note"/>
+      <g id="e-13" class="note"/>
+      <g id="e-14" class="note"/>
+      <g id="e-15" class="note"/>
+      <g id="e-16" class="note"/>
+      <g id="e-1e" class="note"/>
+      <g id="e-1f" class="note"/>
+      <g id="e-1g" class="note"/>
+      <g id="e-1h" class="note"/>
+    </g>
+    <g id="m-4" class="measure" transform="translate(800,0)">
+      <rect width="400" height="400"/>
+      <g id="tm-5" class="tempo-mark"/>
+      <g id="e-i" class="note">
+        <g id="ly-j" class="lyric"/>
+      </g>
+      <g id="e-k" class="note">
+        <g id="ly-l" class="lyric"/>
+      </g>
+      <g id="e-m" class="note">
+        <g id="fe-n" class="fermata"/>
+        <g id="ly-o" class="lyric"/>
+      </g>
+      <g id="e-w" class="note"/>
+      <g id="e-x" class="note"/>
+      <g id="e-y" class="note">
+        <g id="fe-z" class="fermata"/>
+      </g>
+      <g id="e-17" class="note"/>
+      <g id="e-18" class="note"/>
+      <g id="e-19" class="note">
+        <g id="fe-1a" class="fermata"/>
+      </g>
+      <g id="e-1i" class="note"/>
+      <g id="e-1j" class="note"/>
+      <g id="e-1k" class="note">
+        <g id="fe-1l" class="fermata"/>
+      </g>
+    </g>
+  </g>
+</svg>
