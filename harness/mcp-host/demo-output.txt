@@ -1,0 +1,151 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: dependencies from cl-repo.lock (25 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; compiling file "~/Projects/cl-workspace/.worktrees/c3a/cl-stack-demos/harness/mcp-host/src/demo.lisp" (written 24 NOV 2026 11:48:57 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/.worktrees/c3a/cl-stack-demos/harness/mcp-host/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.044
+
+========================================================================
+== 1. Capabilities from the client's handlers
+========================================================================
+mcp-client-default-capabilities (as JSON; json-backend-jzon sorts members by key, here and on the wire):
+  no handlers:                    {}
+  sampling + elicitation + roots: {"elicitation":{"form":{}},"roots":{},"sampling":{}}, keys in order sampling elicitation roots
+  ok  a bare client advertises {} (an object, never NIL)
+  ok  the handlers make sampling, elicitation (form mode only) and roots, in that order
+
+A 2026-07-28 exchange (sampling + elicitation handlers, no :capabilities); the client is now modern at 2026-07-28.
+  server/discover _meta clientCapabilities: {"elicitation":{"form":{}},"sampling":{}}
+  tools/list params, as the server got them: {"_meta":{"io.modelcontextprotocol/clientCapabilities":{"elicitation":{"form":{}},"sampling":{}},"io.modelcontextprotocol/clientInfo":{"name":"demo-host","version":"0.1.0"},"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}
+  ok  every 2026-07-28 request's _meta carries the handlers' capabilities (0.4 sent {})
+
+A 2025-11-25 exchange (:era :legacy, a sampling handler only):
+  initialize params, as the server got them: {"capabilities":{"sampling":{}},"clientInfo":{"name":"demo-host","version":"0.1.0"},"protocolVersion":"2025-11-25"}
+  tools/list params: {} (no _meta in this era)
+  ok  a 2025-11-25 initialize carries them in "capabilities" (0.4 sent {}); no elicitation handler, no elicitation
+
+Explicit :capabilities {"experimental": …} on a client with a sampling handler:
+  tools/list _meta clientCapabilities: {"experimental":{"x.demo/trace":{}}}
+  ok  explicit :capabilities replace the defaults whole (no merge)
+Extended instead, starting from (mcp-client-default-capabilities client):
+  tools/list _meta clientCapabilities: {"experimental":{"x.demo/trace":{}},"sampling":{}}
+  ok  a host extends the defaults by starting from them
+
+========================================================================
+== 2. Sampling over MRTR: the tool asks, the host's model answers, the retry has it
+========================================================================
+(call-tool client "summarize_diff" {} :timeout 10)
+  [model] sampling/createMessage: maxTokens 64, systemPrompt "Summarize a diff in one line.", 1 message(s), last "Summarize: +12 -3 in src/host.lisp"
+The tools/call requests the server got:
+  round 0: tools/call summarize_diff, inputResponses none, requestState none
+           → input_required, asks s1 (sampling/createMessage)
+  round 1: tools/call summarize_diff, inputResponses s1, requestState none
+           → done: "summary: call-tool now answers input requests until the tool is done"
+           inputResponses {"s1":{"content":{"text":"call-tool now answers input requests until the tool is done","type":"text"},"model":"stub-model-1","role":"assistant","stopReason":"endTurn"}}
+The tool's handler, run once per round:
+  summarize_diff run: inputResponses none, requestState none
+  summarize_diff run: inputResponses s1, requestState none
+call-tool → "summary: call-tool now answers input requests until the tool is done"
+  ok  two rounds: round 0 carried no answers; round 1 carried the model's answer as inputResponses s1
+  ok  the model was asked once, with the server's params (maxTokens 64)
+  ok  the tool's text is the model's answer
+
+========================================================================
+== 3. Elicitation over MRTR, then sampling and elicitation in one call
+========================================================================
+(call-tool client "confirm_push" {} :timeout 10)
+  [user]  elicitation/create (form mode): "Push the summary commit?", fields branch, force, required branch
+  round 0: tools/call confirm_push, inputResponses none, requestState none
+           → input_required, asks e1 (elicitation/create)
+  round 1: tools/call confirm_push, inputResponses e1, requestState none
+           → done: "pushing main (force: no)"
+           inputResponses {"e1":{"action":"accept","content":{"branch":"main","force":false}}}
+  confirm_push run: inputResponses none, requestState none
+  confirm_push run: inputResponses e1, requestState none
+call-tool → "pushing main (force: no)"
+  ok  the user's accept and its content reached the tool on the retry
+
+(call-tool client "summarize_and_push" {} :timeout 10): sampling s1, then elicitation e1
+  [model] sampling/createMessage: maxTokens 64, systemPrompt "Summarize a diff in one line.", 1 message(s), last "Summarize: +12 -3 in src/host.lisp"
+  [user]  elicitation/create (form mode): "Push the summary commit?", fields branch, force, required branch
+  round 0: tools/call summarize_and_push, inputResponses none, requestState none
+           → input_required, asks s1 (sampling/createMessage)
+  round 1: tools/call summarize_and_push, inputResponses s1, requestState "step-1"
+           → input_required, asks e1 (elicitation/create)
+  round 2: tools/call summarize_and_push, inputResponses e1 s1, requestState "step-2"
+           → done: "call-tool now answers input requests until the tool is done; pushing main (force: no)"
+  summarize_and_push run: inputResponses none, requestState none
+  summarize_and_push run: inputResponses s1, requestState "step-1"
+  summarize_and_push run: inputResponses e1 s1, requestState "step-2"
+call-tool → "call-tool now answers input requests until the tool is done; pushing main (force: no)"
+  ok  three rounds; the third carries both answers (s1 e1, merged by id) and the latest requestState
+  ok  each handler was asked once: the model, then the user
+  ok  the tool finished with both answers
+
+========================================================================
+== 4. Refusal and limits
+========================================================================
+A sampling handler that refuses: (error <mcp-error -1 "User rejected sampling request">)
+  round 0: tools/call summarize_diff, inputResponses none, requestState none
+           → input_required, asks s1 (sampling/createMessage)
+  call-tool signalled User rejected sampling request [-1]
+  as a host's tool error: {"content":[{"text":"User rejected sampling request [-1]","type":"text"}],"isError":true}
+  ok  call-tool ended with the handler's own MCP-ERROR (the same object, code -1)
+  ok  no further round was sent
+
+A tool that asks again every round (ask_forever); +max-input-rounds+ is 10:
+  round 0: tools/call ask_forever, inputResponses none, requestState none
+           → input_required, asks e0 (elicitation/create)
+  round 1: tools/call ask_forever, inputResponses e0, requestState none
+           → input_required, asks e1 (elicitation/create)
+  round 2: tools/call ask_forever, inputResponses e0 e1, requestState none
+           → input_required, asks e2 (elicitation/create)
+  round 3: tools/call ask_forever, inputResponses e0 e1 e2, requestState none
+           → input_required, asks e3 (elicitation/create)
+  round 4: tools/call ask_forever, inputResponses e0 e1 e2 e3, requestState none
+           → input_required, asks e4 (elicitation/create)
+  round 5: tools/call ask_forever, inputResponses e0 e1 e2 e3 e4, requestState none
+           → input_required, asks e5 (elicitation/create)
+  round 6: tools/call ask_forever, inputResponses e0 e1 e2 e3 e4 e5, requestState none
+           → input_required, asks e6 (elicitation/create)
+  round 7: tools/call ask_forever, inputResponses e0 e1 e2 e3 e4 e5 e6, requestState none
+           → input_required, asks e7 (elicitation/create)
+  round 8: tools/call ask_forever, inputResponses e0 e1 e2 e3 e4 e5 e6 e7, requestState none
+           → input_required, asks e8 (elicitation/create)
+  round 9: tools/call ask_forever, inputResponses e0 e1 e2 e3 e4 e5 e6 e7 e8, requestState none
+           → input_required, asks e9 (elicitation/create)
+  round 10: tools/call ask_forever, inputResponses e0 e1 e2 e3 e4 e5 e6 e7 e8 e9, requestState none
+           → input_required, asks e10 (elicitation/create)
+  call-tool signalled tools/call ask_forever still needs input after 10 rounds [-32603], data {"name":"ask_forever","rounds":10}
+  ok  after +max-input-rounds+ answered rounds: MCP-ERROR -32603 "… still needs input after 10 rounds"
+  ok  11 tools/call (round 0 and 10 answered), the user asked 10 times, the last round carried all 10 answers
+
+A client without a sampling handler (an elicitation handler only):
+  it advertised {"elicitation":{"form":{}}}
+  round 0: tools/call summarize_diff, inputResponses none, requestState none
+           → input_required, asks s1 (sampling/createMessage)
+  call-tool signalled sampling/createMessage is not implemented [-32601]
+  ok  -32601 (method not found), as in 0.4
+
+========================================================================
+== 5. Under the hood
+========================================================================
+Client and server run in one image: rpc-backend-stdio's MAKE-STDIO-RPC-PAIR (two in-memory
+pipes, the client's reader thread, :dispatch :concurrent) and the server's RPC-SERVE loop
+around DISPATCH-MCP-METHOD in a thread of its own, recording each request and its answer.
+A 2026-07-28 server never calls the client: it answers input_required, and CALL-TOOL
+answers the inputRequests through the client's handlers (FULFILL-INPUT-REQUESTS) on the
+calling thread, then calls again. Outside a tools/call the server sees no answers:
+  (mcp-input-response "s1") → NIL, NIL
+  ok  outside a request MCP-INPUT-RESPONSE is (values NIL NIL)
+Loaded: mcp-protocol 0.5.0, rpc-backend-stdio 0.4.1, rpc-protocol 0.2.0, rpc-protocol-json 0.1.1, json-protocol 0.2.4, json-backend-jzon 0.2.4.
+
+19 checks, all passed.
