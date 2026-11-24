@@ -2,7 +2,7 @@
 
 Runnable demos of the coding-agent harness work (plan: cl-workspace `docs/HARNESS-PLAN.md`), run against the **published GHCR packages** — evidence that each feature works, and a bug finder: anything a demo trips over is filed on the owning repo, not worked around.
 
-Twenty-two cl-repo projects, one per area, and two screen recordings. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
+Twenty-three cl-repo projects, one per area, and two screen recordings. Each `demo-output.txt` is the captured output of the last run (home and temp paths replaced with `~` / `<tmp>`).
 
 | Project | System | Packages demonstrated |
 |---------|--------|-----------------------|
@@ -30,13 +30,14 @@ Twenty-two cl-repo projects, one per area, and two screen recordings. Each `demo
 | [`llama-grammar/`](llama-grammar/) | `harness-demos-llama-grammar` | llama-cpp 0.2.1 (llama-cpp#17, #18, #20) on tinyllamas stories260K: GBNF-constrained `complete` returns a sentence of the grammar (it aborted the image in 0.2.0), `parse-grammar` reuse, `:on-token`, temperature, a `:max-tokens` cut, a C++ exception from llama.cpp as `llama-error` `:runtime`, bad GBNF as `:invalid`, exit with a live engine keeping its exit code (`free-live-handles`) ([README](llama-grammar/README.md)) |
 | [`sat/`](sat/) | `harness-demos-sat` | L2b-1: sat-protocol 0.2.0 on sat-backend-dpll 0.1.0: `sat-exactly-one` / `sat-at-most-k` in each `:encoding` (clause and auxiliary counts for n = 8 and 16, model counts against binomials), a `sat-pb-at-most` knapsack against brute force, N-queens (counts for n = 4..8), a 12-position weighted sequence-labelling chain minimised with every `:strategy` (cost, `optimal-p`, solve / final-conflict calls, decisions, time) against a DP oracle, `:budget` / `:timeout` anytime incumbents, `sat-budget-exceeded` with `continue` and `use-value`, `:hint` warm starts, `(:lex violations cost)`, final-conflict and minimal cores ([README](sat/README.md)) |
 | [`logic/`](logic/) | `harness-demos-logic` | logic-protocol 0.2.0 weak constraints on logic-backend-datalog 0.1.0, bridged to sat-protocol 0.2.0 on sat-backend-dpll 0.1.0: `(weak 3 ?x)` and `(weak (5 1) ?a ?b)` rules (`rule-weight`, `rule-level`, `rule-terms`), seven malformed forms, `logic-unsupported-rule` (`:weak-constraints`) and `logic-unsafe-rule` taken with `drop-rule`, a non-integer variable weight skipped with `continue`, instances as a set; a six-task, four-slot schedule whose options, order closure and shared-person pairs Datalog derives, `weak-instances` with all 19 candidate choices in `:assume` (18 instances and their groundings), `weak-cost` of a hand-made schedule; the Datalog to weighted MaxSAT bridge (`sat-exactly-one` choices, `sat-at-most-k` capacity, integrity-constraint clauses from `query`, one soft literal per instance, negative weights as offsets), `(:lex level-1 level-0)` minimised `:core-guided` and checked against a brute force over 768 assignments, every strategy, a single weighted sum that accepts a clash; `explain` proofs and a why-not behind the penalties ([README](logic/README.md)) |
+| [`pdf-render/`](pdf-render/) | `harness-demos-pdf-render` | doc-extract-backend-pdf 0.2.0 `render-page` on its libpdfium overlay, image-protocol 0.1.0, image-backend-stb 0.2.1: a three-page PDF fixture written for the demo, every page at 72, 150 and 300 dpi (sizes against hand-worked values, milliseconds, probe pixels, `/Rotate 90` and a CropBox), `:rgba` / `:rgb` / `:gray` / `:gray-alpha` against `convert-image`, `:max-pixels` and `:limits` refusing before any bitmap with `image-limit-exceeded` and a caller's `render-smaller` restart, `pdf-page-not-found`, `check-type` with `store-value`, `pdfium-not-loaded` with `use-value` and `retry` (doc-extract-protocol#9, doc-extract-backend-pdf#16), one page as PNG with its SHA-256 (crypto-protocol 0.2.0) ([README](pdf-render/README.md), [PNG](pdf-render/output/page-1-150dpi.png)) |
 
 ## Run
 
 From a project directory (dependencies come from GHCR through `cl-repo`; `--no-userinit` keeps a personal `~/.sbclrc` out of the image):
 
 ```bash
-cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval, canvas, sample, music-theory, sat, logic (zed-sample: ./rehearse.sh)
+cd harness/data   # or fs, agent, code, image, supervisor, isolation, css, acp, policy, unkernel, eval, canvas, sample, music-theory, sat, logic, pdf-render (zed-sample: ./rehearse.sh)
 cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(asdf:load-system "harness-demos-data")' \
   --eval '(harness-demos-data:run-demos)' > demo-output.txt 2>&1

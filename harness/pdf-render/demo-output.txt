@@ -1,0 +1,144 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (19 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
+doc-extract-backend-pdf 0.2.0, image-protocol 0.1.0, image-backend-stb 0.2.1
+(Darwin ARM64, SBCL 2.6.9)
+libpdfium loaded: T (~/.local/share/cl-repository/systems/doc-extract-backend-pdf/0.2.0/native/libpdfium.1.dylib)
+
+==============================================================================
+== 1. The input: three pages written for this demo
+==============================================================================
+fixtures/pages.pdf: 1,527 bytes, sha256 98c1fe9e36ce71f01d643236b2ac45d2a889f318fcdeff1af6b88a780094497c
+Three pages written byte by byte by fixtures/make-pages-pdf.py (no third-party
+content; Helvetica is named, not embedded, so pdfium substitutes a font for it):
+  page 0  300 x 200 pt: red, green, blue rectangles, a gray bar, Helvetica
+  page 1  A4 portrait, 595.2756 x 841.8898 pt: a black 2 x 2 inch square
+  page 2  300 x 200 pt CropBox in a 400 x 400 MediaBox, /Rotate 90
+
+dx:extract-metadata on the same octets (the 0.1 backend API):
+  (:PRODUCER "make-pages-pdf.py" :TITLE "Render demo pages" :FORMAT :PDF :PAGE-COUNT 3)
+
+==============================================================================
+== 2. RENDER-PAGE at 72, 150 and 300 dpi
+==============================================================================
+(render-page document index :dpi d) returns an :rgba image (the default format)
+on a white background. Each side is points x dpi / 72 pixels, to the nearest
+pixel, halves up. The expected sizes were worked out by hand.
+
+  page  dpi   width x height      pixels       ms  probes (top-left points)
+     0   72     300 x    200      60,000     29.5  red, green, blue, white
+     0  150     625 x    417     260,625      0.8  red, green, blue, white
+     0  300    1250 x    833   1,041,250      2.1  red, green, blue, white
+     1   72     595 x    842     500,990      1.3  black square, white
+     1  150    1240 x   1754   2,174,960      4.3  black square, white
+     1  300    2480 x   3508   8,699,840     16.8  black square, white
+     2   72     200 x    300      60,000      1.5  red top half, white bottom half
+     2  150     417 x    625     260,625      0.5  red top half, white bottom half
+     2  300     833 x   1250   1,041,250      1.6  red top half, white bottom half
+
+Every render is opaque (alpha 255 after the white fill). Page 0 has dark text
+pixels: pdfium found a font for the non-embedded Helvetica. Page 2 has no blue
+pixel: its blue strip lies outside the CropBox, and the red left half of the box
+is the top half on screen after /Rotate 90. The first render also pays pdfium's
+one-time start-up.
+
+The source can be the octets (FPDF_LoadMemDocument) or the pathname
+(FPDF_LoadDocument): page 0 at 72 dpi, same pixels: T
+
+==============================================================================
+== 3. Pixel formats: :rgba, :rgb, :gray, :gray-alpha
+==============================================================================
+:format picks the pixel layout. pdfium renders BGRA; render-page copies it to
+R G B A and converts with image-protocol's CONVERT-IMAGE. Page 0 at 150 dpi:
+
+  format       bytes/px      bytes  red             green           blue            gray bar        white
+  :RGBA               4  1,042,500  255 0 0 255     0 255 0 255     0 0 255 255     128 128 128 255 255 255 255 255
+  :RGB                3    781,875  255 0 0         0 255 0         0 0 255         128 128 128     255 255 255
+  :GRAY               1    260,625  76              150             29              128             255
+  :GRAY-ALPHA         2    521,250  76 255          150 255         29 255          128 255         255 255
+
+:gray is BT.601 luma of the :rgba pixel, 0.299 R + 0.587 G + 0.114 B rounded half
+up: red 76, green 150, blue 29, checked at every probe. Each format equals
+(convert-image (render-page ... :format :rgba) format) byte for byte. The PDF's
+0.5 g bar is 128 in every channel.
+
+==============================================================================
+== 4. :max-pixels and :limits refuse before any bitmap exists
+==============================================================================
+Page 1 (A4) at 300 dpi is 2480 x 3508 = 8,699,840 pixels. Both limits are checked
+after the page size is known and before pdfium allocates a bitmap.
+
+(render-page pdf 1 :dpi 300 :max-pixels 4000000), refused after 0.2 ms
+  → IMAGE-PROTOCOL:IMAGE-LIMIT-EXCEEDED: Image pixels 8,699,840 exceeds the limit 4,000,000
+    limit :PIXELS, allowed 4,000,000, actual 8,699,840, format :PDF
+
+RENDER-PAGE offers no restart for a refused size (its file header says so). A
+caller can set one up. RENDER-SMALLER, around the call, scales the dpi by
+sqrt(allowed / actual), rounded down; the handler reads both from the condition:
+  handler: Image pixels 8,699,840 exceeds the limit 4,000,000
+  restarts set up between the handler and the signal: (HARNESS-DEMOS-PDF-RENDER::RENDER-SMALLER)
+  RENDER-SMALLER: again at 203 dpi
+  rendered at 203 dpi: 1678 x 2374 = 3,983,572 pixels (allowed 4,000,000)
+
+:limits takes an image-protocol IMAGE-LIMITS (default *IMAGE-LIMITS*, which allows
+16384 a side and 2^28 pixels). It counts the BGRA bitmap pdfium renders into, 4 bytes
+a pixel, whatever :format is asked for:
+(render-page pdf 1 :dpi 300 :limits (make-image-limits :max-width 2000))
+  → IMAGE-PROTOCOL:IMAGE-LIMIT-EXCEEDED: Image width 2,480 exceeds the limit 2,000
+    limit :WIDTH, allowed 2,000, actual 2,480, format :PDF
+(render-page pdf 1 :dpi 300 :format :gray :limits (make-image-limits :max-bytes 16 MiB))
+  → IMAGE-PROTOCOL:IMAGE-LIMIT-EXCEEDED: Image bytes 34,799,360 exceeds the limit 16,777,216
+    limit :BYTES, allowed 16,777,216, actual 34,799,360, format :PDF
+    The :gray result would be 8,699,840 bytes; the bitmap behind it is 34,799,360.
+
+==============================================================================
+== 5. PDF-PAGE-NOT-FOUND, argument checks, PDFIUM-NOT-LOADED
+==============================================================================
+(render-page pdf 3) on a 3-page PDF (indexes count from 0)
+  → DOC-EXTRACT-BACKEND-PDF:PDF-PAGE-NOT-FOUND: PDF page index 3 is out of range (3 pages)
+    index 3, page-count 3, format :PDF, a dx:doc-extract-error: T
+
+(render-page pdf -1): the arguments are checked first, with CHECK-TYPE
+  → TYPE-ERROR: The value of DOC-EXTRACT-BACKEND-PDF::INDEX is -1, which is not of type UNSIGNED-BYTE.
+    restarts: (STORE-VALUE)
+    STORE-VALUE 0 from the handler → page 0, 300 x 200
+
+This machine has libpdfium: the overlay loaded with the system. To show a machine
+without it, the demo binds the backend's internal *PDFIUM-LOADED* and
+*PDFIUM-SEARCH-ENABLED* to NIL, as the library's own missing-library tests do.
+  pdfium-available-p → NIL
+(render-page pdf 0)
+  → DOC-EXTRACT-BACKEND-PDF:PDFIUM-NOT-LOADED: libpdfium is not loaded format PDF: libpdfium is not loaded
+    (the report repeats its message: doc-extract-backend-pdf#16)
+    a dx:doc-extract-unsupported: T
+    restarts: (USE-VALUE DOC-EXTRACT-BACKEND-PDF::RETRY)
+    RETRY is internal in DOC-EXTRACT-BACKEND-PDF, so a caller finds it by name
+    (doc-extract-protocol#9: (invoke-restart 'retry) is a CONTROL-ERROR)
+
+A handler on dx:doc-extract-unsupported calls (use-value blank c), BLANK a white
+300 x 200 image made by the caller → render-page returns BLANK itself: T
+
+A handler calls (load-pdfium) → T, then invokes RETRY
+  → 300 x 200, the same pixels as the normal render: T (handler ran 1 time)
+
+==============================================================================
+== 6. One page as PNG through image-backend-stb
+==============================================================================
+Page 0 at 150 dpi as :rgb (625 x 417), (encode-image image :png) on stb-backend: 5.8 ms
+wrote output/page-1-150dpi.png: 12,818 bytes, sha256 5dcccf345b4366e09e67c3d53a73279d3c3e9a91deb73b60148b52dd638d01c5
+decode-image of the file → 625 x 417 :RGB, the same pixels: T
+
+==============================================================================
+== Summary
+==============================================================================
+100 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
