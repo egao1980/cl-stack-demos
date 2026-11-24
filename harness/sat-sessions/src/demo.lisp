@@ -1,7 +1,9 @@
 ;;;; A tour of sat-protocol 0.3.0's incremental sessions (Track L, slice L2b-2)
-;;;; on sat-backend-cdcl 0.1.0. That backend has no native session yet, so every
-;;;; session here runs on the protocol's default (stateless) methods: each call
-;;;; re-solves the session CNF from scratch with the backend's ordinary GFs.
+;;;; on sat-backend-cdcl 0.2.0, whose sessions are native: one persistent CDCL
+;;;; solver per session keeps its clauses, learnt clauses, activities and phases
+;;;; from one call to the next. Section 7 compares its timing with the stateless
+;;;; protocol-default sessions of sat-backend-cdcl 0.1.0, recorded in
+;;;; demo-output-cdcl-0.1.0.txt.
 ;;;;
 ;;;; One instance runs through the tour: a chain of 50 segments, each at one of
 ;;;; three levels, adjacent levels at most one apart, with an observed level per
@@ -239,15 +241,15 @@ ASSUMPTIONS, by dynamic programming over segments; NIL when none exists."
   (setf *chain* (build-chain (chain-session *chain*) +segments+ '(1 2 10 25 50)))
   (let* ((s (chain-session *chain*))
          (cnf (sat:session-cnf s)))
-    (out "~%  session-backend-state ~s: a stateless session (no native session in this backend)~%"
-         (sat:session-backend-state s))
+    (out "~%  session-backend-state: a ~s, so the session is stateful (native)~%"
+         (type-of (sat:session-backend-state s)))
     (out "  session-cnf: ~d variables (~d auxiliary), ~d clauses = 50 x 4 exactly-one + 49 x 2 links~%"
          (sat:cnf-variable-count cnf)
          (loop for i from 1 to (sat:cnf-variable-count cnf) count (sat:cnf-aux-variable-p cnf i))
          (sat:cnf-clause-count cnf))
     (check (sat:session-variable-count s) 150 "150 variables")
     (check (sat:cnf-clause-count cnf) (+ (* 50 4) (* 49 2)) "298 clauses")
-    (check (sat:session-backend-state s) nil "stateless")
+    (check (and (sat:session-backend-state s) t) t "a stateful session")
     (out "  the observed levels: ~a~%" (observed-string))))
 
 ;;; 2. SESSION-SOLVE under changing assumptions --------------------------------------
@@ -282,7 +284,9 @@ ASSUMPTIONS, by dynamic programming over segments; NIL when none exists."
          (s (chain-session chain))
          (clauses (sat:cnf-clauses (sat:session-cnf s))))
     (out "Each SESSION-SOLVE next to SOLVE on (session-cnf s) with the same assumptions as~%~
-          literal formulas, on the same backend. \"oracle\" is the DP over level sequences.~%~%")
+          literal formulas, on the same backend. \"oracle\" is the DP over level sequences. A native~%~
+          session keeps its saved phases and learnt clauses, so its model may differ from~%~
+          the fresh one; both must satisfy every clause and assumption.~%~%")
     (out "  assumptions          session  fresh  oracle  same model  model checks  levels~%")
     (dolist (assumptions (assumption-sets chain))
       (multiple-value-bind (model sat) (sat:session-solve s :assumptions assumptions)
@@ -296,8 +300,9 @@ ASSUMPTIONS, by dynamic programming over segments; NIL when none exists."
                  (if sat (levels chain model) ""))
             (check sat fresh-sat "session status = fresh status")
             (check (and sat t) oracle "session status = oracle")
-            (check model fresh "stateless: the session's model is SOLVE's")
-            (check ok t "the model satisfies the clauses and the assumptions")))))
+            (check ok t "the model satisfies the clauses and the assumptions")
+            (when fresh-sat
+              (check (satisfies-p fresh clauses assumptions) t "the fresh model satisfies them too"))))))
     (out "~%  after the last (UNSAT) call: session-model ~s, session-unsat-core ~a~%"
          (multiple-value-list (sat:session-model s))
          (describe-assumptions chain (sat:session-unsat-core s)))))
@@ -357,7 +362,7 @@ ASSUMPTIONS, by dynamic programming over segments; NIL when none exists."
     (let ((stored (sat:session-unsat-core s)))
       (out "  (session-unsat-core s)                      -> ~a~%"
            (describe-assumptions chain stored))
-      (out "     the backend's final conflict through the default BACKEND-SESSION-FINAL-CONFLICT~%")
+      (out "     the final conflict of the session's own solver (native BACKEND-SESSION-FINAL-CONFLICT)~%")
       (check (fresh-solve chain stored) nil "the stored core is unsatisfiable"))
     (multiple-value-bind (core found) (sat:session-unsat-core s :minimal t)
       (let* ((formulas (mapcar #'lit-formula assumptions))
@@ -379,7 +384,159 @@ ASSUMPTIONS, by dynamic programming over segments; NIL when none exists."
     (out "  after a SAT call, session-unsat-core: ~s~%" (multiple-value-list (sat:session-unsat-core s)))
     (check (multiple-value-list (sat:session-unsat-core s)) '(nil nil) "no core after SAT")))
 
-;;; 6. Timing: the session against fresh re-solves ---------------------------------------
+(defmacro with-chain-session ((session chain) &body body)
+  "BODY with SESSION a fresh session on *BACKEND* holding the 50-segment CHAIN."
+  `(sat:with-sat-session (,session :backend *backend*)
+     (let ((,chain (build-chain ,session)))
+       ,@body)))
+
+;;; 5. Budgets: SAT-BUDGET-REACHED and its restarts ------------------------------------
+
+(defparameter *budget* 100 "The decision budget of section 5.")
+
+(defun demo-budget ()
+  (let ((optimum (with-chain-session (s chain) (oracle chain '()))))
+    (out "Each call here runs on a fresh session holding the 50-segment chain. The optimum~%~
+          of (:lex requests effort) is ~s. With an incumbent and the budget spent,~%~
+          SESSION-MINIMIZE signals SAT-BUDGET-REACHED (a condition, not an error) with~%~
+          USE-BEST, CONTINUE and STORE-VALUE; unhandled, it returns the incumbent.~%~%" optimum)
+    (out "  :budget  session cost  opt   fresh MINIMIZE cost  opt~%")
+    (dolist (budget '(50 100 200 400 800 1600 3200 6400))
+      (with-chain-session (s chain)
+        (let ((objective (lex-objective chain)))
+          (multiple-value-bind (model cost optimal-p) (sat:session-minimize s objective :budget budget)
+            (multiple-value-bind (fresh fresh-cost fresh-optimal-p)
+                (fresh-minimize chain objective '() :budget budget)
+              (declare (ignore fresh))
+              (out "  ~7d  ~12a  ~3a   ~19a  ~3a~%" budget cost (if optimal-p "T" "-")
+                   fresh-cost (if fresh-optimal-p "T" "-"))
+              (check (model-cost objective model) cost "the incumbent has its cost")
+              (check (lex< cost optimum) nil "no incumbent beats the optimum")
+              (when optimal-p (check cost optimum "an optimal answer is the optimum")))))))
+    (out "  A budgeted answer need not be the fresh one: the native search learns as it goes.~%~%")
+    ;; USE-BEST.
+    (with-chain-session (s chain)
+      (let ((objective (lex-objective chain)) (seen '()))
+        (multiple-value-bind (model cost optimal-p)
+            (handler-bind ((sat:sat-budget-reached
+                             (lambda (c)
+                               (push (list (sat:sat-budget-reached-budget c) (sat:sat-budget-reached-cost c)) seen)
+                               (sat:use-best c))))
+              (sat:session-minimize s objective :budget *budget*))
+          (out "  USE-BEST:       signalled ~{at budget ~d with incumbent ~s~}; returns cost ~s optimal-p ~s~%"
+               (first seen) cost optimal-p)
+          (check (length seen) 1 "one signal")
+          (check optimal-p nil "USE-BEST returns the incumbent")
+          (check (model-cost objective model) cost "the incumbent has its cost")
+          (check (second (first seen)) cost "the signal carries the incumbent's cost"))))
+    ;; CONTINUE doubles the budget.
+    (with-chain-session (s chain)
+      (let ((objective (lex-objective chain)) (seen '()))
+        (multiple-value-bind (model cost optimal-p)
+            (handler-bind ((sat:sat-budget-reached
+                             (lambda (c)
+                               (push (list (sat:sat-budget-reached-budget c) (sat:sat-budget-reached-cost c)) seen)
+                               (continue c))))
+              (sat:session-minimize s objective :budget *budget*))
+          (setf seen (reverse seen))
+          (out "  CONTINUE:       ~d signals:~%" (length seen))
+          (loop for (budget incumbent) in seen
+                do (out "                    budget ~5d  incumbent ~s~%" budget incumbent))
+          (out "                  then cost ~s optimal-p ~s~%" cost optimal-p)
+          (check (loop for (a b) on (mapcar #'first seen) while b always (= b (* 2 a))) t
+                 "each CONTINUE doubles the budget")
+          (check (loop for (a b) on (mapcar #'second seen) while b always (not (lex< a b))) t
+                 "the incumbent never gets worse")
+          (check (list cost optimal-p) (list optimum t) "CONTINUE reaches the optimum")
+          (check (model-cost objective model) optimum "the model has the optimum cost"))))
+    ;; STORE-VALUE.
+    (with-chain-session (s chain)
+      (multiple-value-bind (model cost optimal-p)
+          (handler-bind ((sat:sat-budget-reached (lambda (c) (store-value 100000 c))))
+            (sat:session-minimize s (lex-objective chain) :budget *budget*))
+        (declare (ignore model))
+        (out "  STORE-VALUE 100000: cost ~s optimal-p ~s~%" cost optimal-p)
+        (check (list cost optimal-p) (list optimum t) "STORE-VALUE reaches the optimum")))
+    ;; No model yet: SAT-BUDGET-EXCEEDED, an error.
+    (with-chain-session (s chain)
+      (let ((objective (lex-objective chain)))
+        (handler-case (sat:session-minimize s objective :budget 0)
+          (sat:sat-budget-exceeded (c)
+            (out "~%  :budget 0, no model yet: ~s (an error), budget ~s~%"
+                 (type-of c) (sat:sat-budget-exceeded-budget c))
+            (check (type-of c) 'sat:sat-budget-exceeded "SAT-BUDGET-EXCEEDED with no incumbent")))
+        (multiple-value-bind (value status)
+            (handler-bind ((sat:sat-budget-exceeded (lambda (c) (use-value :gave-up c))))
+              (sat:session-minimize s objective :budget 0))
+          (out "  with USE-VALUE :gave-up: ~s ~s; session-model then: ~s~%"
+               value status (multiple-value-list (sat:session-model s)))
+          (check (list value status) '(:gave-up nil) "USE-VALUE returns (values VALUE NIL)"))
+        (multiple-value-bind (model sat) (sat:session-solve s :assumptions (list (pin chain 0 0)))
+          (out "  the session is still usable: session-solve -> ~a~%" (if sat (levels chain model) "UNSAT"))
+          (check sat t "usable after a USE-VALUE exit"))))))
+
+;;; 6. Learnt clauses survive -------------------------------------------------------------
+
+(defun pigeonhole-clauses (pigeons holes)
+  "PHP(PIGEONS, HOLES) over variables 1..PIGEONS*HOLES: every pigeon in a hole, no
+two pigeons in one hole. Unsatisfiable when PIGEONS > HOLES."
+  (flet ((p (i h) (+ (* i holes) h 1)))
+    (append (loop for i below pigeons collect (loop for h below holes collect (p i h)))
+            (loop for h below holes
+                  append (loop for i below pigeons
+                               append (loop for j from (1+ i) below pigeons
+                                            collect (list (- (p i h)) (- (p j h)))))))))
+
+(defun statistic (key)
+  (getf (cdcl:cdcl-backend-statistics *backend*) key))
+
+(defun demo-learnt ()
+  (let* ((pigeons 7) (holes 6)
+         (selector (1+ (* pigeons holes)))
+         (clauses (mapcar (lambda (c) (cons (- selector) c)) (pigeonhole-clauses pigeons holes))))
+    (out "PHP(~d,~d), ~d clauses over ~d variables, each guarded by -S (S = variable ~d): under~%~
+          the assumption S it is unsatisfiable, and refuting it takes many conflicts. A native~%~
+          session keeps what that refutation learnt, so the same call again needs none.~%~%"
+         pigeons holes (length clauses) (* pigeons holes) selector)
+    (sat:with-sat-session (s :backend *backend*)
+      (sat:session-add-variables s selector)
+      (sat:session-add-clauses s clauses)
+      (out "  call                                     answer  conflicts  decisions  learnt  core~%")
+      (let ((conflicts '()))
+        (loop for label in '("1. (session-solve s :assumptions (S))" "2. the same call again"
+                             "3. and once more")
+              do (multiple-value-bind (model sat) (sat:session-solve s :assumptions (list selector))
+                   (declare (ignore model))
+                   (push (statistic :conflicts) conflicts)
+                   (out "  ~39a  ~6a  ~9d  ~9d  ~6d  ~s~%" label (if sat "SAT" "UNSAT")
+                        (statistic :conflicts) (statistic :decisions) (statistic :learnt-clauses)
+                        (sat:session-unsat-core s))
+                   (check sat nil "UNSAT under S")
+                   (check (sat:session-unsat-core s) (list selector) "the core is (S)")))
+        (setf conflicts (nreverse conflicts))
+        (check-true (> (first conflicts) 100) "the first refutation takes many conflicts")
+        (check-true (<= (second conflicts) (floor (first conflicts) 20)) "the second needs almost none")
+        (multiple-value-bind (model sat) (sat:session-solve s)
+          (out "  4. (session-solve s), no assumption      ~6a  ~9d  ~9d  ~6d  -S in the model: ~a~%"
+               (if sat "SAT" "UNSAT") (statistic :conflicts) (statistic :decisions)
+               (statistic :learnt-clauses) (yes (member (- selector) model)))
+          (check (and sat (member (- selector) model) t) t "without the assumption: SAT with -S"))
+        (multiple-value-bind (model sat)
+            (sat:solve (sat:session-cnf s) :assumptions (list (sat:sat-var selector)) :backend *backend*)
+          (declare (ignore model))
+          (out "  5. fresh SOLVE on (session-cnf s) under S ~6a  ~9d  ~9d  ~6d  (from scratch)~%"
+               (if sat "SAT" "UNSAT") (statistic :conflicts) (statistic :decisions)
+               (statistic :learnt-clauses))
+          (check sat nil "the fresh call agrees: UNSAT")
+          (check-true (> (statistic :conflicts) 100) "a from-scratch call refutes it all over again"))
+        (out "~%  The learnt clauses of call 1 make (-S) a consequence at level 0, so calls 2 and 3~%  ~
+              answer UNSAT with ~d and ~d conflicts against ~d; a fresh call starts from nothing.~%"
+             (second conflicts) (third conflicts) (first conflicts))))))
+
+(defun check-true (value label)
+  (check (and value t) t label))
+
+;;; 7. Timing: the session against fresh re-solves ---------------------------------------
 
 (defun step-assumption-sets (chain)
   "Step k's three assumption sets: s0 at its observed level and the newest
@@ -389,13 +546,15 @@ segment at each level in turn (some are UNSAT while the chain is short)."
           collect (remove-duplicates (list (pin chain 0 (aref *observed* 0))
                                            (pin chain (1- k) level))))))
 
-(defvar *rounds* 5 "Timing rounds of section 6.")
+(defvar *rounds* 5 "Timing rounds of section 7.")
 
-(defun timing-round ()
-  "One fresh session, 50 steps. Returns a plist of totals (seconds) and counts."
-  (let ((add 0d0) (solve 0d0) (fresh-solve 0d0) (minimize 0d0) (fresh-minimize 0d0)
-        (solves 0) (solves-agree 0) (sat-solves 0)
-        (minimizes 0) (minimizes-agree 0) (models-equal 0))
+(defun timing-round (&key (minimize t))
+  "One fresh session, 50 steps. Returns a plist of totals (seconds) and counts,
+and what one more SESSION-SOLVE costs at the end."
+  (let ((add 0d0) (solve 0d0) (fresh-solve 0d0) (minimize-time 0d0) (fresh-minimize 0d0)
+        (solves 0) (solves-agree 0) (sat-solves 0) (solve-models-equal 0)
+        (minimizes 0) (minimizes-agree 0) (models-equal 0)
+        (variables 0) (last-decisions 0) (last-seconds 0d0))
     (sat:with-sat-session (s :backend *backend*)
       (let ((chain (make-chain s)))
         (dotimes (k +segments+)
@@ -406,26 +565,35 @@ segment at each level in turn (some are UNSAT while the chain is short)."
               (multiple-value-bind (seconds fresh fresh-sat) (timed (fresh-solve chain assumptions))
                 (incf fresh-solve seconds)
                 (incf solves)
-                (when (and (eq sat fresh-sat) (equal model fresh)
-                           (eq (and sat t) (feasible-p chain assumptions)))
+                (when (and (eq sat fresh-sat)
+                           (eq (and sat t) (feasible-p chain assumptions))
+                           (or (not sat) (satisfies-p model (sat:cnf-clauses (sat:session-cnf s))
+                                                      assumptions)))
                   (incf solves-agree))
+                (when (equal model fresh) (incf solve-models-equal))
                 (when sat (incf sat-solves)))))
-          (let ((objective (lex-objective chain)))
-            (multiple-value-bind (seconds model cost optimal-p)
-                (timed (sat:session-minimize s objective))
-              (incf minimize seconds)
-              (multiple-value-bind (seconds fresh fresh-cost fresh-optimal-p)
-                  (timed (fresh-minimize chain objective '()))
-                (incf fresh-minimize seconds)
-                (incf minimizes)
-                (when (and (equal cost fresh-cost) (eq optimal-p fresh-optimal-p)
-                           (equal cost (oracle chain '())))
-                  (incf minimizes-agree))
-                (when (equal model fresh) (incf models-equal))))))))
-    (list :add add :solve solve :fresh-solve fresh-solve :minimize minimize
+          (when minimize
+            (let ((objective (lex-objective chain)))
+              (multiple-value-bind (seconds model cost optimal-p)
+                  (timed (sat:session-minimize s objective))
+                (incf minimize-time seconds)
+                (multiple-value-bind (seconds fresh fresh-cost fresh-optimal-p)
+                    (timed (fresh-minimize chain objective '()))
+                  (incf fresh-minimize seconds)
+                  (incf minimizes)
+                  (when (and (equal cost fresh-cost) (eq optimal-p fresh-optimal-p)
+                             (equal cost (oracle chain '()))
+                             (equal (model-cost objective model) cost))
+                    (incf minimizes-agree))
+                  (when (equal model fresh) (incf models-equal)))))))
+        (setf variables (sat:session-variable-count s))
+        (setf last-seconds (timed (sat:session-solve s :assumptions (list (pin chain 0 1))))
+              last-decisions (statistic :decisions))))
+    (list :add add :solve solve :fresh-solve fresh-solve :minimize minimize-time
           :fresh-minimize fresh-minimize :solves solves :solves-agree solves-agree
-          :sat-solves sat-solves :minimizes minimizes :minimizes-agree minimizes-agree
-          :models-equal models-equal)))
+          :sat-solves sat-solves :solve-models-equal solve-models-equal
+          :minimizes minimizes :minimizes-agree minimizes-agree :models-equal models-equal
+          :variables variables :last-decisions last-decisions :last-seconds last-seconds)))
 
 (defun median (values)
   (let ((sorted (sort (copy-list values) #'<)))
@@ -441,126 +609,91 @@ for a session argument of class T or SAT-SESSION.)"
 
 (defun ms (seconds) (* 1000 seconds))
 
+(defparameter *recorded-defaults*
+  '(:solve 2.0 :fresh-solve 4.2 :solve-ratio 0.47 :minimize 129.2 :fresh-minimize 128.7
+    :minimize-ratio 1.00 :variables 150)
+  "The medians (milliseconds) of the same 50 steps on sat-backend-cdcl 0.1.0, whose
+sessions keep the protocol's default (stateless) methods: demo-output-cdcl-0.1.0.txt,
+section 6. sat-backend-cdcl 0.2.0 has native sessions, so they can't run in this image.")
+
+(defun print-rounds (label rounds minimize)
+  (out "  ~a~%  round   add   session-solve  fresh solve~:[~;  session-minimize  fresh minimize~]~%"
+       label minimize)
+  (flet ((row (name r)
+           (out "  ~6a ~5,1f  ~13,1f  ~11,1f~:[~;  ~16,1f  ~14,1f~]~%"
+                name (ms (getf r :add)) (ms (getf r :solve)) (ms (getf r :fresh-solve))
+                minimize (ms (getf r :minimize)) (ms (getf r :fresh-minimize)))))
+    (loop for r in rounds for i from 1 do (row (format nil "~5d" i) r))
+    (row "median" (medians rounds)))
+  (out "~%"))
+
+(defun medians (rounds)
+  (loop for key in '(:add :solve :fresh-solve :minimize :fresh-minimize :variables
+                     :last-decisions :last-seconds)
+        collect key
+        collect (median (mapcar (lambda (r) (getf r key)) rounds))))
+
 (defun demo-timing ()
   (out "50 incremental steps on a fresh session. Step k adds segment k, then runs~%~
         - three SESSION-SOLVEs: s0 at its observed level, the newest segment at level 0, 1, 2;~%~
         - one SESSION-MINIMIZE (:lex requests effort) over the k segments;~%~
         each followed by the same fresh SOLVE / MINIMIZE on (session-cnf s), the copy~%~
-        included. ~@(~r~) rounds; milliseconds summed over the 50 steps (150 solves, 50 minimizes).~%~%"
+        included. ~@(~r~) rounds; milliseconds summed over the 50 steps (150 solves, 50 minimizes).~%~
+        A second run of the steps leaves the minimizes out.~%~%"
        *rounds*)
-  (let ((rounds (loop repeat *rounds* collect (timing-round))))
-    (out "  round   add   session-solve  fresh solve  session-minimize  fresh minimize~%")
-    (loop for r in rounds
-          for i from 1
-          do (out "  ~5d  ~5,1f  ~13,1f  ~11,1f  ~16,1f  ~14,1f~%"
-                  i (ms (getf r :add)) (ms (getf r :solve)) (ms (getf r :fresh-solve))
-                  (ms (getf r :minimize)) (ms (getf r :fresh-minimize))))
-    (flet ((med (key) (median (mapcar (lambda (r) (getf r key)) rounds))))
-      (let ((solve (med :solve)) (fresh-solve (med :fresh-solve))
-            (minimize (med :minimize)) (fresh-minimize (med :fresh-minimize)))
-        (out "  median ~5,1f  ~13,1f  ~11,1f  ~16,1f  ~14,1f~%"
-             (ms (med :add)) (ms solve) (ms fresh-solve) (ms minimize) (ms fresh-minimize))
-        (out "~%  per call, median round: session-solve ~,3f ms against fresh ~,3f ms (ratio ~,2f);~%  ~
-              session-minimize ~,2f ms against fresh ~,2f ms (ratio ~,2f)~%"
-             (/ (ms solve) 150) (/ (ms fresh-solve) 150) (/ solve fresh-solve)
-             (/ (ms minimize) 50) (/ (ms fresh-minimize) 50) (/ minimize fresh-minimize))))
-    (let ((r (first rounds)))
-      (out "  agreement in every round: ~d/~d solves (status, model and the oracle), ~d of them SAT;~%  ~
-            ~d/~d minimizes (cost and OPTIMAL-P against the fresh call and the oracle),~%  ~
-            ~d/~d with the fresh call's model~%"
-           (getf r :solves-agree) (getf r :solves) (getf r :sat-solves)
-           (getf r :minimizes-agree) (getf r :minimizes) (getf r :models-equal) (getf r :minimizes))
-      (dolist (r rounds)
-        (check (getf r :solves-agree) 150 "solves agree")
+  (out "  sat-backend-cdcl ~a defines BACKEND-SESSION-OPEN: ~a (native sessions)~%~%"
+       (asdf:component-version (asdf:find-system "sat-backend-cdcl"))
+       (yes (native-session-method-p *backend*)))
+  (check (native-session-method-p *backend*) t "sat-backend-cdcl 0.2.0 has native sessions")
+  (let* ((full (loop repeat *rounds* collect (timing-round)))
+         (solves-only (loop repeat *rounds* collect (timing-round :minimize nil)))
+         (f (medians full))
+         (o (medians solves-only))
+         (d *recorded-defaults*))
+    (print-rounds "native, the 50 steps:" full t)
+    (print-rounds "native, the 50 steps without the minimizes:" solves-only nil)
+    (out "  Medians, ms over the 50 steps          solve:   session    fresh  ratio   minimize:  session    fresh  ratio   variables~%")
+    (flet ((row (label solve fresh-solve minimize fresh-minimize variables
+                        &optional (solve-ratio (/ solve fresh-solve))
+                          (minimize-ratio (and minimize (/ minimize fresh-minimize))))
+             (out "  ~37a          ~8,1f ~8,1f  ~5,2f              ~:[~3*       -        -      -~;~8,1f ~8,1f  ~5,2f~]  ~10:d~%"
+                  label solve fresh-solve solve-ratio
+                  minimize minimize fresh-minimize minimize-ratio variables)))
+      (row "cdcl 0.1.0, protocol defaults (rec.)"
+           (getf d :solve) (getf d :fresh-solve) (getf d :minimize) (getf d :fresh-minimize)
+           (getf d :variables) (getf d :solve-ratio) (getf d :minimize-ratio))
+      (row "cdcl 0.2.0, native"
+           (ms (getf f :solve)) (ms (getf f :fresh-solve)) (ms (getf f :minimize))
+           (ms (getf f :fresh-minimize)) (getf f :variables))
+      (row "cdcl 0.2.0, native, solves only"
+           (ms (getf o :solve)) (ms (getf o :fresh-solve)) nil nil (getf o :variables)))
+    (out "~%  (rec.: the medians of the same steps on sat-backend-cdcl 0.1.0, whose sessions keep~%  ~
+          the protocol's stateless default methods; demo-output-cdcl-0.1.0.txt, section 6)~%")
+    (let ((r (first full)))
+      (out "~%  agreement in every round: ~d/~d solves (status against the fresh call and the oracle,~%  ~
+            the model against every clause and assumption), ~d of them SAT, ~d with the fresh~%  ~
+            call's very model; ~d/~d minimizes (cost and OPTIMAL-P against the fresh call and~%  ~
+            the oracle), ~d with the fresh call's model~%"
+           (getf r :solves-agree) (getf r :solves) (getf r :sat-solves) (getf r :solve-models-equal)
+           (getf r :minimizes-agree) (getf r :minimizes) (getf r :models-equal))
+      (dolist (r (append full solves-only))
+        (check (getf r :solves-agree) 150 "solves agree"))
+      (dolist (r full)
         (check (getf r :minimizes-agree) 50 "minimizes agree")))
-    (out "~%  sat-backend-cdcl ~a (the newest on GHCR when this ran) defines BACKEND-SESSION-OPEN: ~a~%"
-         (asdf:component-version (asdf:find-system "sat-backend-cdcl"))
-         (yes (native-session-method-p *backend*)))
-    (out "  native sessions: pending. Each session call above re-solved the session CNF from~%  ~
-          scratch (the protocol's default methods), so the session and the fresh calls do~%  ~
-          the same search; the session saves the CNF copy and the name-level translation.~%  ~
-          A stateful backend would keep its learnt clauses from one step to the next.~%")))
+    (out "~%  Without the minimizes the native session is faster than fresh re-solves: it keeps~%  ~
+          the solver, its phases and its learnt clauses (~,3f against ~,3f ms per solve).~%  ~
+          Each native SESSION-MINIMIZE leaves its encoding's auxiliaries in the session~%  ~
+          (sat-protocol's session path): after the 50 steps the session has ~:d variables~%  ~
+          instead of ~:d, and one more SESSION-SOLVE takes ~:d decisions (~,3f ms) against ~:d~%  ~
+          (~,3f ms) without the minimizes. The retired auxiliaries keep their activities in~%  ~
+          the decision heap and are decided first (egao1980/sat-backend-cdcl#4), and every~%  ~
+          fresh call on session-cnf pays for them too (egao1980/sat-protocol#10).~%"
+         (/ (ms (getf o :solve)) 150) (/ (ms (getf o :fresh-solve)) 150)
+         (getf f :variables) (getf o :variables)
+         (getf f :last-decisions) (ms (getf f :last-seconds))
+         (getf o :last-decisions) (ms (getf o :last-seconds)))))
 
-;;; 5. Budgets: SAT-BUDGET-REACHED and its restarts ------------------------------------
-
-(defparameter *budget* 100 "The decision budget of section 6.")
-
-(defun demo-budget ()
-  (let* ((chain *chain*)
-         (s (chain-session chain))
-         (objective (lex-objective chain))
-         (optimum (oracle chain '())))
-    (out "(session-minimize s (:lex requests effort) :budget ~d :strategy :linear-bdd); the~%~
-          optimum is ~s. With an incumbent and the budget spent, SESSION-MINIMIZE signals~%~
-          SAT-BUDGET-REACHED (a condition, not an error) with USE-BEST, CONTINUE and STORE-VALUE.~%~%"
-         *budget* optimum)
-    ;; Unhandled: the incumbent.
-    (multiple-value-bind (model cost optimal-p) (sat:session-minimize s objective :budget *budget*)
-      (declare (ignore model))
-      (multiple-value-bind (fresh fresh-cost fresh-optimal-p)
-          (fresh-minimize chain objective '() :budget *budget*)
-        (declare (ignore fresh))
-        (out "  no handler:     cost ~s optimal-p ~s   (fresh MINIMIZE :budget ~d: ~s ~s)~%"
-             cost optimal-p *budget* fresh-cost fresh-optimal-p)
-        (check (list cost optimal-p) (list fresh-cost fresh-optimal-p) "anytime answer = fresh MINIMIZE's")
-        (check optimal-p nil "the budget stops the search")))
-    ;; USE-BEST.
-    (let ((seen '()))
-      (multiple-value-bind (model cost optimal-p)
-          (handler-bind ((sat:sat-budget-reached
-                           (lambda (c)
-                             (push (list (sat:sat-budget-reached-budget c) (sat:sat-budget-reached-cost c)) seen)
-                             (sat:use-best c))))
-            (sat:session-minimize s objective :budget *budget*))
-        (out "  USE-BEST:       signalled ~{at budget ~d with incumbent ~s~}; returns cost ~s optimal-p ~s~%"
-             (first seen) cost optimal-p)
-        (check (length seen) 1 "one signal")
-        (check optimal-p nil "USE-BEST returns the incumbent")
-        (check (model-cost objective model) cost "the incumbent has its cost")
-        (check (second (first seen)) cost "the signal carries the incumbent's cost")))
-    ;; CONTINUE doubles the budget.
-    (let ((seen '()))
-      (multiple-value-bind (model cost optimal-p)
-          (handler-bind ((sat:sat-budget-reached
-                           (lambda (c)
-                             (push (list (sat:sat-budget-reached-budget c) (sat:sat-budget-reached-cost c)) seen)
-                             (continue c))))
-            (sat:session-minimize s objective :budget *budget*))
-        (setf seen (reverse seen))
-        (out "  CONTINUE:       ~d signals:~%" (length seen))
-        (loop for (budget incumbent) in seen
-              do (out "                    budget ~5d  incumbent ~s~%" budget incumbent))
-        (out "                  then cost ~s optimal-p ~s~%" cost optimal-p)
-        (check (loop for (a b) on (mapcar #'first seen) while b always (= b (* 2 a))) t
-               "each CONTINUE doubles the budget")
-        (check (loop for (a b) on (mapcar #'second seen) while b always (not (lex< a b))) t
-               "the incumbent never gets worse")
-        (check (list cost optimal-p) (list optimum t) "CONTINUE reaches the optimum")
-        (check (model-cost objective model) optimum "the model has the optimum cost")))
-    ;; STORE-VALUE.
-    (multiple-value-bind (model cost optimal-p)
-        (handler-bind ((sat:sat-budget-reached (lambda (c) (store-value 100000 c))))
-          (sat:session-minimize s objective :budget *budget*))
-      (declare (ignore model))
-      (out "  STORE-VALUE 100000: cost ~s optimal-p ~s~%" cost optimal-p)
-      (check (list cost optimal-p) (list optimum t) "STORE-VALUE reaches the optimum"))
-    ;; No model yet: SAT-BUDGET-EXCEEDED, an error.
-    (handler-case (sat:session-minimize s objective :budget 0)
-      (sat:sat-budget-exceeded (c)
-        (out "~%  :budget 0, no model yet: ~s (an error), budget ~s~%"
-             (type-of c) (sat:sat-budget-exceeded-budget c))
-        (check (type-of c) 'sat:sat-budget-exceeded "SAT-BUDGET-EXCEEDED with no incumbent")))
-    (multiple-value-bind (value status)
-        (handler-bind ((sat:sat-budget-exceeded (lambda (c) (use-value :gave-up c))))
-          (sat:session-minimize s objective :budget 0))
-      (out "  with USE-VALUE :gave-up: ~s ~s; session-model then: ~s~%"
-           value status (multiple-value-list (sat:session-model s)))
-      (check (list value status) '(:gave-up nil) "USE-VALUE returns (values VALUE NIL)"))
-    (multiple-value-bind (model sat) (sat:session-solve s :assumptions (list (pin chain 0 0)))
-      (out "  the session is still usable: session-solve -> ~a~%" (if sat (levels chain model) "UNSAT"))
-      (check sat t "usable after a USE-VALUE exit"))))
-
-;;; 7. Closing ---------------------------------------------------------------------
+;;; 8. Closing ---------------------------------------------------------------------
 
 (defun demo-closed ()
   (let ((escaped nil))
@@ -594,10 +727,11 @@ for a session argument of class T or SAT-SESSION.)"
       (section "1. A 50-segment chain, added to a session one segment at a time" (demo-build))
       (section "2. SESSION-SOLVE under changing assumptions, against fresh SOLVE" (demo-solve))
       (section "3. SESSION-MINIMIZE with (:lex requests effort), against fresh MINIMIZE" (demo-minimize))
-      (section "4. SESSION-UNSAT-CORE on a contradictory assumption set" (demo-core))
-      (section "5. Budgets: SAT-BUDGET-REACHED with USE-BEST, CONTINUE and STORE-VALUE" (demo-budget)))
-    (section "6. Timing: 50 incremental steps, the session against fresh re-solves" (demo-timing))
-    (section "7. A closed session: SAT-SESSION-CLOSED" (demo-closed))
+      (section "4. SESSION-UNSAT-CORE on a contradictory assumption set" (demo-core)))
+    (section "5. Budgets: SAT-BUDGET-REACHED with USE-BEST, CONTINUE and STORE-VALUE" (demo-budget))
+    (section "6. Learnt clauses survive: two UNSAT calls in a row" (demo-learnt))
+    (section "7. Timing: 50 incremental steps, native sessions against fresh re-solves" (demo-timing))
+    (section "8. A closed session: SAT-SESSION-CLOSED" (demo-closed))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
