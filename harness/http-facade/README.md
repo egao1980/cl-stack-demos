@@ -5,6 +5,7 @@
 - **cl-stack-http 0.2.0** (cl-stack-http#26, #27, #28, #29)
 - **event-protocol 0.3.0** (event-protocol#26, #27)
 - **http-protocol 0.4.5**, **http-backend-async 0.2.29** and **http-backend-dexador 0.2.2**: `https://` proxies (http-protocol#53, demo 4)
+- **http-backend-async 0.2.30**: redirects through a proxy (http-backend-async#82, the end of demo 4)
 
 Demos 1 to 3 send each request to a loopback HTTP/1.1 keep-alive origin ([`src/origin.lisp`](src/origin.lisp)); demo 4 goes through a loopback TLS proxy. The origin logs the connection number, the path and the `User-Agent` of every request, so the output shows which backend sent each one and over which connection. [`demo-output.txt`](demo-output.txt) is the last run, from the version line on. The cl-repo sync and compile output before it is cut, and the home directory is shown as `~`.
 
@@ -33,7 +34,14 @@ The demo uses no network beyond 127.0.0.1.
      - Before the fix, http-protocol 0.4.4 classed the proxy `:http`, and 0.2.28 sent all of this in plain TCP (the evidence run on http-backend-async#81).
    - **http-backend-dexador 0.2.2.** It signals `proxy-tls-unsupported` (an `unsupported-operation`, operation `:https-proxy`) before any connection, so the proxy sees nothing. The report shows the proxy URL without its userinfo. The demo also shows the `use-value` restart the backend offers. dexador dials every proxy in plain TCP, and it would redial on its own after a failed request even if it were handed a TLS stream (http-backend-dexador#38, #39).
    - The proxy hop uses the session's TLS settings. With `:verify t` and the test CA trusted, the proxy's certificate is checked against 127.0.0.1 and the origin's against origin.test. Without that CA, the request ends in `http-tls-error` after the ClientHello, and nothing is sent inside TLS.
+   - **A redirect through the proxy (http-backend-async#82, 0.2.30).** Each run follows one 301 on http-backend-async. The 301 goes from `http://origin.test/a` to `https://origin.test/b` or back. The runs go through an `https://` proxy, a plain `http://` one, and a per-scheme `:proxy` table that names one of each. The proxies ([`src/redirect-proxy.lisp`](src/redirect-proxy.lisp)) serve one connection at a time and play origin.test themselves. They log the head each proxy reads and the head the origin reads inside a CONNECT tunnel. The request carries made-up `:auth` (alice:made-up).
+     - The `http://` hop reaches the proxy in absolute-form with `Proxy-Authorization`.
+     - The `https://` hop is a CONNECT with `Proxy-Authorization`. The origin then reads `GET /b` in the tunnel, with no `Proxy-Authorization`.
+     - `Authorization` is dropped after the hop to another origin (another scheme here).
+     - With the per-scheme table, each hop goes to its own proxy.
+     - Before the fix, 0.2.29 built the next hop with the old hop's form and headers. The tunnel to the origin got `GET https://origin.test/b` with the proxy credentials and `Authorization`. The proxy got `GET /b` without `Proxy-Authorization` and answered 400. The per-scheme table kept the first proxy. The evidence run is on http-backend-async#83.
 
 ## Notes
 
 - The `.asd` depends on plain `"event-protocol"` and `"http-backend-dexador"`, not on `(:version … "0.3.0")` / `"0.2.0"`. With the local client (cl-oci 0.27.34), the event-protocol pin fails in the client image ("installed … but below the required 0.3.0", the shape of cl-repository#180). The http-backend-dexador pin pulls `uiop:3.1.1` and gets 403 (cl-repository#171). The version line at the top of the output shows what the image loaded.
+- `http-backend-async` is pinned with `(:version "http-backend-async" "0.2.30")`. Without the pin, `cl-repo run` kept the 0.2.29 it had already installed. That build still has the redirect bug, so the last part of demo 4 showed it.
