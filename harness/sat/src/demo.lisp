@@ -1,4 +1,6 @@
-;;;; A tour of sat-protocol 0.2.0 (Track L, slice L2b-1) on sat-backend-dpll 0.1.0.
+;;;; Sections 1 to 8: a tour of sat-protocol 0.2.0 (Track L, slice L2b-1) on
+;;;; sat-backend-dpll 0.1.0. Sections 9 to 12 (cdcl.lisp) compare it with
+;;;; sat-backend-cdcl 0.1.0, and RUN-DEMOS is there.
 ;;;; Every number printed is computed by this run; the self-checks compare the
 ;;;; solver's answers with independent counts (binomials, brute force, a
 ;;;; dynamic-programming oracle) and the summary reports the mismatches.
@@ -52,39 +54,80 @@
 
 ;;; A backend that counts ----------------------------------------------------------
 ;;; MINIMIZE drives the backend through two generic functions. Specialising them
-;;; with :AROUND methods shows how much work each strategy asks for.
+;;; with :AROUND methods shows how much work each strategy asks for. The mixin
+;;; works on either backend; each reports the counters of its last search.
 
-(defclass counting-dpll (dpll:dpll-backend)
+(defgeneric last-statistics (backend)
+  (:documentation "The statistics plist of BACKEND's last search.")
+  (:method ((backend dpll:dpll-backend)) (dpll:dpll-backend-statistics backend))
+  (:method ((backend cdcl:cdcl-backend)) (cdcl:cdcl-backend-statistics backend)))
+
+(defclass counting-mixin ()
   ((solves :initform 0 :accessor solves)
    (final-conflicts :initform 0 :accessor final-conflicts)
-   (decisions :initform 0 :accessor decisions))
-  (:documentation "sat-backend-dpll, counting BACKEND-SOLVE and BACKEND-FINAL-CONFLICT
-calls and the decisions the searches made."))
+   (totals :initform '() :accessor totals
+           :documentation "Each statistic summed over the searches since RESET-COUNTS."))
+  (:documentation "Counts BACKEND-SOLVE and BACKEND-FINAL-CONFLICT calls and sums the
+statistics of the searches they ran."))
 
-(defmethod sat:backend-solve :around ((backend counting-dpll) cnf &key &allow-other-keys)
+(defclass counting-dpll (counting-mixin dpll:dpll-backend) ()
+  (:documentation "sat-backend-dpll, counted."))
+
+(defclass counting-cdcl (counting-mixin cdcl:cdcl-backend) ()
+  (:documentation "sat-backend-cdcl, counted."))
+
+(defvar *in-search* nil
+  "True inside a counted call: sat-backend-dpll's BACKEND-FINAL-CONFLICT is one
+BACKEND-SOLVE (sat-protocol's default method), whose search is summed once.")
+
+(defun add-statistics (backend)
+  (loop for (key value) on (last-statistics backend) by #'cddr
+        do (incf (getf (totals backend) key 0) value)))
+
+(defmacro with-search ((backend) &body body)
+  "Run BODY, then add BACKEND's last statistics to its totals, unless an
+enclosing counted call does that."
+  `(if *in-search*
+       (progn ,@body)
+       (let ((*in-search* t))
+         (unwind-protect (progn ,@body)
+           (add-statistics ,backend)))))
+
+(defmethod sat:backend-solve :around ((backend counting-mixin) cnf &key &allow-other-keys)
   (declare (ignore cnf))
   (incf (solves backend))
-  (unwind-protect (call-next-method)
-    (incf (decisions backend) (or (getf (dpll:dpll-backend-statistics backend) :decisions) 0))))
+  (with-search (backend) (call-next-method)))
 
-(defmethod sat:backend-final-conflict :around ((backend counting-dpll) cnf assumptions
+(defmethod sat:backend-final-conflict :around ((backend counting-mixin) cnf assumptions
                                                &key &allow-other-keys)
   (declare (ignore cnf assumptions))
   (incf (final-conflicts backend))
-  (call-next-method))
+  (with-search (backend) (call-next-method)))
 
-(defvar *backend* nil "The COUNTING-DPLL instance of this run.")
+(defun total (backend key)
+  (getf (totals backend) key 0))
 
-(defun reset-counts ()
-  (setf (solves *backend*) 0 (final-conflicts *backend*) 0 (decisions *backend*) 0))
+(defun decisions (backend)
+  (total backend :decisions))
+
+(defvar *backend* nil "The COUNTING-DPLL instance of sections 1 to 8.")
+
+(defun reset-counts (&optional (backend *backend*))
+  (setf (solves backend) 0 (final-conflicts backend) 0 (totals backend) '()))
+
+(defmacro counted-on ((backend) &body body)
+  "As COUNTED, on BACKEND."
+  (let ((b (gensym "BACKEND")))
+    `(let ((,b ,backend))
+       (reset-counts ,b)
+       (let ((all (multiple-value-list (timed ,@body))))
+         (values-list (list* (first all) (solves ,b) (final-conflicts ,b)
+                             (decisions ,b) (rest all)))))))
 
 (defmacro counted (&body body)
-  "(values seconds solves final-conflicts decisions . BODY's values)."
-  `(progn
-     (reset-counts)
-     (let ((all (multiple-value-list (timed ,@body))))
-       (values-list (list* (first all) (solves *backend*) (final-conflicts *backend*)
-                           (decisions *backend*) (rest all))))))
+  "(values seconds solves final-conflicts decisions . BODY's values), counted
+on *BACKEND*."
+  `(counted-on (*backend*) ,@body))
 
 ;;; Helpers on CNFs and models ------------------------------------------------------
 
@@ -96,7 +139,7 @@ calls and the decisions the searches made."))
 
 (defun count-models (formula)
   "Distinct models projected on the user variables (SOLVE-ALL, blocking clauses)."
-  (length (sat:collect-models (sat:solve-all formula))))
+  (length (sat:collect-models (sat:solve-all formula :backend *backend*))))
 
 (defun true-names (model)
   (loop for (name . value) in model when value collect name))
@@ -181,7 +224,7 @@ calls and the decisions the searches made."))
                                             *capacity* :encoding enc))
                (cnf (sat:to-cnf formula))
                (feasible (count-models formula)))
-          (multiple-value-bind (model cost optimal-p) (sat:minimize formula objective)
+          (multiple-value-bind (model cost optimal-p) (sat:minimize formula objective :backend *backend*)
             (let ((packed (loop for name in (true-names model) collect (second name))))
               (out "~(~11a~) ~8d ~6d ~14d ~10d ~{~d~^ ~}~%" enc (sat:cnf-clause-count cnf) (aux-count cnf)
                    feasible (- total cost) packed)
@@ -242,7 +285,7 @@ calls and the decisions the searches made."))
       (dolist (enc (cons :auto *encodings*))
         (let* ((formula (queens-formula n :encoding enc))
                (cnf (sat:to-cnf formula)))
-          (multiple-value-bind (seconds model sat) (timed (sat:solve formula))
+          (multiple-value-bind (seconds model sat) (timed (sat:solve formula :backend *backend*))
             (let ((valid (and sat (queens-valid-p (queens-columns model n) n))))
               (out "~(~11a~) ~8d ~6d ~12,3f ~:[no~;yes~]~%" enc (sat:cnf-clause-count cnf) (aux-count cnf)
                    seconds valid)
@@ -255,7 +298,7 @@ calls and the decisions the searches made."))
     (out "~%Every solution, by SOLVE-ALL, against the known counts:~%")
     (loop for (size . known) in *queens-counts*
           do (multiple-value-bind (seconds models)
-                 (timed (sat:collect-models (sat:solve-all (queens-formula size))))
+                 (timed (sat:collect-models (sat:solve-all (queens-formula size) :backend *backend*)))
                (let ((valid (count-if (lambda (m) (queens-valid-p (queens-columns m size) size)) models)))
                  (out "  n=~d: ~3d solutions (known ~3d), all valid: ~:[no~;yes~]  ~,2fs~%"
                       size (length models) known (= valid (length models)) seconds)
@@ -422,7 +465,7 @@ lexicographically, added element-wise)."
                                  (rest *strategies*))))
           (destructuring-bind (label keys) run
             (multiple-value-bind (seconds solves conflicts decisions model cost optimal-p)
-                (counted (apply #'sat:minimize formula objective keys))
+                (counted (apply #'sat:minimize formula objective :backend *backend* keys))
               (out "~26a ~5d ~10a ~7d ~15d ~10d ~,3f~%" label cost optimal-p solves conflicts decisions seconds)
               (check optimal-p t (format nil "~a optimal-p" label))
               (push (check-chain-result label model cost optimum) results))))
@@ -455,7 +498,7 @@ lexicographically, added element-wise)."
     (out "~8a ~14a ~10a ~a~%" "budget" "cost" "optimal-p" "labelling")
     (loop for budget = 0 then (if (zerop budget) 8 (* 2 budget))
           do (multiple-value-bind (model cost optimal-p)
-                 (handler-case (sat:minimize formula objective :budget budget)
+                 (handler-case (sat:minimize formula objective :backend *backend* :budget budget)
                    (sat:sat-budget-exceeded () (values :none nil nil)))
                (cond ((eq model :none)
                       (out "~8d ~14a ~10a -~%" budget "(no model yet)" "-"))
@@ -475,7 +518,7 @@ lexicographically, added element-wise)."
           only for validity):~%")
     (dolist (timeout '(0.02 0.2 1 30))
       (multiple-value-bind (seconds model cost optimal-p)
-          (timed (handler-case (sat:minimize formula objective :strategy :linear-totalizer :timeout timeout)
+          (timed (handler-case (sat:minimize formula objective :backend *backend* :strategy :linear-totalizer :timeout timeout)
                    (sat:sat-budget-exceeded () (values :none nil nil))))
         (if (eq model :none)
             (out "  timeout ~5a: no model yet (SAT-BUDGET-EXCEEDED)~%" timeout)
@@ -486,12 +529,12 @@ lexicographically, added element-wise)."
               (when optimal-p (check cost optimum (format nil "timeout ~a optimum" timeout)))))))
     (out "~%No model yet when the limit runs out: MINIMIZE signals SAT-BUDGET-EXCEEDED (an~%~
           error when unhandled):~%")
-    (handler-case (sat:minimize formula objective :budget 3)
+    (handler-case (sat:minimize formula objective :backend *backend* :budget 3)
       (sat:sat-budget-exceeded (c)
         (out "  (minimize ... :budget 3) -> ~s~%    ~a~%    budget slot ~s, timeout slot ~s~%"
              (type-of c) c (sat:sat-budget-exceeded-budget c) (sat:sat-budget-exceeded-timeout c))
         (check (sat:sat-budget-exceeded-budget c) 3 "budget slot")))
-    (handler-case (sat:minimize formula objective :timeout 0)
+    (handler-case (sat:minimize formula objective :backend *backend* :timeout 0)
       (sat:sat-budget-exceeded (c)
         (out "  (minimize ... :timeout 0) -> ~a~%" c)
         (check (sat:sat-budget-exceeded-timeout c) 0 "timeout slot")))
@@ -502,7 +545,7 @@ lexicographically, added element-wise)."
                            (lambda (c)
                              (push (sat:sat-budget-exceeded-budget c) seen)
                              (continue c))))
-            (sat:minimize formula objective :budget 1))
+            (sat:minimize formula objective :backend *backend* :budget 1))
         (out "  :budget 1, a handler invoking CONTINUE: signalled at budgets ~{~d~^, ~}; then a~%~
               ~2@Tmodel of cost ~d, optimal-p ~a~:[ (the last budget ran out with that incumbent:~%~
               ~2@Tno signal)~;~].~%"
@@ -512,7 +555,7 @@ lexicographically, added element-wise)."
                "CONTINUE doubles the budget")))
     (let ((value (handler-bind ((sat:sat-budget-exceeded
                                   (lambda (c) (use-value :gave-up c))))
-                   (multiple-value-list (sat:minimize formula objective :budget 0)))))
+                   (multiple-value-list (sat:minimize formula objective :backend *backend* :budget 0)))))
       (out "  USE-VALUE :gave-up instead: MINIMIZE returns ~s~%" value)
       (check value '(:gave-up nil) "USE-VALUE return"))))
 
@@ -526,7 +569,7 @@ lexicographically, added element-wise)."
 
 (defun demo-hints ()
   (let* ((formula (chain-formula))
-         (old-model (sat:minimize formula (chain-objective) :strategy :linear-totalizer))
+         (old-model (sat:minimize formula (chain-objective) :backend *backend* :strategy :linear-totalizer))
          (objective (chain-objective *observed-2*))
          (optimum (chain-dp *observed-2*))
          (old-labels (model-labels old-model)))
@@ -537,7 +580,7 @@ lexicographically, added element-wise)."
           assignment works too). The hint is tried first, as assumptions; a model that~%~
           agrees with it becomes the first incumbent, and the descent starts from there.~%~%"
          *observed* *observed-2* old-labels (labelling-cost old-labels *observed-2*) optimum)
-    (multiple-value-bind (model cost optimal-p) (sat:minimize formula objective :hint old-model :budget 0)
+    (multiple-value-bind (model cost optimal-p) (sat:minimize formula objective :backend *backend* :hint old-model :budget 0)
       (out "  :hint + :budget 0: the hint itself comes back, cost ~d, optimal-p ~a~%"
            cost optimal-p)
       (check (model-labels model) old-labels ":budget 0 returns the hint")
@@ -552,7 +595,7 @@ lexicographically, added element-wise)."
                    (:stratified "hint" (:hint ,old-model))))
       (destructuring-bind (strategy start keys) run
         (multiple-value-bind (seconds solves conflicts decisions model cost optimal-p)
-            (counted (apply #'sat:minimize formula objective :strategy strategy :timeout *hint-timeout* keys))
+            (counted (apply #'sat:minimize formula objective :backend *backend* :strategy strategy :timeout *hint-timeout* keys))
           (declare (ignore conflicts))
           (out "~(~18s~) ~20a ~5d ~10a ~7d ~10d ~,3f~%" strategy start cost optimal-p solves decisions seconds)
           (let ((label (format nil "~a ~a" strategy start)))
@@ -574,7 +617,7 @@ lexicographically, added element-wise)."
           (clash (list (cons (x-name 0 0) t) (cons (x-name 0 1) t))))
       (dolist (h (list (list "the old levels only (12 literals)" partial)
                        (list "an inconsistent hint (two levels at 0)" clash)))
-        (multiple-value-bind (model cost optimal-p) (sat:minimize formula objective :hint (second h))
+        (multiple-value-bind (model cost optimal-p) (sat:minimize formula objective :backend *backend* :hint (second h))
           (out "  hint = ~40a -> cost ~d, optimal-p ~a~%" (first h) cost optimal-p)
           (check-chain-result (first h) model cost optimum :observed *observed-2*))))
     (out "An inconsistent hint is ignored: the first call fails and the search goes on~%~
@@ -613,7 +656,7 @@ lexicographically, added element-wise)."
                                          (list :order #'first)))))
           (destructuring-bind (label strategy keys) run
             (multiple-value-bind (seconds solves conflicts decisions model costs optimal-p)
-                (counted (apply #'sat:minimize formula objective :strategy strategy :timeout *lex-timeout* keys))
+                (counted (apply #'sat:minimize formula objective :backend *backend* :strategy strategy :timeout *lex-timeout* keys))
               (declare (ignore conflicts))
               (unless optimal-p (push label unproven))
               (out "~32a ~11a ~10a ~7d ~10d ~,3f~%" label (format nil "~s" costs) optimal-p
@@ -639,13 +682,13 @@ lexicographically, added element-wise)."
               auxiliary variables freely. An :ORDER hook (MINIMIZE then decides the user~%~
               variables first and an auxiliary only when no user variable is left) is.~%"
              (reverse unproven) *phase-issue*))
-      (multiple-value-bind (model plain) (sat:minimize formula cost :strategy :linear-totalizer)
+      (multiple-value-bind (model plain) (sat:minimize formula cost :backend *backend* :strategy :linear-totalizer)
         (let ((labels (model-labels model)))
           (out "~%Cost alone (no requests, :linear-totalizer): cost ~d, granting ~d of the 6 requests.~%"
                plain (count-if (lambda (r) (eql (nth (car r) labels) (cdr r))) *requests*))))
       (let* ((big (1+ (reduce #'+ cost :key #'car)))
              (weighted (append (mapcar (lambda (e) (cons (* big (car e)) (cdr e))) violations) cost)))
-        (multiple-value-bind (model total) (sat:minimize formula weighted :strategy :core-guided)
+        (multiple-value-bind (model total) (sat:minimize formula weighted :backend *backend* :strategy :core-guided)
           (declare (ignore model))
           (out "The same order as one weighted sum (violations x ~d + cost, :core-guided):~%~
                 ~d = ~d x ~d + ~d. :lex needs no such big-M weight: a proven level becomes a~%~
@@ -668,7 +711,7 @@ lexicographically, added element-wise)."
          (cnf (sat:to-cnf formula))
          (ints (mapcar (lambda (lit) (sat:cnf-literal cnf lit)) pins)))
     (out "Assume the levels ~{~a~^ ~}.~%" (mapcar #'pin-label pins))
-    (multiple-value-bind (model sat) (sat:solve formula :assumptions pins)
+    (multiple-value-bind (model sat) (sat:solve formula :backend *backend* :assumptions pins)
       (out "  (solve ... :assumptions pins) -> ~s ~s: unsatisfiable~%" model sat)
       (check sat nil "pins are unsatisfiable"))
     (multiple-value-bind (core unsat) (sat:backend-final-conflict *backend* cnf ints)
@@ -680,18 +723,19 @@ lexicographically, added element-wise)."
       (check (nth-value 1 (sat:backend-solve *backend* cnf :assumptions core)) nil
              "final conflict is unsatisfiable"))
     (out "  sat-backend-dpll keeps the default method: one BACKEND-SOLVE, and on UNSAT every~%~
-          ~2@Tassumption (a CDCL backend returns the assumptions its final conflict used).~%")
-    (multiple-value-bind (core unsat) (sat:unsat-core formula :assumptions pins :minimal nil)
+          ~2@Tassumption (sat-backend-cdcl returns the assumptions its final conflict used:~%~
+          ~2@Tsection 10).~%")
+    (multiple-value-bind (core unsat) (sat:unsat-core formula :backend *backend* :assumptions pins :minimal nil)
       (out "~%(unsat-core ... :minimal nil), the final conflict mapped back: ~{~a~^ ~} (~a)~%"
            (mapcar #'pin-label core) unsat)
       (check (subsetp core pins) t "minimal nil: a subset"))
-    (multiple-value-bind (core unsat) (sat:unsat-core formula :assumptions pins)
+    (multiple-value-bind (core unsat) (sat:unsat-core formula :backend *backend* :assumptions pins)
       (out "(unsat-core ... ), minimal (deletion over the assumptions): ~{~a~^ ~} (~a)~%"
            (mapcar #'pin-label core) unsat)
       (check (mapcar #'pin-label core) '("x3=0" "x5=2") "the minimal core")
-      (check (nth-value 1 (sat:solve formula :assumptions core)) nil "the core is unsatisfiable")
+      (check (nth-value 1 (sat:solve formula :backend *backend* :assumptions core)) nil "the core is unsatisfiable")
       (dolist (drop core)
-        (check (nth-value 1 (sat:solve formula :assumptions (remove drop core))) t
+        (check (nth-value 1 (sat:solve formula :backend *backend* :assumptions (remove drop core))) t
                (format nil "core without ~a is satisfiable" (pin-label drop))))
       (out "  x3=0 forces x4=0 (0 -> 1 is forbidden after position 3, 0 -> 2 jumps two),~%~
             ~2@Tand x5=2 cannot follow x4=0.~%"))
@@ -700,7 +744,7 @@ lexicographically, added element-wise)."
            (named (append (loop for (p . l) in *pins* collect (cons (pin-label (x p l)) (x p l)))
                           (list (cons "rule: no 0->1 at 3->4" (sat:sat-or (sat:sat-not (x 3 0)) (sat:sat-not (x 4 1))))
                                 (cons "rule: no 1->0 at 8->9" (sat:sat-or (sat:sat-not (x 8 1)) (sat:sat-not (x 9 0))))))))
-      (multiple-value-bind (core unsat) (sat:unsat-core relaxed :named named)
+      (multiple-value-bind (core unsat) (sat:unsat-core relaxed :backend *backend* :named named)
         (out "~%With the two extra rules as named soft formulas too, the core names a rule:~%  ~s (~a)~%"
              core unsat)
         (check core '("x3=0" "x5=2" "rule: no 0->1 at 3->4") "named core")))))
@@ -734,43 +778,15 @@ lexicographically, added element-wise)."
     (dolist (case (list (list ":encoding :quantum" (lambda () (sat:sat-at-most-k xs 1 :encoding :quantum)))
                         (list ":strategy :fastest"
                               (lambda () (sat:minimize (sat:sat-or* xs) (list (cons 1 (first xs)))
-                                                       :strategy :fastest)))
-                        (list "objective (:lex), no level" (lambda () (sat:minimize (sat:sat-or* xs) (list :lex))))
+                                                       :backend *backend* :strategy :fastest)))
+                        (list "objective (:lex), no level" (lambda () (sat:minimize (sat:sat-or* xs) (list :lex) :backend *backend*)))
                         (list ":budget -1" (lambda () (sat:minimize (sat:sat-or* xs) (list (cons 1 (first xs)))
-                                                                    :budget -1)))))
+                                                                    :backend *backend* :budget -1)))))
       (let ((c (signalled (second case))))
         (out "  ~28a -> ~s~%" (first case) (type-of c))
         (check (typep c 'type-error) t (first case))))
     (let ((values (multiple-value-list
                    (sat:minimize (sat:sat-and* (mapcar #'sat:sat-not xs)) (list (cons 1 (first xs)))
-                                 :assumptions (list (first xs))))))
+                                 :backend *backend* :assumptions (list (first xs))))))
       (out "  unsatisfiable under the assumptions -> ~s (two values, as in 0.1)~%" values)
       (check values '(nil nil) "unsat minimize"))))
-
-;;; Entry point ----------------------------------------------------------------------
-
-(defun run-demos ()
-  "Print the tour. Returns T when every check matched and no section failed."
-  (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '())
-        (*print-right-margin* 110)
-        (*backend* (make-instance 'counting-dpll)))
-    (let ((sat:*sat-backend* *backend*))
-      (format t "~&sat-protocol ~a on sat-backend-dpll ~a (~a ~a)~%"
-              (asdf:component-version (asdf:find-system "sat-protocol"))
-              (asdf:component-version (asdf:find-system "sat-backend-dpll"))
-              (lisp-implementation-type) (lisp-implementation-version))
-      (section "1. Cardinality constraints and their encodings" (demo-cardinality))
-      (section "1b. Pseudo-Boolean constraints: a knapsack" (demo-pseudo-boolean))
-      (section "2. N-queens" (demo-queens))
-      (section "3. Weighted sequence labelling: every MINIMIZE strategy" (demo-chain))
-      (section "4. Anytime: budgets, timeouts, SAT-BUDGET-EXCEEDED and CONTINUE" (demo-anytime))
-      (section "5. Hints: a warm start from a previous model" (demo-hints))
-      (section "6. Lexicographic objectives" (demo-lex))
-      (section "7. Final-conflict cores and minimal cores" (demo-cores))
-      (section "8. Conditions and restarts" (demo-conditions))
-      (banner "Summary")
-      (format t "~d results checked against their expected values: ~d mismatched.~%~
-                 ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
-              *checks* *mismatches* (reverse *failed-sections*))
-      (finish-output)
-      (and (zerop *mismatches*) (null *failed-sections*)))))

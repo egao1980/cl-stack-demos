@@ -1,6 +1,6 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names
-; cl-repo: dependencies from cl-repo.lock (2 packages)
+; cl-repo: dependencies from cl-repo.lock (3 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -8,11 +8,11 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-; compiling file "<tmp>/harness/sat/src/demo.lisp" (written 23 NOV 2026 11:24:52 PM):
+; compiling file "<tmp>/harness/sat/src/cdcl.lisp" (written 24 NOV 2026 01:51:05 AM):
 
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64/<tmp>/harness/sat/src/demo-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.087
-sat-protocol 0.2.0 on sat-backend-dpll 0.1.0 (SBCL 2.6.9)
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64/<tmp>/harness/sat/src/cdcl-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.051
+sat-protocol 0.2.0 on sat-backend-dpll 0.1.0 and sat-backend-cdcl 0.1.0 (SBCL 2.6.9)
 
 ==============================================================================
 == 1. Cardinality constraints and their encodings
@@ -111,11 +111,11 @@ clause (-x(p,a) -x(p+1,b)) per forbidden pair, and a step indicator y(p,a,b) wit
 (0 auxiliary), 114 clauses; objective: 66 weighted literals, weights 1, 2.
 
 run                        cost  optimal-p  solves  final-conflict  decisions  seconds
-:linear-bdd                    9 T               16               0     108552 77.176
-:linear-bdd :timeout 600       9 T               10               0        694 0.448
-:linear-totalizer              9 T               13               0       2356 0.245
-:stratified                    9 T               17               0        829 0.082
-:core-guided                   9 T              537             536       2695 0.028
+:linear-bdd                    9 T               16               0     108552 85.509
+:linear-bdd :timeout 600       9 T               10               0        694 0.847
+:linear-totalizer              9 T               13               0       2356 0.418
+:stratified                    9 T               17               0        829 0.128
+:core-guided                   9 T              537             536       2695 0.046
 
 Dynamic-programming oracle: optimum 9, labelling 1 1 1 1 1 1 1 1 1 1 1 1.
 Every run's model decodes to a valid labelling of cost 9. The labelling from
@@ -159,10 +159,10 @@ budget   cost           optimal-p  labelling
 
 :TIMEOUT, :linear-totalizer (times vary from run to run; the costs are checked
 only for validity):
-  timeout 0.02 : cost  53, optimal-p NIL  (0.023s)
-  timeout 0.2  : cost   9, optimal-p NIL  (0.200s)
-  timeout 1    : cost   9, optimal-p T    (0.238s)
-  timeout 30   : cost   9, optimal-p T    (0.209s)
+  timeout 0.02 : cost  66, optimal-p NIL  (0.022s)
+  timeout 0.2  : cost  10, optimal-p NIL  (0.201s)
+  timeout 1    : cost   9, optimal-p T    (0.317s)
+  timeout 30   : cost   9, optimal-p T    (0.265s)
 
 No model yet when the limit runs out: MINIMIZE signals SAT-BUDGET-EXCEEDED (an
 error when unhandled):
@@ -193,10 +193,10 @@ agrees with it becomes the first incumbent, and the descent starts from there.
 Each run under :timeout 30 (seconds):
 
 strategy           start                cost  optimal-p  solves  decisions  seconds
-:linear-totalizer  cold                    27 NIL              5     470205 30.000
+:linear-totalizer  cold                    27 NIL              5     321902 30.000
 :linear-totalizer  hint                     8 T                4        657 0.028
 :linear-totalizer  cold, :phase :false      8 T               12       1058 0.114
-:stratified        cold                     8 T               19        656 0.077
+:stratified        cold                     8 T               19        656 0.079
 :stratified        hint                     8 T                5        339 0.012
 The hint skips the descent from a poor first model: the hinted runs prove the new
 optimum in a few calls. The cold :linear-totalizer run meets
@@ -220,12 +220,12 @@ then the chain cost among those.
 Each strategy under :timeout 20 (seconds):
 
 run                              cost (lex)  optimal-p  solves  decisions  seconds
-:linear-bdd                      (3 11)      T               14        383 0.558
-:linear-totalizer                (3 59)      NIL              5     150246 20.000
-:stratified                      (3 11)      T               21        522 0.138
-:core-guided                     (3 11)      T              500       2309 0.026
-:linear-totalizer :phase :false  (3 58)      NIL              4     147527 20.000
-:linear-totalizer :order #'first (3 11)      T                7        612 0.013
+:linear-bdd                      (3 11)      T               14        383 0.574
+:linear-totalizer                (3 59)      NIL              5     149203 20.000
+:stratified                      (3 11)      T               21        522 0.136
+:core-guided                     (3 11)      T              500       2309 0.024
+:linear-totalizer :phase :false  (3 58)      NIL              4     144386 20.001
+:linear-totalizer :order #'first (3 11)      T                7        612 0.029
 
 DP oracle over cost vectors: (3 11), labelling 2 2 2 2 2 2 2 2 2 2 2 2.
 The :core-guided labelling:
@@ -258,7 +258,8 @@ Assume the levels x0=1 x3=0 x5=2 x7=2 x9=1 x11=2.
 BACKEND-FINAL-CONFLICT (index level): (2 10 18 24 29 36) T
   = x0=1 x3=0 x5=2 x7=2 x9=1 x11=2
   sat-backend-dpll keeps the default method: one BACKEND-SOLVE, and on UNSAT every
-  assumption (a CDCL backend returns the assumptions its final conflict used).
+  assumption (sat-backend-cdcl returns the assumptions its final conflict used:
+  section 10).
 
 (unsat-core ... :minimal nil), the final conflict mapped back: x0=1 x3=0 x5=2 x7=2 x9=1 x11=2 (T)
 (unsat-core ... ), minimal (deletion over the assumptions): x3=0 x5=2 (T)
@@ -284,7 +285,186 @@ With the two extra rules as named soft formulas too, the core names a rule:
   unsatisfiable under the assumptions -> (NIL NIL) (two values, as in 0.1)
 
 ==============================================================================
+== 9. DPLL against CDCL: random 3-SAT, pigeonhole, a hidden core
+==============================================================================
+The same CNFs on sat-backend-dpll (chronological backtracking, DLIS, pure
+literals) and sat-backend-cdcl (two watched literals, first-UIP learning,
+EVSIDS, phase saving, Luby restarts, LBD-based reduction), both with their
+default parameters, through (sat:solve cnf :backend b), at most 120 s each.
+Random 3-SAT at ratio 4.26, 4 instances per size from seed 4260; the n=150 ones
+are the first of sat-backend-cdcl's 3-SAT gate batch, whose MiniSat statuses are
+recorded (SAT SAT SAT UNSAT). The hidden core is planted 3-SAT noise (200
+variables, 840 clauses) with PHP(6,5) on 30 fresh variables, seed 7700.
+Every SAT model is checked against the clauses; the statuses must agree.
+
+instance                vars clauses backend answer     seconds  decisions  conflicts   learnt restarts
+3-SAT n=100 #0           100     426 dpll    UNSAT        0.022       1317       1318        -        -
+                                     cdcl    UNSAT        0.004        581        482      481        3
+3-SAT n=100 #1           100     426 dpll    UNSAT        0.029       2218       2219        -        -
+                                     cdcl    UNSAT        0.003        467        399      398        2
+3-SAT n=100 #2           100     426 dpll    UNSAT        0.078       5562       5563        -        -
+                                     cdcl    UNSAT        0.002        589        484      483        3
+3-SAT n=100 #3           100     426 dpll    UNSAT        0.138       8933       8934        -        -
+                                     cdcl    UNSAT        0.004        905        745      744        5
+3-SAT n=150 #0           150     639 dpll    SAT          0.361      19196      19170        -        -
+                                     cdcl    SAT          0.009       1987       1611     1611       10
+3-SAT n=150 #1           150     639 dpll    SAT          0.041       3237       3219        -        -
+                                     cdcl    SAT          0.012       2572       2046     2046       13
+3-SAT n=150 #2           150     639 dpll    SAT          0.000         35          1        -        -
+                                     cdcl    SAT          0.000         72         35       35        0
+3-SAT n=150 #3           150     639 dpll    UNSAT        0.224      14136      14137        -        -
+                                     cdcl    UNSAT        0.007       1928       1594     1593        9
+3-SAT n=200 #0           200     852 dpll    UNSAT       10.281     750679     750680        -        -
+                                     cdcl    UNSAT        0.182      23063      19292    19291       63
+3-SAT n=200 #1           200     852 dpll    UNSAT        5.583     388589     388590        -        -
+                                     cdcl    UNSAT        0.174      19445      16238    16237       62
+3-SAT n=200 #2           200     852 dpll    SAT          6.263     469490     469473        -        -
+                                     cdcl    SAT          0.043       7341       5915     5915       29
+3-SAT n=200 #3           200     852 dpll    UNSAT        4.943     345300     345301        -        -
+                                     cdcl    UNSAT        0.141      17717      14779    14778       61
+PHP(8,7)                  56     204 dpll    UNSAT        0.010       5039       5040        -        -
+                                     cdcl    UNSAT        0.052       7015       5761     5760       29
+PHP(9,8)                  72     297 dpll    UNSAT        0.080      40319      40320        -        -
+                                     cdcl    UNSAT        0.404      27206      22575    22574       79
+hidden PHP(6,5) core     230     921 dpll    timeout    120.044   22472000   22471980        -        -
+                                     cdcl    UNSAT        0.004       1158        862      861        6
+
+Seconds per group (a timeout counts its limit):
+  group                      DPLL       CDCL  DPLL / CDCL
+  random 3-SAT, n=100       0.267      0.013  20.5x
+  random 3-SAT, n=150       0.627      0.028  22.3x
+  random 3-SAT, n=200      27.069      0.540  50.2x
+  pigeonhole                0.090      0.456  0.2x
+  hidden core             120.044      0.004  > 34161.7x
+Random 3-SAT near the threshold is where learning pays off with size: DPLL
+backtracks chronologically and meets the same conflicts again. Pigeonhole goes
+the other way: DPLL's pure-literal rule refutes PHP(n+1,n) in (n-1)! decisions,
+while resolution, so CDCL, needs exponentially many conflicts. The hidden core
+is what DPLL cannot do: it refutes PHP(6,5) again under every noise assignment
+it backtracks through. A clause learnt from a pigeonhole conflict mentions
+pigeonhole variables only, so CDCL refutes the core once and backjumps over the
+noise.
+
+==============================================================================
+== 9b. DPLL against CDCL: the chains under :core-guided and :linear-totalizer
+==============================================================================
+The weighted chains of sections 3, 5 and 6 (78 variables, 114 clauses; the
+lexicographic one adds the six requests), minimised with :core-guided and
+:linear-totalizer on each backend under :timeout 30. The backends are
+counting subclasses (:around methods on BACKEND-SOLVE and
+BACKEND-FINAL-CONFLICT summing each search's statistics). A run the timeout
+stops returns its incumbent, the anytime result, with optimal-p NIL.
+
+problem              strategy                 cost      optimal-p  solves  final  decisions  conflicts seconds
+chain (section 3)    :core-guided       dpll  9         T             537    536       2695       2844 0.022
+chain (section 3)    :core-guided       cdcl  9         T               1     69       3629         48 0.003
+chain (section 3)    :linear-totalizer  dpll  9         T              13      0       2356       2122 0.190
+chain (section 3)    :linear-totalizer  cdcl  9         T              10      0        611        283 0.003
+revised (section 5)  :core-guided       dpll  8         T             462    461       2191       2170 0.030
+revised (section 5)  :core-guided       cdcl  8         T               1     62       3110         39 0.002
+revised (section 5)  :linear-totalizer  dpll  27        NIL             5      0     469068     468913 30.000
+revised (section 5)  :linear-totalizer  cdcl  8         T               8      0        484        208 0.002
+lex (section 6)      :core-guided       dpll  (3 11)    T             500    499       2309       2541 0.026
+lex (section 6)      :core-guided       cdcl  (3 11)    T               1     71       2814         47 0.002
+lex (section 6)      :linear-totalizer  dpll  (3 59)    NIL             5      0     218054     217977 30.000
+lex (section 6)      :linear-totalizer  cdcl  (3 11)    T               8      0        293        134 0.002
+
+DP optima: 9, 8 and (3 11). A proven run (optimal-p T) found the DP optimum;
+a stopped one returned a valid incumbent no better than it.
+On DPLL, :core-guided gets every assumption back from BACKEND-FINAL-CONFLICT
+(sat-protocol's default method) and shrinks it by deletion: hundreds of calls.
+On CDCL the final conflict is already small, and each call is one search from
+scratch (no incremental sessions in 0.1.0). The :linear-totalizer refutations
+that take DPLL past the timeout (egao1980/sat-protocol#7, sections 5 and 6)
+take CDCL a few hundred conflicts (the conflicts column).
+
+==============================================================================
+== 10. Final-conflict cores from conflict analysis
+==============================================================================
+BACKEND-FINAL-CONFLICT on an assumption set that is unsatisfiable. sat-backend-dpll
+keeps sat-protocol's default method: one BACKEND-SOLVE, and on UNSAT every
+assumption. sat-backend-cdcl returns the final conflict of its own search
+(MiniSat's analyzeFinal): the assumptions reached from the failed one through
+reasons. One call, no deletion.
+
+The six level pins of section 7 (x0=1 x3=0 x5=2 x7=2 x9=1 x11=2):
+  backend                          core          solves  final decisions seconds
+  sat-backend-dpll                    6 of    6       1      1         0 0.000
+  sat-backend-cdcl                    2 of    6       0      1         0 0.000
+  DPLL: x0=1 x3=0 x5=2 x7=2 x9=1 x11=2
+  CDCL: x3=0 x5=2
+
+Through the front end, on both backends: UNSAT-CORE :minimal nil maps the final
+conflict back; the minimal UNSAT-CORE shrinks by deletion.
+  dpll :minimal NIL -> x0=1 x3=0 x5=2 x7=2 x9=1 x11=2      1 solves   1 final     0 decisions 0.000 s
+  dpll :minimal T   -> x3=0 x5=2                           7 solves   0 final    21 decisions 0.000 s
+  cdcl :minimal NIL -> x3=0 x5=2                           0 solves   1 final     0 decisions 0.000 s
+  cdcl :minimal T   -> x3=0 x5=2                           7 solves   0 final    16 decisions 0.000 s
+
+A larger set: 168 planted 3-SAT clauses over 40 variables (satisfiable) and
+PHP(5,4) (45 clauses, 20 variables), each clause guarded by a selector; the
+assumptions switch on all 213 clauses, noise first. PHP(5,4) is minimally
+unsatisfiable, so the only minimal core is its 45 selectors.
+  backend                          core          solves  final decisions seconds
+  sat-backend-dpll                  213 of  213       1      1       473 0.001
+  sat-backend-cdcl                   45 of  213       0      1        55 0.000
+  The CDCL core is the 45 pigeonhole selectors, exactly: the noise
+  clauses share no variable with the pigeonhole, so no reason leads to them.
+  The minimal core by deletion on CDCL (BACKEND-UNSAT-CORE): 45 selectors after
+  214 solves, 13692 decisions, 0.009 s.
+
+==============================================================================
+== 11. CDCL parameters: restarts, phase saving, reduction
+==============================================================================
+One instance, 3-SAT n=200 #0 (UNSAT): 200 variables, 852 clauses, under each
+parameter change from the defaults (luby-unit 100, restart-window 50, margin 0.8,
+reduce-base 2000, reduce-increment 300, :recursive minimisation).
+
+parameters                         answer  decisions conflicts   learnt restarts  reduce deleted seconds
+defaults (:luby, phase saving)     UNSAT       23063     19292    19291       63       6   13256 0.180
+:restart-policy :glucose           UNSAT       18645     15872    15871        9       5   10056 0.131
+:restart-policy nil                UNSAT       31947     27463    27462        0       8   20495 0.266
+:luby-unit 32                      UNSAT       20940     16778    16777      157       6   13222 0.151
+:phase-saving nil                  UNSAT       17691     14856    14855       61       5   10059 0.129
+:reduce-base 500 :increment 100    UNSAT       20130     16736    16735       62      14   14275 0.115
+:reduce-base nil (never)           UNSAT       19395     16143    16142       62       0       0 0.212
+:clause-minimization nil           UNSAT       23094     19019    19018       62       6   13256 0.176
+
+The restart and reduction counts are checked against the schedules of
+src/search.lisp, recomputed here from the learnt-clause count: :luby makes R
+restarts with S(R) <= learnt < S(R+1); :glucose at most one per 50-clause window;
+the k-th reduction is due at k*base + increment*k(k-1)/2 learnt clauses.
+
+==============================================================================
+== 12. Determinism
+==============================================================================
+No randomness, no hash order, no addresses: the same CNF, arguments and
+parameters give the same answer, the same learnt clauses and the same
+statistics, on one backend called again or on a fresh one. Each instance runs
+three times on one backend and once on a new one; a :learnt-hook records
+every learnt clause (literals, asserting literal first, and LBD).
+
+3-SAT n=200 #0: UNSAT; statistics of the first run:
+    decisions 23063, propagations 951134, conflicts 19292, learnt-clauses 19291
+    backjumps 2376, restarts 63, reductions 6, deleted-clauses 13256
+  the 4 runs: same answer and model yes, same statistics yes, same 19291 learnt clauses yes
+    learnt clause 1: LBD 11, 18 16 10 -153 8 12 3 128 166 11 173 7
+    learnt clause 2: LBD 7, 164 65 -58 -153 -47 128 16 3
+hidden PHP(6,5) core: UNSAT; statistics of the first run:
+    decisions 1158, propagations 37681, conflicts 862, learnt-clauses 861
+    backjumps 144, restarts 6, reductions 0, deleted-clauses 0
+  the 4 runs: same answer and model yes, same statistics yes, same 861 learnt clauses yes
+    learnt clause 1: LBD 11, 22 19 18 -46 17 3 1 179 113 14 13 29 11
+    learnt clause 2: LBD 10, 32 24 16 177 7 20 1 10 -21 17 193 -22
+
+MINIMIZE :core-guided on the chain of section 3, 3 times (counting backend):
+  cost 9, optimal-p T, 1 solves and 69 final-conflict calls; summed statistics:
+    decisions 3629, propagations 3225, conflicts 48, learnt-clauses 48
+    backjumps 37, restarts 0, reductions 0, deleted-clauses 0
+  the 3 runs: same model, calls and statistics yes
+
+==============================================================================
 == Summary
 ==============================================================================
-149 results checked against their expected values: 0 mismatched.
+304 results checked against their expected values: 0 mismatched.
 Every section ran to the end.
