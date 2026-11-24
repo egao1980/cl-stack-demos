@@ -1,7 +1,5 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names
-WARNING:
-   cl-repo: mime-protocol 0.2.0 stays loaded from ~/.cl-repository-client/mime-protocol-0.2.0/mime-protocol.asd; the registry also has 0.3.0 at ~/.local/share/cl-repository/systems/mime-protocol/0.3.0/mime-protocol.asd, which this image will not load. Code that needs 0.3.0 runs against the older copy: upgrade the client or load the project in a fresh image.
 ; cl-repo: dependencies from cl-repo.lock (9 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
@@ -10,7 +8,7 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-mime-protocol 0.3.0 (SBCL 2.6.9, Darwin): nested multiparts and header names
+mime-protocol 0.3.1 (SBCL 2.6.9, Darwin): nested multiparts, header names, browser form-data names
 
 ==============================================================================
 == 1. The mail layout, printed
@@ -130,7 +128,83 @@ mime-protocol 0.3.0 (SBCL 2.6.9, Darwin): nested multiparts and header names
       application/pdf  filename "notes.pdf"  13 octets
 
 ==============================================================================
+== 6. A browser's form-data part headers: UTF-8 names, a literal backslash (#14)
+==============================================================================
+  A form posted by Chrome or Firefox: a text input named имя, file inputs holding
+  Prélude.svg, a\b.svg and say "hi".svg, and a FormData field named "a\nb". The
+  body exactly as sent, octets above 7F written as \xHH:
+
+    | --b
+    | Content-Disposition: form-data; name="\xD0\xB8\xD0\xBC\xD1\x8F"
+    | 
+    | Pr\xC3\xA9lude
+    | --b
+    | Content-Disposition: form-data; name="u"; filename="Pr\xC3\xA9lude.svg"
+    | Content-Type: image/svg+xml
+    | 
+    | <svg/>
+    | --b
+    | Content-Disposition: form-data; name="w"; filename="a\b.svg"
+    | Content-Type: image/svg+xml
+    | 
+    | <svg/>
+    | --b
+    | Content-Disposition: form-data; name="q"; filename="say %22hi%22.svg"
+    | Content-Type: image/svg+xml
+    | 
+    | <svg/>
+    | --b
+    | Content-Disposition: form-data; name="a%0D%0Ab"
+    | 
+    | x
+    | --b--
+
+  PARSE-MIME, then disposition-name / disposition-filename of each part:
+
+    "имя"
+    "u" / "Prélude.svg"
+    "w" / "a\b.svg"
+    "q" / "say "hi".svg"
+    "a\r\nb"
+
+  0.3.0 read the header octets as ISO-8859-1 and a backslash as an RFC 822
+  quoted-pair. Both readings, as they still apply elsewhere:
+    the UTF-8 octets of Prélude.svg read as ISO-8859-1  -> "PrÃ©lude.svg"
+    attachment; filename="a\b.svg" (quoted-pairs stay) -> "ab.svg"
+
+  a field whose octets are not UTF-8 stays ISO-8859-1: filename="caf\xE9.txt" -> "café.txt"
+
+  Our own encoders. http-protocol's multipart writes FORMAT-FORM-DATA-DISPOSITION
+  as UTF-8; it adds filename*, which still wins:
+    form-data; name="file"; filename="Prélude.svg"; filename*=UTF-8''Pr%C3%A9lude.svg
+    -> filename "Prélude.svg", filename* "UTF-8''Pr%C3%A9lude.svg", disposition-filename "Prélude.svg"
+
+  make-form-data + print-mime quotes them the browser way too:
+    | Content-Disposition: form-data; name=w; filename="a\b.svg"
+    | Content-Disposition: form-data; name=q; filename="say %22hi%22.svg"
+    "w" / "a\b.svg"
+    "q" / "say "hi".svg"
+
+==============================================================================
+== 7. The same form read by python-multipart and werkzeug
+==============================================================================
+  The section 6 body, read by python-multipart 0.0.34 and werkzeug 3.1.9 (Python 3.13.18).
+  "same" means the same (name filename) as mime-protocol:
+
+    mime-protocol 0.3.1              python-multipart             werkzeug
+    "имя"                            same                         same
+    "u" / "Prélude.svg"              same                         same
+    "w" / "a\b.svg"                  same                         "w" / "ab.svg"
+    "q" / "say "hi".svg"             "q" / "say %22hi%22.svg"     same
+    "a\r\nb"                         "a%0D%0Ab"                   "a%0D%0Ab"
+
+  All three read the UTF-8 octets as UTF-8. python-multipart also keeps the
+  backslash, and leaves %22 %0D %0A to the application. werkzeug decodes %22,
+  keeps %0D %0A, and drops the backslash: it unescapes quoted-pairs, which is
+  what mime-protocol 0.3.0 did.
+
+==============================================================================
 == Summary
 ==============================================================================
-34 results checked against their expected values: 0 mismatched.
+46 results checked against their expected values: 0 mismatched.
 Every section ran to the end.

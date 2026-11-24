@@ -5,6 +5,11 @@
 ;;;; checked: RUN-DEMOS returns NIL when one differs or a section stops on an
 ;;;; error.
 
+;;;; Sections 6 and 7 add mime-protocol 0.3.1, the fix for
+;;;; egao1980/mime-protocol#14: multipart/form-data part headers exactly as a
+;;;; browser sends them (UTF-8 names, a literal backslash, %22 %0D %0A),
+;;;; cross-read with python-multipart and werkzeug.
+
 (in-package #:harness-demos-mime-multipart)
 
 ;;; Output and checks ---------------------------------------------------------
@@ -74,9 +79,9 @@
   (coerce list '(vector (unsigned-byte 8))))
 
 (defun type-string (entity)
-  "\"type/subtype\" of ENTITY, or \"(no Content-Type)\": 0.3.0 leaves the type of
-a part without the header NIL instead of the RFC 2045 default text/plain
-(egao1980/mime-protocol#13)."
+  "\"type/subtype\" of ENTITY, or \"(no Content-Type)\": mime-protocol (0.3.1
+too) leaves the type of a part without the header NIL instead of the RFC 2045
+default text/plain (egao1980/mime-protocol#13)."
   (let ((mt (mime:mime-content-type entity)))
     (if mt
         (format nil "~(~a/~a~)" (mime:media-type-type mt) (mime:media-type-subtype mt))
@@ -346,12 +351,265 @@ attachment, written to argv[1] with CRLF line ends (policy SMTP).")
           (dolist (f (list ours theirs))
             (when (probe-file f) (delete-file f)))))))
 
+(defun wire-octets (&rest pieces)
+  "PIECES as octets: a string is UTF-8, an integer one raw octet, :CRLF CR LF."
+  (let ((out (make-array 0 :element-type '(unsigned-byte 8) :adjustable t :fill-pointer 0)))
+    (dolist (piece pieces (coerce out '(simple-array (unsigned-byte 8) (*))))
+      (etypecase piece
+        ((eql :crlf) (vector-push-extend 13 out) (vector-push-extend 10 out))
+        (integer (vector-push-extend piece out))
+        (string (loop for b across (encoding-protocol:encode piece :encoding :utf-8)
+                      do (vector-push-extend b out)))))))
+
+(defparameter +browser-parts+
+  (list (list "form-data; name=\"имя\"" nil "Prélude")
+        (list "form-data; name=\"u\"; filename=\"Prélude.svg\"" "image/svg+xml" "<svg/>")
+        (list "form-data; name=\"w\"; filename=\"a\\b.svg\"" "image/svg+xml" "<svg/>")
+        (list "form-data; name=\"q\"; filename=\"say %22hi%22.svg\"" "image/svg+xml" "<svg/>")
+        (list "form-data; name=\"a%0D%0Ab\"" nil "x"))
+  "A form as Chrome and Firefox post it, one (Content-Disposition Content-Type
+body) per part: a text input named имя holding Prélude; file inputs holding
+Prélude.svg, a\\b.svg (a legal name on macOS and Linux) and say \"hi\".svg; and
+a field added with FormData.append(\"a\\nb\", \"x\"). The HTML multipart/form-data
+encoding writes names as UTF-8, sends no filename*, and escapes only \" CR LF,
+as %22 %0D %0A (a lone LF first becomes CR LF).")
+
+(defparameter +browser-expected+
+  (list '("имя" nil) '("u" "Prélude.svg") '("w" "a\\b.svg") '("q" "say \"hi\".svg")
+        (list (crlf "a" "b") nil))
+  "(name filename) of each browser part, as the user typed or chose them.")
+
+(defun browser-body ()
+  "+BROWSER-PARTS+ as the octets of a multipart/form-data body, boundary b."
+  (apply #'wire-octets
+         (append (loop for (disposition type body) in +browser-parts+
+                       append (append (list "--b" :crlf "Content-Disposition: " disposition :crlf)
+                                      (when type (list "Content-Type: " type :crlf))
+                                      (list :crlf body :crlf)))
+                 (list "--b--" :crlf))))
+
+(defun browser-request ()
+  "BROWSER-BODY after the Content-Type header of the request that carries it."
+  (concatenate '(vector (unsigned-byte 8))
+               (wire-octets "Content-Type: multipart/form-data; boundary=b" :crlf :crlf)
+               (browser-body)))
+
+(defun octet-lines (octets)
+  "OCTETS split at CRLF: ASCII as is, any other octet as \\xHH."
+  (let ((lines (uiop:split-string
+                (with-output-to-string (o)
+                  (loop for b across octets
+                        do (cond ((= b 13))
+                                 ((< b 128) (write-char (code-char b) o))
+                                 (t (format o "\\x~2,'0X" b)))))
+                :separator '(#\Newline))))
+    (if (equal "" (car (last lines))) (butlast lines) lines)))
+
+(defun name-rows (entity)
+  "(name filename) of each part of ENTITY."
+  (mapcar (lambda (part)
+            (let ((cd (mime:mime-content-disposition part)))
+              (list (mime:disposition-name cd) (mime:disposition-filename cd))))
+          (mime:mime-parts entity)))
+
+(defun pair-string (row)
+  (destructuring-bind (name filename) row
+    (format nil "~a~@[ / ~a~]" (visible name) (and filename (visible filename)))))
+
+(defun show-names (rows)
+  (dolist (row rows)
+    (out "    ~a~%" (pair-string row))))
+
+(defun form-request (&rest disposition)
+  "A one-part multipart/form-data request whose Content-Disposition value is
+the WIRE-OCTETS pieces DISPOSITION."
+  (apply #'wire-octets
+         (append (list "Content-Type: multipart/form-data; boundary=b" :crlf :crlf
+                       "--b" :crlf "Content-Disposition: ")
+                 disposition
+                 (list :crlf :crlf "x" :crlf "--b--" :crlf))))
+
+(defun demo-browser ()
+  (say "A form posted by Chrome or Firefox: a text input named имя, file inputs holding"
+       "Prélude.svg, a\\b.svg and say \"hi\".svg, and a FormData field named \"a\\nb\". The"
+       "body exactly as sent, octets above 7F written as \\xHH:"
+       "")
+  (let* ((parsed (mime:parse-mime (browser-request)))
+         (rows (name-rows parsed)))
+    (dolist (line (octet-lines (browser-body))) (out "    | ~a~%" line))
+    (say "" "PARSE-MIME, then disposition-name / disposition-filename of each part:" "")
+    (show-names rows)
+    (check rows +browser-expected+ "the names the user typed or chose")
+    (check (utf8 (mime:mime-content (first (mime:mime-parts parsed)))) "Prélude"
+           "the text field's value")
+    (check (loop for part in (mime:mime-parts parsed)
+                 thereis (mime:disposition-parameter (mime:mime-content-disposition part) "filename*"))
+           nil "a browser sends no filename*"))
+  (let ((latin-1 (encoding-protocol:decode (wire-octets "Prélude.svg") :encoding :iso-8859-1))
+        (quoted-pair (mime:disposition-filename
+                      (mime:parse-content-disposition "attachment; filename=\"a\\b.svg\""))))
+    (say ""
+         "0.3.0 read the header octets as ISO-8859-1 and a backslash as an RFC 822"
+         "quoted-pair. Both readings, as they still apply elsewhere:"
+         (format nil "  the UTF-8 octets of Prélude.svg read as ISO-8859-1  -> ~s" latin-1)
+         (format nil "  attachment; filename=\"a\\b.svg\" (quoted-pairs stay) -> ~s" quoted-pair))
+    (check latin-1 "PrÃ©lude.svg" "the ISO-8859-1 reading of UTF-8")
+    (check quoted-pair "ab.svg" "a quoted-pair outside form-data names"))
+  (let ((filename (second (first (name-rows (mime:parse-mime
+                                             (form-request "form-data; name=\"f\"; filename=\"caf"
+                                                           #xE9 ".txt\"")))))))
+    (say ""
+         (format nil "a field whose octets are not UTF-8 stays ISO-8859-1: filename=\"caf\\xE9.txt\" -> ~s"
+                 filename))
+    (check filename "café.txt" "the ISO-8859-1 fallback"))
+  (let* ((value (mime:format-form-data-disposition "file" :filename "Prélude.svg"))
+         (cd (mime:mime-content-disposition
+              (first (mime:mime-parts (mime:parse-mime (form-request value)))))))
+    (say ""
+         "Our own encoders. http-protocol's multipart writes FORMAT-FORM-DATA-DISPOSITION"
+         "as UTF-8; it adds filename*, which still wins:"
+         (format nil "  ~a" value)
+         (format nil "  -> filename ~s, filename* ~s, disposition-filename ~s"
+                 (mime:disposition-parameter cd "filename")
+                 (mime:disposition-parameter cd "filename*")
+                 (mime:disposition-filename cd)))
+    (check (list (mime:disposition-parameter cd "filename") (mime:disposition-filename cd))
+           '("Prélude.svg" "Prélude.svg") "format-form-data-disposition parsed back"))
+  (let* ((wire (mime:print-mime
+                (mime:make-form-data '(("w" :filename "a\\b.svg" :content "<svg/>")
+                                       ("q" :filename "say \"hi\".svg" :content "<svg/>"))
+                                     :boundary "b")))
+         (rows (name-rows (mime:parse-mime wire))))
+    (say "" "make-form-data + print-mime quotes them the browser way too:")
+    (dolist (line (uiop:split-string (remove #\Return wire) :separator '(#\Newline)))
+      (when (search "Content-Disposition" line)
+        (out "    | ~a~%" line)))
+    (show-names rows)
+    (check rows '(("w" "a\\b.svg") ("q" "say \"hi\".svg")) "make-form-data round trip")))
+
+(defparameter *python-form*
+  "import sys, importlib.metadata as md
+from python_multipart import MultipartParser
+from python_multipart.multipart import parse_options_header
+from werkzeug.sansio.multipart import MultipartDecoder, Field, File, Epilogue, NeedData
+def s(x):
+    return 'nil' if x is None else '\"' + x.replace(chr(92), chr(92) * 2).replace('\"', chr(92) + '\"') + '\"'
+body = open(sys.argv[1], 'rb').read()
+pm = []
+cur = {}
+def on_header_field(d, a, b): cur['f'] = cur.get('f', b'') + d[a:b]
+def on_header_value(d, a, b): cur['v'] = cur.get('v', b'') + d[a:b]
+def on_header_end():
+    if cur.get('f', b'').lower() == b'content-disposition':
+        _, opts = parse_options_header(cur['v'])
+        fn = opts.get(b'filename')
+        pm.append((opts[b'name'].decode('utf-8'), None if fn is None else fn.decode('utf-8')))
+    cur.clear()
+p = MultipartParser(b'b', {'on_header_field': on_header_field,
+                           'on_header_value': on_header_value,
+                           'on_header_end': on_header_end})
+p.write(body)
+p.finalize()
+wz = []
+d = MultipartDecoder(b'b')
+d.receive_data(body)
+d.receive_data(None)
+while True:
+    ev = d.next_event()
+    if isinstance(ev, File):
+        wz.append((ev.name, ev.filename))
+    elif isinstance(ev, Field):
+        wz.append((ev.name, None))
+    elif isinstance(ev, (Epilogue, NeedData)):
+        break
+def rows(rs):
+    return '(' + ' '.join('(' + s(n) + ' ' + s(f) + ')' for n, f in rs) + ')'
+with open(sys.argv[2], 'w', encoding='utf-8') as o:
+    o.write('(%s %s %s %s %s)' % (s(sys.version.split()[0]), s(md.version('python-multipart')),
+                                  s(md.version('werkzeug')), rows(pm), rows(wz)))
+"
+  "Python for `python -I -c`: the multipart/form-data body in argv[1] (boundary
+b) read by python-multipart and by werkzeug, each part's (name filename)
+written to argv[2] as (python-version pm-version wz-version pm-rows wz-rows).
+python-multipart hands back header octets; they are decoded as UTF-8 here, as
+Starlette does.")
+
+(defparameter +python-packages+ '("python-multipart==0.0.34" "werkzeug==3.1.9")
+  "Pinned, so the checked readings below are the same on every run.")
+
+(defparameter +python-multipart-expected+
+  (list '("имя" nil) '("u" "Prélude.svg") '("w" "a\\b.svg") '("q" "say %22hi%22.svg")
+        '("a%0D%0Ab" nil))
+  "python-multipart 0.0.34: UTF-8 octets and a literal backslash; %22 %0D %0A
+are left to the application.")
+
+(defparameter +werkzeug-expected+
+  (list '("имя" nil) '("u" "Prélude.svg") '("w" "ab.svg") '("q" "say \"hi\".svg")
+        '("a%0D%0Ab" nil))
+  "werkzeug 3.1.9: UTF-8 names and %22; a backslash is unescaped as a
+quoted-pair (as mime-protocol 0.3.0 did) and %0D %0A are kept.")
+
+(defun python-with (packages script &rest args)
+  "Run SCRIPT under `uv run --no-project --with P ... python -I -c`.
+(values code stdout stderr)."
+  (proc:run (append (list "uv" "run" "--no-project")
+                    (loop for p in packages append (list "--with" p))
+                    (list* "python" "-I" "-c" script args))
+            :output :string :error-output :string :timeout 600
+            :env '(("PYTHONIOENCODING" . "utf-8"))))
+
+(defun python-reads-the-form (body result)
+  (with-open-file (o body :direction :output :element-type '(unsigned-byte 8) :if-exists :supersede)
+    (write-sequence (browser-body) o))
+  (multiple-value-bind (code stdout stderr)
+      (python-with +python-packages+ *python-form* (namestring body) (namestring result))
+    (declare (ignore stdout))
+    (check code 0 "uv run exit code (form)")
+    (if (/= code 0)
+        (out "  ~a~%" stderr)
+        (destructuring-bind (python pm-version wz-version pm wz)
+            (let ((*read-eval* nil)
+                  (*package* (find-package '#:harness-demos-mime-multipart)))
+              (read-from-string (utf8 (read-octets result))))
+          (let ((ours (name-rows (mime:parse-mime (browser-request))))
+                (mime-version (asdf:component-version (asdf:find-system "mime-protocol"))))
+            (say (format nil "The section 6 body, read by python-multipart ~a and werkzeug ~a (Python ~a)."
+                         pm-version wz-version python)
+                 "\"same\" means the same (name filename) as mime-protocol:"
+                 "")
+            (out "    ~32a ~28a ~a~%" (format nil "mime-protocol ~a" mime-version)
+                 "python-multipart" "werkzeug")
+            (loop for o in ours
+                  for p in pm
+                  for w in wz
+                  do (out "    ~32a ~28a ~a~%" (pair-string o)
+                          (if (equal p o) "same" (pair-string p))
+                          (if (equal w o) "same" (pair-string w))))
+            (check pm +python-multipart-expected+ "python-multipart's reading")
+            (check wz +werkzeug-expected+ "werkzeug's reading")
+            (check (list (subseq pm 0 2) (subseq wz 0 2)) (list (subseq ours 0 2) (subseq ours 0 2))
+                   "all three read the UTF-8 names alike")
+            (say ""
+                 "All three read the UTF-8 octets as UTF-8. python-multipart also keeps the"
+                 "backslash, and leaves %22 %0D %0A to the application. werkzeug decodes %22,"
+                 "keeps %0D %0A, and drops the backslash: it unescapes quoted-pairs, which is"
+                 "what mime-protocol 0.3.0 did."))))))
+
+(defun demo-python-form ()
+  (if (not (uv-available-p))
+      (say "uv is not on PATH, so the cross-read with python-multipart and werkzeug is skipped.")
+      (let ((body (scratch-file "form.bin"))
+            (result (scratch-file "form.sexp")))
+        (unwind-protect (python-reads-the-form body result)
+          (dolist (f (list body result))
+            (when (probe-file f) (delete-file f)))))))
+
 (defun run-demos ()
   "Print the tour. Returns T when every check matched and no section failed."
   (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '())
         (*print-right-margin* 110)
         (*random-state* (make-random-state t)))
-    (format t "~&mime-protocol ~a (~a ~a, ~a): nested multiparts and header names~%"
+    (format t "~&mime-protocol ~a (~a ~a, ~a): nested multiparts, header names, browser form-data names~%"
             (asdf:component-version (asdf:find-system "mime-protocol"))
             (lisp-implementation-type) (lisp-implementation-version) (software-type))
     (section "1. The mail layout, printed" (demo-print))
@@ -359,6 +617,9 @@ attachment, written to argv[1] with CRLF line ends (policy SMTP).")
     (section "3. Edge cases: prefix boundaries, line breaks, LF-only, preamble" (demo-edges))
     (section "4. Canonical header names on print, case-insensitive lookups" (demo-header-names))
     (section "5. Cross-read with Python's email package, both ways" (demo-python))
+    (section "6. A browser's form-data part headers: UTF-8 names, a literal backslash (#14)"
+             (demo-browser))
+    (section "7. The same form read by python-multipart and werkzeug" (demo-python-form))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
