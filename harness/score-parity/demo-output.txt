@@ -1,0 +1,277 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (29 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+score-parity 0.1.0 (slice SC5: the cross-format parity corpus and matrix)
+on score-protocol 0.2.0, score-backend-musicxml 0.1.0, score-backend-midi 0.1.0
+and music-theory 0.5.1
+MuseScore: not found. MusicXML XSD: not set.
+
+========================================================================
+== 1. The matrix: every check on every piece
+========================================================================
+The corpus is 34 MusicXML files of 30 public-domain tunes, re-encoded for
+score-parity (corpus/PROVENANCE.md): lead sheets with chord symbols and
+lyrics, four-part hymns hand-split and in hymnal layout, several verses,
+pickups, repeats and endings, D.C. and D.S. jumps, ties, tuplets, grace notes,
+key and meter changes. Two of them also come as .mxl archives written the way
+other programs write them. corpus/facts.sexp holds what each file contains,
+computed by a second implementation of the facet rules and checked with music21.
+
+  (length (corpus-pieces)) => 34
+  (hymn-pieces)
+    => ("adeste-fideles" "hark-the-herald" "hymn-shared" "hymn-split" "hymn-to-joy" "hymn-to-joy-shared" "new-britain" "old-hundredth" "old-hundredth-shared")
+  (archive-pieces) => ("adeste-fideles" "jingle-bells")
+  (mapcar #'first +checks+)
+    => (:musicxml :mxl :hymnal-split :midi :midi-unfold :musescore :xsd)
+
+PARITY-MATRIX runs every check on every piece it applies to (the hymnal split on
+the nine hymns only) and returns one PARITY-RESULT each. The external tools are
+looked up once, by FIND-MUSESCORE and MUSICXML-SCHEMA. Per piece and check:
+
+  (length *results*) => 213   ; 6 checks x 34 pieces, and 9 hymnal splits
+
+  piece                musicxml  mxl   hymnal  midi  midi-unfold  musescore  xsd
+  adeste-fideles       pass      pass  pass    pass  pass         skip       skip
+  amazing-grace        pass      pass  -       pass  pass         skip       skip
+  auld-lang-syne       pass      pass  -       pass  pass         skip       skip
+  aura-lee             pass      pass  -       pass  pass         skip       skip
+  battle-hymn          pass      pass  -       pass  pass         skip       skip
+  camptown-races       pass      pass  -       pass  pass         skip       skip
+  clementine           pass      pass  -       pass  pass         skip       skip
+  frere-jacques        pass      pass  -       pass  pass         skip       skip
+  greensleeves         pass      pass  -       pass  pass         skip       skip
+  hark-the-herald      pass      pass  pass    pass  pass         skip       skip
+  home-on-the-range    pass      pass  -       pass  pass         skip       skip
+  hymn-shared          pass      pass  pass    pass  pass         skip       skip
+  hymn-split           pass      pass  pass    pass  pass         skip       skip
+  hymn-to-joy          pass      pass  pass    pass  pass         skip       skip
+  hymn-to-joy-shared   pass      pass  pass    pass  pass         skip       skip
+  irish-washerwoman    pass      pass  -       pass  pass         skip       skip
+  jingle-bells         pass      pass  -       pass  pass         skip       skip
+  joy-to-the-world     pass      pass  -       pass  pass         skip       skip
+  londonderry-air      pass      pass  -       pass  pass         skip       skip
+  minuet-in-g          pass      pass  -       pass  pass         skip       skip
+  new-britain          pass      pass  pass    pass  pass         skip       skip
+  oh-susanna           pass      pass  -       pass  pass         skip       skip
+  old-hundredth        pass      pass  pass    pass  pass         skip       skip
+  old-hundredth-shared pass      pass  pass    pass  pass         skip       skip
+  pop-goes-the-weasel  pass      pass  -       pass  pass         skip       skip
+  red-river-valley     pass      pass  -       pass  pass         skip       skip
+  scarborough-fair     pass      pass  -       pass  pass         skip       skip
+  shenandoah           pass      pass  -       pass  pass         skip       skip
+  silent-night         pass      pass  -       pass  pass         skip       skip
+  simple-gifts         pass      pass  -       pass  pass         skip       skip
+  swing-low            pass      pass  -       pass  pass         skip       skip
+  twinkle-twinkle      pass      pass  -       pass  pass         skip       skip
+  when-the-saints      pass      pass  -       pass  pass         skip       skip
+  yankee-doodle        pass      pass  -       pass  pass         skip       skip
+  ---------------------------------------------------------------------------------
+  all                  34/34     34/34 9/9     34/34 34/34        skip       skip
+
+  musescore skipped: MuseScore not found: set MUSESCORE_BIN, or put mscore, musescore or MuseScore4 on PATH
+  xsd skipped: MUSICXML_XSD unset, or xmllint missing
+
+MATRIX-CELLS counts the same results per notation feature (PASS FAIL ERROR SKIP
+per check, over the pieces that have the feature), and PRINT-MATRIX prints them,
+a P/N cell for N pieces run. The last row, all, is every piece. A failing or
+erroring cell would be listed under the table; there is none:
+
+  feature        musicxml     mxl          hymnal       midi         midi-unfold  musescore    xsd
+  lyrics         31/31        31/31        9/9          31/31        31/31        skip         skip
+  verses         8/8          8/8          5/5          8/8          8/8          skip         skip
+  chord-symbols  24/24        24/24        -            24/24        24/24        skip         skip
+  lead-sheet     23/23        23/23        -            23/23        23/23        skip         skip
+  pickup         14/14        14/14        2/2          14/14        14/14        skip         skip
+  repeats        5/5          5/5          -            5/5          5/5          skip         skip
+  endings        3/3          3/3          -            3/3          3/3          skip         skip
+  jumps          3/3          3/3          -            3/3          3/3          skip         skip
+  ties           10/10        10/10        4/4          10/10        10/10        skip         skip
+  tuplets        2/2          2/2          -            2/2          2/2          skip         skip
+  grace-notes    2/2          2/2          -            2/2          2/2          skip         skip
+  key-change     2/2          2/2          2/2          2/2          2/2          skip         skip
+  meter-change   1/1          1/1          -            1/1          1/1          skip         skip
+  shared-staff   7/7          7/7          7/7          7/7          7/7          skip         skip
+  parts          1/1          1/1          -            1/1          1/1          skip         skip
+  all            34/34        34/34        9/9          34/34        34/34        skip         skip
+
+========================================================================
+== 2. One check up close: :midi on Amazing Grace
+========================================================================
+The :midi check on one piece, step by step. The piece is the lead sheet of
+Amazing Grace (tune New Britain, 1829; text John Newton, 1779): one voice, two
+verses, chord symbols and a pickup. READ-PIECE reads it with
+score-backend-musicxml; the facets turn the score into plain lists that two
+formats can be compared on. Each is checked against corpus/facts.sexp.
+
+  (piece-fact piece :title) => "Amazing Grace"
+  (score-features s) => (:lyrics :verses :chord-symbols :lead-sheet :pickup)
+  (bar-lengths s)
+    => (1/4 3/4 3/4 3/4 3/4 3/4 3/4 1/2)   ; a 1/4 pickup, 3/4 bars, a short last bar
+
+  Voice lines: per voice, one row (onset end key pitch) per sounding note, in
+  whole notes from the first bar; a tie chain is one row.
+  (length lines) => 1
+  (length (first lines)) => 17
+      (0 1/4 62 "D4")
+      (1/4 3/4 67 "G4")
+      (3/4 7/8 71 "B4")
+      (7/8 1 67 "G4")
+      (1 3/2 71 "B4")
+      (3/2 7/4 69 "A4")
+      ... 11 more
+
+  Lyric lines: per voice line, (onset verse text syllabic) for each lyric.
+  (length lyrics) => 28   ; 14 sung syllables in each of two verses
+      (0 1 "A" :begin)
+      (0 2 "'Twas" :single)
+      (1/4 1 "maz" :middle)
+      (1/4 2 "grace" :single)
+      (3/4 1 "ing" :end)
+      (3/4 2 "that" :single)
+      ... 22 more
+
+  Chord symbols: (onset text), the text as music-theory prints it (:pop).
+      (1/4 "G")
+      (1 "G7")
+      (7/4 "C")
+      (5/2 "G")
+      (13/4 "G")
+      (4 "Em")
+      (9/2 "D7")
+      (19/4 "G")
+  (mapcar #'first (chord-symbol-rows s))
+    => (1/4 1 7/4 5/2 13/4 4 9/2 19/4)   ; the chord onsets of the facts
+
+Now the check itself: the score out to a Standard MIDI File and back, as
+written (no unfolding), each LOSSY-CONVERSION muffled as the check does it.
+
+  (export-midi s nil :unfold nil) => 482 octets
+    lossy-conversion, muffled: lossy conversion to midi: ids dropped
+  (import-midi octets) => a score of 1 voice line
+
+  facet           in +midi-facets+   score and MIDI agree
+  :notes          yes                yes
+  :spelled        no                 yes
+  :lyrics         no                 no
+  :verse-1        yes                yes
+  :chord-symbols  yes                yes
+  :bars           yes                yes
+
+  +midi-facets+ => (:notes :verse-1 :chord-symbols :bars)
+  (content-differences s m :facets +midi-facets+) => nil
+  (mapcar #'first (content-differences s m)) => (:lyrics)
+  MIDI holds one verse: the imported lyric line has 14 rows, all verse 1.
+
+That is why +MIDI-FACETS+ compares verse 1 (with its hyphens) and not :lyrics.
+RUN-CHECK does all of the above and returns the result:
+
+  (parity-result-status r) => :pass
+  (parity-result-reason r) => nil
+  (parity-result-differences r) => nil
+
+========================================================================
+== 3. A deliberate failure, and an error kept as data
+========================================================================
+The :musicxml check reads a piece, writes it, reads the text back and writes it
+again: the score must come back SCORE-EQUAL and the second text must be the
+first. To see it fail, the writer is wrapped for one run so that the first
+text it returns has one written pitch changed, in memory: the pickup note D4
+becomes E4. The corpus file is not touched.
+
+  first <pitch> as written
+    <pitch> <step>D</step> <octave>4</octave> </pitch>
+  first <pitch> after the corruption
+    <pitch> <step>E</step> <octave>4</octave> </pitch>
+
+  (parity-result-status r) => :fail
+  (parity-result-reason r) => "read, write, read is not SCORE-EQUAL"
+  (mapcar #'first (parity-result-differences r)) => (:notes :spelled)
+    :notes, line 1: (0 1/4 62) became (0 1/4 64)
+    :spelled, line 1: (0 1/4 "D4") became (0 1/4 "E4")
+
+The other facets agree, so they are not listed: the lyrics and chord symbols
+still sit at the same onsets. With the writer put back, the same check passes:
+
+  (parity-result-status (run-check :musicxml piece)) => :pass
+
+An error inside a check is a finding, not a crash. RUN-CHECK turns any ERROR
+into a result with status :ERROR and the condition's report as the reason
+(BACKEND-MISSING into :SKIP). Here the MIDI exporter is wrapped so that its file
+for Jingle Bells is cut in half; the importer then signals SCORE-FORMAT-ERROR.
+The matrix over three pieces and both MIDI checks runs to the end:
+
+  (length results) => 6
+  (mapcar #'parity-result-status results) => (:pass :error :pass :pass :error :pass)
+  (parity-result-reason (result-of results :midi "jingle-bells"))
+    => "midi format error: data ends inside a track chunk at 364"
+
+  piece                musicxml  midi  midi-unfold
+  amazing-grace        FAIL      pass  pass
+  jingle-bells         -         ERROR ERROR
+  twinkle-twinkle      -         pass  pass
+  --------------------------------------------------
+  all                  0/1       2/3   2/3
+
+PRINT-MATRIX lists every :FAIL and :ERROR under its table, in result order
+(here with the failed :musicxml result of above added; feature rows cut):
+
+  feature        musicxml     midi         midi-unfold
+  ...
+  all            0/1          2/3          2/3
+  musicxml amazing-grace fail: read, write, read is not SCORE-EQUAL
+  midi jingle-bells error: midi format error: data ends inside a track chunk at 364
+  midi-unfold jingle-bells error: midi format error: data ends inside a track chunk at 561
+
+Only a call the harness cannot read as a check is the caller's error: an
+unknown check is a TYPE-ERROR from RUN-CHECK itself.
+
+  (run-check :lilypond "amazing-grace")
+    -> type-error: The value of SCORE-PARITY::CHECK is :LILYPOND, which is not a check of +CHECKS+.
+
+========================================================================
+== 4. The oracles: MuseScore and the MusicXML XSD
+========================================================================
+Two checks ask tools outside Lisp, run through process-protocol. Neither is
+required: without the tool the check is skipped and says why.
+
+MuseScore re-exports our MusicXML (mscore -o out.musicxml in.musicxml), and the
+result must keep the spelled pitches, the lyrics of every verse and the bar
+lengths. FIND-MUSESCORE takes MUSESCORE_BIN, else the first of these names on
+PATH:
+
+  +musescore-names+ => ("mscore" "musescore" "MuseScore4" "mscore4")
+  (find-musescore :bin "/no/such/mscore")
+    => nil   ; a wrong MUSESCORE_BIN is not overridden by PATH
+  (find-musescore) => nil   ; not installed here
+  (parity-result-status r) => :skip
+  (parity-result-reason r)
+    => "MuseScore not found: set MUSESCORE_BIN, or put mscore, musescore or MuseScore4 on PATH"
+
+The XSD check validates what WRITE-MUSICXML writes against the MusicXML 4.0 XSD
+with xmllint --nonet (no network: the schema's catalog maps its imports to the
+local copies). MUSICXML_XSD names a local musicxml.xsd; the schema is not part
+of the corpus. MUSICXML-SCHEMA is NIL without it or without xmllint:
+
+  (musicxml-schema :xsd "") => nil
+  (musicxml-schema :xsd "/no/such/musicxml.xsd") => nil
+  (musicxml-schema) => nil   ; MUSICXML_XSD unset
+  (parity-result-status r) => :skip
+  (parity-result-reason r) => "MUSICXML_XSD unset, or xmllint missing"
+
+So the xsd column of section 1 is skip on all 34 pieces. Set MUSICXML_XSD to
+the musicxml.xsd of github.com/w3c/musicxml, schema/ at tag v4.0 (with
+xml.xsd, xlink.xsd and catalog.xml beside it), and the column fills in.
+
+
+========================================================================
+== Summary
+========================================================================
+48 results checked against expected values: 0 mismatched.
+Every section ran to the end.
