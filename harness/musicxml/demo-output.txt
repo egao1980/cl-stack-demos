@@ -1,5 +1,4 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable names
 ; cl-repo: dependencies from cl-repo.lock (22 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
@@ -8,8 +7,8 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-score-backend-musicxml 0.1.0 (slice SC2: MusicXML 4.0 partwise, .musicxml and .mxl)
-on score-protocol 0.2.0 and music-theory 0.5.1
+score-backend-musicxml 0.1.1 (slice SC2: MusicXML 4.0 partwise, .musicxml and .mxl)
+on score-protocol 0.3.0 and music-theory 0.5.2
 
 ========================================================================
 == 1. Reading a hymn
@@ -518,12 +517,18 @@ drops the element silently:
   (read-musicxml *trill* :unsupported :ignore)
     -> simple-type-error: The value of score-backend-musicxml::unsupported is :ignore, which is not of type (member :error :warn :skip).
 
-Through serdes-protocol the error arrives as SERDES-DECODE-ERROR (serdes-protocol
-translates errors with HANDLER-CASE, so SKIP-ELEMENT is gone by then). Call
-READ-MUSICXML to handle unsupported content.
+Through serdes-protocol the error arrives as SERDES-DECODE-ERROR. Since
+serdes-protocol 0.3.0 it is signalled in place: its SERDES-ERROR-CAUSE is the
+reader's condition, and a handler outside DECODE can still take SKIP-ELEMENT
+(the serdes demo shows this at length):
 
   (serdes-protocol:decode *trill* :format :musicxml)
     -> serdes-protocol:serdes-decode-error: Serdes error: decode failed for :MUSICXML: musicxml format error: outside the MusicXML mapping at "/score-partwise[1]/part[1]/measure[3]/note[1]/notations[1]/ornaments[1]"
+  (score-equal
+   (handler-bind ((serdes-protocol:serdes-decode-error #'skip-element))
+     (serdes-protocol:decode *trill* :format :musicxml))
+   *hymn*)
+    => t   ; SKIP-ELEMENT from a handler around DECODE
 
 ========================================================================
 == 5. Writing: .musicxml, .mxl and serdes formats
@@ -716,7 +721,105 @@ without a network. Through xml-protocol directly:
     signalled: xml-protocol:xml-entity-error: XML error: external DTD subset is not fetched at 2:121, CONTINUE taken
 
 ========================================================================
+== 8. The 0.1.1 fixes: spanner stops, unison bars
+========================================================================
+score-backend-musicxml 0.1.1 fixes two reader rules. Each case below gives the
+input, what 0.1.0 read (from the 0.1.1 contract and its issue), and what this
+release reads.
+
+(a) Spanner stops close their own voice first (score-backend-musicxml#3).
+MusicXML numbers slurs per part, and asks for distinct numbers while two
+overlap, but some programs number them per staff or per voice. Then two open
+slurs share a number. scores/minuet-in-g.musicxml has the first two bars of the
+Minuet in G major, BWV Anh. 114 (Christian Petzold, 1725; left hand simplified),
+with a slur in each hand, both number 1. The right hand's opens in bar 1
+(voice 1), the left hand's opens after the <backup> (voice 5). Each closes in bar
+2, the right hand first:
+
+   23        <note><pitch><step>G</step><octave>4</octave></pitch><duration>1</duration><voice>1</voice><type>eighth</type><stem>up</stem><staff>1</staff><notations><slur type="start" number="1"/></notations></note>
+   28        <note><pitch><step>G</step><octave>3</octave></pitch><duration>4</duration><voice>5</voice><type>half</type><stem>down</stem><staff>2</staff><notations><slur type="start" number="1"/></notations></note>
+    ...
+   32        <note><pitch><step>D</step><octave>5</octave></pitch><duration>2</duration><voice>1</voice><type>quarter</type><stem>down</stem><staff>1</staff><notations><slur type="stop" number="1"/></notations></note>
+   36        <note><pitch><step>B</step><octave>3</octave></pitch><duration>6</duration><voice>5</voice><type>half</type><dot/><stem>down</stem><staff>2</staff><notations><slur type="stop" number="1"/></notations></note>
+
+  (read-musicxml (score-file "minuet-in-g.musicxml"))
+
+    v-5   staff 1 nil      | D5:q G4:e A4:e B4:e C5:e | D5:q G4:q G4:q |
+    v-e   staff 2 :down    | G3:h A3:q | B3:h. |
+
+  slur G4:e (e-7, voice v-5) -> D5:q (e-b, voice v-5)
+  slur G3:h (e-f, voice v-e) -> B3:h. (e-h, voice v-e)
+
+  (length spanners) => 2
+  (mapcar (lambda (sp) (same-voice-p score sp)) spanners)
+    => (t t)   ; each slur within one hand
+  (mapcar
+   (lambda (sp)
+     (list (event-text (find-element score (spanner-start sp)))
+           (event-text (find-element score (spanner-end sp)))))
+   spanners)
+    => (("G4:e" "D5:q") ("G3:h" "B3:h."))
+  (check-score score) => nil
+
+0.1.0 paired each stop with the slur of its number opened last, whatever its
+voice. The right hand's stop (D5, bar 2) closed the left hand's slur, and the
+left hand's stop (B3) closed the right hand's:
+  0.1.0  slur  G3:h (left hand) -> D5:q (right hand)
+         slur  G4:e (right hand) -> B3:h. (left hand)
+The same cross-wiring put the soprano's crescendo in OLD HUNDREDTH's corpus
+file onto the bass. Wedges follow the same rule as slurs. A stop with no open
+spanner of its number in its own voice still closes the one opened last, as
+before. Written back, the slurs keep their ends:
+
+  (score-equal again score) => t   ; read, write, read
+
+(b) Unison bars are split too (score-backend-musicxml#4). In hymnal layout, a
+bar in which soprano and alto sing the same notes is printed as single notes:
+one notehead, no chord, and no second voice. The SATB excerpt of section 2 is
+changed so: WITHOUT-ALTO-IN-BAR-2 drops the alto's own notes in bar 2 (voice 2
+and its <backup>), so the treble staff of bar 2 holds only G4 A4 B4. Bars 0 and
+1 still have shared-stem chords, so the staff splits:
+
+  (count-if (lambda (line) (search "<voice>2</voice>" line)) (text-lines text)) => 0
+  (length (part-voices (first (lst (score-parts as-written)))))
+    => 2   ; as written: voices 1 and 5
+
+  (read-musicxml (without-alto-in-bar-2 ...) :split-voices :auto)
+
+  S v-6   staff 1 :up      | G4:h | G4:q F#4:q E4:q D4:q | G4:q A4:q B4:h |
+  A v-1k  staff 1 :down    | D4:h | D4:q D4:q B3:q D4:q | G4:q A4:q B4:h |
+  T v-v   staff 2 :up      | B3:h | B3:q A3:q G3:q G3:q | G3:q F#3:q G3:h |
+  B v-1p  staff 2 :down    | G2:h | G2:q D3:q E3:q B2:q | B2:q D3:q G2:h |
+
+  (voice-pitches split 1)
+    => (("D4:h") ("D4:q" "D4:q" "B3:q" "D4:q") ("G4:q" "A4:q" "B4:h"))   ; the alto: bar 2 in unison with the soprano
+  (voice-pitches split 0)
+    => (("G4:h") ("G4:q" "F#4:q" "E4:q" "D4:q") ("G4:q" "A4:q" "B4:h"))
+  (mapcar
+   (lambda (g)
+     (list (element-position split (low-confidence-guess-element-id g))
+           (low-confidence-guess-what g) (low-confidence-guess-confidence g)))
+   guesses)
+    => (((1 . 3/4) "unison" 1/2) ((2 . 0) "unison" 1/2) ((2 . 1/4) "unison" 1/2) ((2 . 1/2) "unison" 1/2))   ; each unison copy is a guess
+  (length (uncertain-elements split)) => 4
+  (check-score split) => nil
+  (score-equal (split-voices as-written) split)
+    => t   ; the same through SPLIT-VOICES
+
+0.1.0 split only the bars whose lower voice was empty and whose upper voice held
+a chord, so bar 2 stayed with the soprano, and the alto had no notes there:
+  0.1.0  A  | D4:h | D4:q D4:q B3:q D4:q | (empty) |
+A tie into such a bar was lost with it. The tenor and bass staff, chords in
+every bar, reads the same in both releases. The original excerpt, with its
+two-voice bar 2, reads as in section 2:
+
+  (score-equal
+   (read-musicxml (score-file "old-hundredth-satb.musicxml") :split-voices :auto)
+   *satb*)
+    => t
+
+========================================================================
 == Summary
 ========================================================================
-155 results checked against expected values: 0 mismatched.
+170 results checked against expected values: 0 mismatched.
 Every section ran to the end.
