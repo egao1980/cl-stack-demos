@@ -1,17 +1,17 @@
-http-backend-dexador 0.2.0, dexador 0.9.16.1, http-protocol 0.4.3, cl+ssl (no .asd version), SBCL 2.6.9
+http-backend-dexador 0.2.1, dexador 0.9.16.1, http-protocol 0.4.4, cl+ssl (no .asd version), SBCL 2.6.9
 
 ========================================================================
 == Demo 1: proxy configs resolved per URL (#23)
 ========================================================================
 Proxy variables in this process: HTTP_PROXY=unset, HTTPS_PROXY=unset, ALL_PROXY=unset, NO_PROXY=unset
 
-Client proxy http://demo:***@127.0.0.1:63856 (a loopback listener that records what it gets):
+Client proxy http://demo:***@127.0.0.1:60029 (a loopback listener that records what it gets):
   GET http://origin.test/path?q=1 => HTTP-RESPONSE 200 in 0.02 s, body "proxy got: GET http://origin.test/path?q=1 HTTP/1.1"
     the proxy read: "GET http://origin.test/path?q=1 HTTP/1.1"
                     Host: origin.test, Proxy-Authorization: Basic ZGVtbzpzM2NyZXQ=
     (0.1.5 passed the HTTP-PROXY-CONFIG object to dexador: ETYPECASE failure;
      dexador 0.9.16 sent the origin-form "GET /path?q=1", which squid answers with 400)
-  GET https://origin.test/ => SSL-ERROR-SSL: A failure in the SSL library occurred on handle #.(SB-SYS:INT-SAP #X770E... after 0.02 s
+  GET https://origin.test/ => SSL-ERROR-SSL: A failure in the SSL library occurred on handle #.(SB-SYS:INT-SAP #XB32E... after 0.01 s
     the proxy read: "CONNECT origin.test:443 HTTP/1.1" (HTTPS goes through a tunnel; this proxy refuses it)
     (the 502 surfaces as a TLS error, not a proxy error: http-backend-dexador#30)
 
@@ -19,13 +19,13 @@ A request's :proxy wins over the client's:
   => HTTP-RESPONSE 200; client proxy saw 0 requests, request proxy saw 1: "GET http://origin.test/per-request HTTP/1.1"
 
 no_proxy: a host on the list goes direct:
-  GET http://127.0.0.1:63866/np with no_proxy "localhost, 127.0.0.1" => HTTP-RESPONSE 200 "direct"; the proxy saw 0 requests
+  GET http://127.0.0.1:60039/np with no_proxy "localhost, 127.0.0.1" => HTTP-RESPONSE 200 "direct"; the proxy saw 0 requests
 
 The default proxy config (system / trust-env) with no proxy variables set:
   (make-http-client backend) => HTTP-RESPONSE 200 (0.1.5: CASE-FAILURE, #<HTTP-PROXY-CONFIG> fell through ETYPECASE)
 
 Proxies dexador cannot honour are refused before any byte is sent:
-  https://demo:***@127.0.0.1:63873
+  https://demo:***@127.0.0.1:60046
     => UNSUPPORTED-OPERATION: Unsupported HTTP operation :HTTPS-PROXY — http-backend-dexador: dexador speaks plain TCP to the proxy, so https://127.0.0.1:...
     message names the password: no
   socks4://127.0.0.1:1080
@@ -54,19 +54,95 @@ Each origin stays silent after the request head, then answers.
    went through cl+ssl's socket BIO, which never sees the fd-stream timeout)
 
 The read timeout bounds silence, not the whole body:
-  https, 8 octets 0.5 s apart, (:read 1) => HTTP-RESPONSE 200, body "........", after 4.07 s
+  https, 8 octets 0.5 s apart, (:read 1) => HTTP-RESPONSE 200, body "........", after 4.06 s
 
 A streamed HTTPS body (:want-stream t) keeps the read timeout after send returns:
-  send => HTTP-RESPONSE 200 after 0.01 s (headers only)
+  send => HTTP-RESPONSE 200 after 0.02 s (headers only)
   first body read, the origin silent for 6 s => HTTP-TIMEOUT-ERROR: dexador: read timeout after 2.0 s on the response body after 2.01 s
 
 ========================================================================
 == Demo 3: an unverified connection never serves a client that verifies
 ========================================================================
   :verify nil client, self-signed origin  => HTTP-RESPONSE 200 "tls ok"
-  :verify t client, same origin, next     => SSL-ERROR-SSL: A failure in the SSL library occurred on handle #.(SB-SYS:INT-SAP #X770E68800) (SSL_get_erro...
+  :verify t client, same origin, next     => SSL-ERROR-SSL: A failure in the SSL library occurred on handle #.(SB-SYS:INT-SAP #XB32E74800) (SSL_get_erro...
     (raw cl+ssl condition, not http-tls-error: http-backend-dexador#31)
   connections the origin accepted: 2 (the idle :verify nil one stayed in its own pool)
+
+========================================================================
+== Demo 4: request bodies reach the origin as encoded (#32)
+========================================================================
+Each POST goes to a loopback origin that records the head and body it reads.
+0.2.0 handed dexador http-protocol's encoded octets, and dexador encodes a
+body again when its Content-Type is application/x-www-form-urlencoded or multipart/*.
+
+  :form-data (("key1" . "value1"))  (0.2.0: QURI.ENCODE::PARAMS-ALIST is #(107 101 ...), not a LIST)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type: application/x-www-form-urlencoded"
+                Content-Length: 11, body "key1=value1"
+
+  :data (("q" . "hi there"))  (an alist :data is urlencoded too; 0.2.0: the same error)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type: application/x-www-form-urlencoded"
+                Content-Length: 10, body "q=hi+there"
+
+  :form-data "city=Zürich"  (a string goes as UTF-8)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type: application/x-www-form-urlencoded"
+                Content-Length: 12, body "city=Zürich"
+
+  :form-data (("k" . "v")) :files (("f" . "file body"))  (0.2.0: refused as a stream body)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type:  multipart/form-data; boundary=----cl-stack-69064fe49d38006318d9dc70a0a533cd"
+                Content-Length: 308, body "------cl-stack-69064fe49d38006318d9dc70a0a533cd\r\nContent-Disposition: form-data; name="k"\r\n\r\nv\r\n---..."
+
+  pre-encoded multipart :content  (0.2.0: TYPE-ERROR in dexador's MULTIPART-CONTENT-LENGTH)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type:  multipart/form-data; boundary=XyZ"
+                Content-Length: 63, body "--XyZ\r\nContent-Disposition: form-data; name="k"\r\n\r\nv\r\n--XyZ--\r\n"
+
+  :form-data (("key1" . "value1")) :content-encoding :gzip  (0.2.0: refused as a stream body)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type:  application/x-www-form-urlencoded"
+                Content-Encoding: gzip, Content-Length: 31, 31 octets that decode to "key1=value1"
+    (the leading space in the last three Content-Type values is optional whitespace,
+     RFC 9112 §5, which the origin strips; it keeps dexador from encoding the body again)
+
+  JSON :content with Content-Type application/json  (worked in 0.2.0 too)
+    => HTTP-RESPONSE 200
+    origin read "Content-Type: application/json"
+                Content-Length: 7, body "{"a":1}"
+
+The #32 report through http-protocol's facade, http:post :form-data:
+  (http:post url :form-data '(("key1" . "value1"))) => HTTP-RESPONSE 200; the origin got "key1=value1"
+
+========================================================================
+== Demo 5: redirects and response-history (#33)
+========================================================================
+0.2.0 let dexador follow redirects and kept only the last response, so
+response-history was always empty. 0.2.1 follows them in the backend.
+
+  GET /r/2 (302 → /r/1, 301 → /r/0) => HTTP-RESPONSE 200, url http://127.0.0.1:P/r/0
+    response-history: 302 http://127.0.0.1:P/r/2, 301 http://127.0.0.1:P/r/1
+
+  POST /form :form-data, 303 → /done => HTTP-RESPONSE 200
+    response-history: 303 http://127.0.0.1:P/form
+    origin: POST /form HTTP/1.1, Content-Type application/x-www-form-urlencoded, 11 body octets
+    origin: GET /done HTTP/1.1, Content-Type none, 0 body octets
+    (dexador's own redirect sent the GET with the POST body, its Content-Type
+     and Content-Length again, and Host without the port)
+
+  POST /keep, 307 → /kept => HTTP-RESPONSE 200
+    origin: POST /keep HTTP/1.1, body "abc"
+    origin: POST /kept HTTP/1.1, body "abc"
+
+  GET /loop (302 → /loop), :max-redirects 3 => HTTP-REDIRECT-ERROR: http-backend-dexador: exceeded max-redirects (3) at http://127.0.0.1:P/loop
+    the origin saw 4 requests (0.2.0 returned the 4th 302 as the response)
+
+  GET A/go with basic auth, 302 → B/there => HTTP-RESPONSE 200
+    response-history: 302 http://127.0.0.1:P/go
+    A got Authorization: yes
+    B got Authorization: no, Host: 127.0.0.1:P (B listens on port P)
+    (0.2.0 sent Host: 127.0.0.1 to B, without the port)
 
 ========================================================================
 == done

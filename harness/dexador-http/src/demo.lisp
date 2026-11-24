@@ -10,6 +10,11 @@
 ;;;   3. connection pools keyed by :verify.
 ;;; Every origin and proxy is a loopback listener (fixtures.lisp).
 
+;;; http-backend-dexador 0.2.1 (#32, #33), found by the same site:
+;;;   4. request bodies reach the origin as http-protocol encoded them
+;;;      (0.2.0 failed every form post: dexador url-encoded the octets again);
+;;;   5. redirects are followed by the backend, so RESPONSE-HISTORY lists them.
+
 (defun banner (title)
   (format t "~&~%~72,,,'=a~%== ~a~%~72,,,'=a~%" "" title "")
   (finish-output))
@@ -216,6 +221,168 @@
       (note "  connections the origin accepted: ~D (the idle :verify nil one stayed in its own pool)"
             (listener-connections origin)))))
 
+(defun escaped (octets &optional (max 110))
+  "OCTETS as UTF-8 text in double quotes, CR and LF shown as \\r and \\n,
+   cut at MAX."
+  (let* ((text (babel:octets-to-string octets :encoding :utf-8 :errorp nil))
+         (s (with-output-to-string (out)
+              (loop for c across text
+                    do (case c
+                         (#\Return (write-string "\\r" out))
+                         (#\Newline (write-string "\\n" out))
+                         (t (write-char c out)))))))
+    (format nil "\"~A\""
+            (if (> (length s) max) (concatenate 'string (subseq s 0 (- max 3)) "...") s))))
+
+(defun raw-header-line (lines name)
+  "The header line for NAME in LINES exactly as the origin read it."
+  (find-if (lambda (line)
+             (let ((colon (position #\: line)))
+               (and colon (string-equal name (subseq line 0 colon)))))
+           (rest lines)))
+
+(defparameter *multipart-body*
+  (format nil "--XyZ~C~CContent-Disposition: form-data; name=\"k\"~C~C~C~Cv~C~C--XyZ--~C~C"
+          #\Return #\Newline #\Return #\Newline #\Return #\Newline
+          #\Return #\Newline #\Return #\Newline))
+
+(defun octets (string)
+  (babel:string-to-octets string :encoding :utf-8))
+
+(defun post-row (label &rest request-keys)
+  "POST REQUEST-KEYS to a recording origin and show what it received."
+  (let ((box (list nil)))
+    (with-listener (origin (router box '()))
+      (let ((res (handler-case
+                     (apply #'send* (client) :method :post
+                                             :url (local (listener-port origin) "/post") :timeout 5
+                            request-keys)
+                   (error (e) e))))
+        (note "~%  ~A~%    => ~A" label (short res 110))
+        (let ((seen (first (car box))))
+          (if (null seen)
+              (note "    the origin got no request")
+              (destructuring-bind (lines . body) seen
+                (note "    origin read ~S" (raw-header-line lines "content-type"))
+                (if (header lines "content-encoding")
+                    (note "                Content-Encoding: ~A, Content-Length: ~A, ~D octets that decode to ~A"
+                          (header lines "content-encoding") (header lines "content-length")
+                          (length body) (escaped (hp:decode-content-coding :gzip body)))
+                    (note "                Content-Length: ~A, body ~A"
+                          (header lines "content-length") (escaped body))))))))))
+
+(defun demo-4 ()
+  (banner "Demo 4: request bodies reach the origin as encoded (#32)")
+  (note "Each POST goes to a loopback origin that records the head and body it reads.")
+  (note "0.2.0 handed dexador http-protocol's encoded octets, and dexador encodes a")
+  (note "body again when its Content-Type is application/x-www-form-urlencoded or multipart/*.")
+  (post-row ":form-data ((\"key1\" . \"value1\"))  (0.2.0: QURI.ENCODE::PARAMS-ALIST is #(107 101 ...), not a LIST)"
+            :form-data '(("key1" . "value1")))
+  (post-row ":data ((\"q\" . \"hi there\"))  (an alist :data is urlencoded too; 0.2.0: the same error)"
+            :data '(("q" . "hi there")))
+  (post-row ":form-data \"city=Zürich\"  (a string goes as UTF-8)"
+            :form-data "city=Zürich")
+  (post-row ":form-data ((\"k\" . \"v\")) :files ((\"f\" . \"file body\"))  (0.2.0: refused as a stream body)"
+            :form-data '(("k" . "v")) :files '(("f" . "file body")))
+  (post-row "pre-encoded multipart :content  (0.2.0: TYPE-ERROR in dexador's MULTIPART-CONTENT-LENGTH)"
+            :content (octets *multipart-body*)
+            :headers '(("content-type" . "multipart/form-data; boundary=XyZ")))
+  (if (hp:content-coding-supported-p :gzip)
+      (post-row ":form-data ((\"key1\" . \"value1\")) :content-encoding :gzip  (0.2.0: refused as a stream body)"
+                :form-data '(("key1" . "value1")) :content-encoding :gzip)
+      (note "~%  (no gzip content coding in this image: the coded form row is skipped)"))
+  (note "    (the leading space in the last three Content-Type values is optional whitespace,")
+  (note "     RFC 9112 §5, which the origin strips; it keeps dexador from encoding the body again)")
+  (post-row "JSON :content with Content-Type application/json  (worked in 0.2.0 too)"
+            :content (octets "{\"a\":1}") :headers '(("content-type" . "application/json")))
+  (note "~%The #32 report through http-protocol's facade, http:post :form-data:")
+  (let ((box (list nil)))
+    (with-listener (origin (router box '()))
+      (let ((res (let ((hp:*http-backend* *backend*))
+                   (handler-case (http:post (local (listener-port origin) "/post")
+                                            :form-data '(("key1" . "value1")) :timeout 5)
+                     (error (e) e)))))
+        (note "  (http:post url :form-data '((\"key1\" . \"value1\"))) => ~A; the origin got ~A"
+              (short res) (if (car box) (escaped (cdr (first (car box)))) "nothing"))))))
+
+(defun port-free (url port)
+  (substitute-string url (princ-to-string port) "P"))
+
+(defun history-summary (response port)
+  (mapcar (lambda (r) (format nil "~D ~A" (hp:response-status r)
+                              (port-free (hp:response-url r) port)))
+          (hp:response-history response)))
+
+(defun demo-5 ()
+  (banner "Demo 5: redirects and response-history (#33)")
+  (note "0.2.0 let dexador follow redirects and kept only the last response, so")
+  (note "response-history was always empty. 0.2.1 follows them in the backend.")
+  (let ((box (list nil)))
+    (with-listener (origin (router box '(("/r/2" 302 "Found" "Location: /r/1")
+                                         ("/r/1" 301 "Moved Permanently" "Location: /r/0"))))
+      (let* ((port (listener-port origin))
+             (res (handler-case (send* (client) :url (local port "/r/2") :timeout 5)
+                    (error (e) e))))
+        (note "~%  GET /r/2 (302 → /r/1, 301 → /r/0) => ~A, url ~A" (short res)
+              (if (typep res 'hp:http-response) (port-free (hp:response-url res) port) "-"))
+        (when (typep res 'hp:http-response)
+          (note "    response-history: ~{~A~^, ~}" (history-summary res port))))))
+  (let ((box (list nil)))
+    (with-listener (origin (router box '(("/form" 303 "See Other" "Location: /done"))))
+      (let* ((port (listener-port origin))
+             (res (handler-case
+                      (send* (client) :method :post :url (local port "/form")
+                                      :form-data '(("key1" . "value1")) :timeout 5)
+                    (error (e) e))))
+        (note "~%  POST /form :form-data, 303 → /done => ~A" (short res))
+        (when (typep res 'hp:http-response)
+          (note "    response-history: ~{~A~^, ~}" (history-summary res port)))
+        (loop for (lines . body) in (reverse (car box))
+              do (note "    origin: ~A, Content-Type ~A, ~D body octets"
+                       (first lines) (or (header lines "content-type") "none") (length body)))
+        (note "    (dexador's own redirect sent the GET with the POST body, its Content-Type")
+        (note "     and Content-Length again, and Host without the port)"))))
+  (let ((box (list nil)))
+    (with-listener (origin (router box '(("/keep" 307 "Temporary Redirect" "Location: /kept"))))
+      (let ((res (handler-case
+                     (send* (client) :method :post :url (local (listener-port origin) "/keep")
+                                     :content (octets "abc")
+                                     :headers '(("content-type" . "text/plain"))
+                                     :timeout 5)
+                   (error (e) e))))
+        (note "~%  POST /keep, 307 → /kept => ~A" (short res))
+        (loop for (lines . body) in (reverse (car box))
+              do (note "    origin: ~A, body ~A" (first lines) (escaped body))))))
+  (let ((box (list nil)))
+    (with-listener (origin (router box '(("/loop" 302 "Found" "Location: /loop"))))
+      (let ((res (handler-case
+                     (send* (client) :url (local (listener-port origin) "/loop")
+                                     :max-redirects 3 :timeout 5)
+                   (error (e) e))))
+        (note "~%  GET /loop (302 → /loop), :max-redirects 3 => ~A"
+              (port-free (short res 110) (listener-port origin)))
+        (note "    the origin saw ~D requests (0.2.0 returned the 4th 302 as the response)"
+              (length (car box))))))
+  (let ((box-a (list nil)) (box-b (list nil)))
+    (with-listener (b (router box-b '()))
+      (with-listener (a (router box-a (list (list "/go" 302 "Found"
+                                                  (format nil "Location: ~A"
+                                                          (local (listener-port b) "/there"))))))
+        (let ((res (handler-case
+                       (send* (client) :url (local (listener-port a) "/go")
+                                       :auth '(:basic "user" "pass") :timeout 5)
+                     (error (e) e))))
+          (note "~%  GET A/go with basic auth, 302 → B/there => ~A" (short res))
+          (when (typep res 'hp:http-response)
+            (note "    response-history: ~{~A~^, ~}" (history-summary res (listener-port a))))
+          (let ((at-a (car (first (car box-a))))
+                (at-b (car (first (car box-b)))))
+            (note "    A got Authorization: ~A" (if (and at-a (header at-a "authorization")) "yes" "no"))
+            (note "    B got Authorization: ~A, Host: ~A (B listens on port P)"
+                  (if (and at-b (header at-b "authorization")) "yes" "no")
+                  (if at-b (port-free (header at-b "host") (listener-port b)) "-"))
+            (note "    (0.2.0 sent Host: 127.0.0.1 to B, without the port)")))))))
+
 (defun run-demos ()
   (setf *backend* (dexb:make-dexador-backend))
   (note "http-backend-dexador ~A, dexador ~A, http-protocol ~A, cl+ssl ~A, ~A ~A"
@@ -227,5 +394,7 @@
   (demo-1)
   (demo-2)
   (demo-3)
+  (demo-4)
+  (demo-5)
   (banner "done")
   t)
