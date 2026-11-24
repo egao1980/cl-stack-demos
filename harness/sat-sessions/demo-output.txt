@@ -1,0 +1,147 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: dependencies from cl-repo.lock (2 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+sat-protocol 0.3.0 on sat-backend-cdcl 0.1.0 (SBCL 2.6.9)
+
+==============================================================================
+== 1. A 50-segment chain, added to a session one segment at a time
+==============================================================================
+WITH-SAT-SESSION on #<CDCL-BACKEND {8007708C83}>; segments added one at a time, each with
+SESSION-ADD-VARIABLES 3, SESSION-ADD-CLAUSES of (sat-exactly-one ... :encoding :pairwise)
+and, from the second segment on, the two link clauses:
+
+   1 segments:   3 variables,   4 clauses
+   2 segments:   6 variables,  10 clauses
+  10 segments:  30 variables,  58 clauses
+  25 segments:  75 variables, 148 clauses
+  50 segments: 150 variables, 298 clauses
+
+  session-backend-state NIL: a stateless session (no native session in this backend)
+  session-cnf: 150 variables (0 auxiliary), 298 clauses = 50 x 4 exactly-one + 49 x 2 links
+  the observed levels: 10122221000201022022000011012112102102101112001221
+
+==============================================================================
+== 2. SESSION-SOLVE under changing assumptions, against fresh SOLVE
+==============================================================================
+Each SESSION-SOLVE next to SOLVE on (session-cnf s) with the same assumptions as
+literal formulas, on the same backend. "oracle" is the DP over level sequences.
+
+  assumptions          session  fresh  oracle  same model  model checks  levels
+  (none)               SAT      SAT    SAT     yes         yes           22222222222222222222222222222222222222222222222222
+  s0=0                 SAT      SAT    SAT     yes         yes           01222222222222222222222222222222222222222222222222
+  s0=0 s49=2           SAT      SAT    SAT     yes         yes           01222222222222222222222222222222222222222222222222
+  s0=0 s49=2 s25=0     SAT      SAT    SAT     yes         yes           01222222222222222222222210122222222222222222222222
+  s0=2 s1=0            UNSAT    UNSAT  UNSAT   yes         -             
+  s10=0 s12=2          SAT      SAT    SAT     yes         yes           22222222210122222222222222222222222222222222222222
+  s10=0 s11=2          UNSAT    UNSAT  UNSAT   yes         -             
+  s24/=0 s24/=1 s23=1  SAT      SAT    SAT     yes         yes           22222222222222222222222122222222222222222222222222
+  s24/=0 s24/=1 s24/=2 UNSAT    UNSAT  UNSAT   yes         -             
+
+  after the last (UNSAT) call: session-model (NIL NIL), session-unsat-core s24/=0 s24/=1 s24/=2
+
+==============================================================================
+== 3. SESSION-MINIMIZE with (:lex requests effort), against fresh MINIMIZE
+==============================================================================
+Objective (:lex requests effort): first the segments not at their observed level
+(50 literals of weight 1), then the effort (level 1 costs 1, level 2 costs 2).
+The oracle is the DP over level sequences with lexicographic sums.
+
+  strategy           assumptions     session cost  opt  fresh cost  opt  oracle    same model  time s  fresh s
+  :LINEAR-BDD        (none)          (7 40)        T    (7 40)      T    (7 40)    yes          0.020    0.018
+  :LINEAR-TOTALIZER  (none)          (7 40)        T    (7 40)      T    (7 40)    yes          0.012    0.013
+  :STRATIFIED        (none)          (7 40)        T    (7 40)      T    (7 40)    yes          0.009    0.008
+  :CORE-GUIDED       (none)          (7 40)        T    (7 40)      T    (7 40)    yes          0.013    0.013
+
+  :linear-bdd's model:
+  levels   10122221000001012121000011012112100100101110001221  (7 40)
+  observed 10122221000201022022000011012112102102101112001221
+
+  :LINEAR-BDD        s0=2            (9 42)        T    (9 42)      T    (9 42)    yes          0.013    0.014
+  :CORE-GUIDED       s0=2 s49=0      (11 40)       T    (11 40)     T    (11 40)   yes          0.014    0.014
+  :STRATIFIED        s30=2 s31=0     NIL           -    NIL         -    NIL       yes          0.000    0.000
+
+==============================================================================
+== 4. SESSION-UNSAT-CORE on a contradictory assumption set
+==============================================================================
+Six assumptions; s5=0 and s6=2 cannot hold together (adjacent levels two apart).
+
+  assumptions: s20=1 s5=0 s30=1 s3/=1 s6=2 s40=0
+  (session-solve s :assumptions ...)          -> NIL NIL
+  (session-unsat-core s)                      -> s5=0 s6=2
+     the backend's final conflict through the default BACKEND-SESSION-FINAL-CONFLICT
+  (session-unsat-core s :minimal t)           -> s5=0 s6=2 T
+  (unsat-core (session-cnf s) :assumptions ...) -> s5=0 s6=2
+  the oracle: the core is infeasible, and dropping either pin makes it feasible
+  session-model after the UNSAT call: (NIL NIL)
+  after a SAT call, session-unsat-core: (NIL NIL)
+
+==============================================================================
+== 5. Budgets: SAT-BUDGET-REACHED with USE-BEST, CONTINUE and STORE-VALUE
+==============================================================================
+(session-minimize s (:lex requests effort) :budget 100 :strategy :linear-bdd); the
+optimum is (7 40). With an incumbent and the budget spent, SESSION-MINIMIZE signals
+SAT-BUDGET-REACHED (a condition, not an error) with USE-BEST, CONTINUE and STORE-VALUE.
+
+  no handler:     cost (32 1) optimal-p NIL   (fresh MINIMIZE :budget 100: (32 1) NIL)
+  USE-BEST:       signalled at budget 100 with incumbent (32 1); returns cost (32 1) optimal-p NIL
+  CONTINUE:       6 signals:
+                    budget   100  incumbent (32 1)
+                    budget   200  incumbent (29 6)
+                    budget   400  incumbent (27 11)
+                    budget   800  incumbent (23 15)
+                    budget  1600  incumbent (16 24)
+                    budget  3200  incumbent (7 45)
+                  then cost (7 40) optimal-p T
+  STORE-VALUE 100000: cost (7 40) optimal-p T
+
+  :budget 0, no model yet: SAT-PROTOCOL:SAT-BUDGET-EXCEEDED (an error), budget 0
+  with USE-VALUE :gave-up: :GAVE-UP NIL; session-model then: (NIL NIL)
+  the session is still usable: session-solve -> 01222222222222222222222222222222222222222222222222
+
+==============================================================================
+== 6. Timing: 50 incremental steps, the session against fresh re-solves
+==============================================================================
+50 incremental steps on a fresh session. Step k adds segment k, then runs
+- three SESSION-SOLVEs: s0 at its observed level, the newest segment at level 0, 1, 2;
+- one SESSION-MINIMIZE (:lex requests effort) over the k segments;
+each followed by the same fresh SOLVE / MINIMIZE on (session-cnf s), the copy
+included. Five rounds; milliseconds summed over the 50 steps (150 solves, 50 minimizes).
+
+  round   add   session-solve  fresh solve  session-minimize  fresh minimize
+      1    0.3            2.0          5.2             128.9           128.7
+      2    0.3            3.0          3.4             129.8           134.1
+      3    0.2            1.9          3.3             129.6           129.4
+      4    0.3            2.0          4.2             124.5           126.3
+      5    0.3            1.9          4.2             129.2           117.3
+  median   0.3            2.0          4.2             129.2           128.7
+
+  per call, median round: session-solve 0.013 ms against fresh 0.028 ms (ratio 0.47);
+  session-minimize 2.58 ms against fresh 2.57 ms (ratio 1.00)
+  agreement in every round: 150/150 solves (status, model and the oracle), 148 of them SAT;
+  50/50 minimizes (cost and OPTIMAL-P against the fresh call and the oracle),
+  50/50 with the fresh call's model
+
+  sat-backend-cdcl 0.1.0 (the newest on GHCR when this ran) defines BACKEND-SESSION-OPEN: NO
+  native sessions: pending. Each session call above re-solved the session CNF from
+  scratch (the protocol's default methods), so the session and the fresh calls do
+  the same search; the session saves the CNF copy and the name-level translation.
+  A stateful backend would keep its learnt clauses from one step to the next.
+
+==============================================================================
+== 7. A closed session: SAT-SESSION-CLOSED
+==============================================================================
+After WITH-SAT-SESSION exits: session-open-p NIL, close-session again -> NIL
+  (session-solve s) on it: SAT-PROTOCOL:SAT-SESSION-CLOSED
+    "SAT session #<SAT-SESSION closed {8006C5F8B3}> is closed"
+
+==============================================================================
+== Summary
+==============================================================================
+105 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
