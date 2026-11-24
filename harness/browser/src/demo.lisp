@@ -196,57 +196,142 @@
     (show "dom-snapshot" (let ((dom (b:dom-snapshot browser)))
                            (subseq dom (search "<h1" dom) (+ (search "</h1>" dom) 5))))))
 
+(defun demo-route (browser)
+  (section "7. page.route: commands from an event handler (#2, round 2)"
+           (para "Playwright's page.route(\"**/*\", r => r.continue_()) is Fetch.enable plus a"
+                 "Fetch.requestPaused handler that sends Fetch.continueRequest. The handler runs"
+                 "inside the read of whatever command or wait read the event, and Chrome pauses a"
+                 "page's images in a burst, so the handlers nest. In PR #4's first build the"
+                 "innermost command dropped the other replies and buffered the load event after"
+                 "NAVIGATE had stopped looking: \"1 of 6 requests continued\", then BROWSER-TIMEOUT."
+                 "Now whoever reads files what it reads: each reply goes to the command waiting"
+                 "for its id, each event to the buffer that waits look at again after every message.")
+           (let ((continued 0)
+                 (page (format nil "data:text/html,<title>route</title>~{<img src='http://127.0.0.1:9/~d.png'>~}"
+                               '(0 1 2 3 4 5))))
+             (b:cdp-call browser "Fetch.enable"
+                         (let ((h (make-hash-table :test 'equal))
+                               (pattern (make-hash-table :test 'equal)))
+                           (setf (gethash "urlPattern" pattern) "*"
+                                 (gethash "patterns" h) (vector pattern))
+                           h))
+             (b:on-cdp-event browser "Fetch.requestPaused"
+                             (lambda (params)
+                               (let ((h (make-hash-table :test 'equal)))
+                                 (setf (gethash "requestId" h) (gethash "requestId" params))
+                                 (b:cdp-call browser "Fetch.continueRequest" h))
+                               (incf continued)))
+             (unwind-protect
+                 (let ((start (get-internal-real-time)))
+                   (check "navigate to a page with six images, every request routed"
+                          (b:navigate browser page :timeout 10) page)
+                   (show "navigate took" (format nil "~,1fs" (seconds-since start)))
+                   (show "requests the handler continued" continued)
+                   (check "at least the six images" (>= continued 6) t)
+                   (check "readyState" (b:eval-js browser "document.readyState") "complete"))
+               (b:off-cdp-event browser "Fetch.requestPaused")
+               (b:cdp-call browser "Fetch.disable")))))
+
+(defun demo-js-values (browser)
+  (section "8. JavaScript values: page.evaluate (#1, round 2)"
+           (para "EVAL-JS maps the RemoteObject that Runtime.evaluate returns. In PR #4's first"
+                 "build a false value fell through to the RemoteObject itself, a hash-table, so"
+                 "(when (eval-js b \"... !== null\") ...) always ran. A JavaScript exception came"
+                 "back as a RemoteObject too, and CLICK on a missing selector returned T.")
+           (b:navigate browser "data:text/html,<title>values</title><button id=go onclick=\"this.textContent='clicked'\">go</button>")
+           (dolist (case `(("1 === 2" nil) ("1 === 1" t) ("undefined" nil) ("null" :null)
+                           ("'s'.length" 1) ("10n ** 20n" ,(expt 10 20)) ("0/0" :nan)
+                           ("-1/0" :-infinity) ("[1, false, null, 'x']" #(1 nil :null "x"))
+                           ("({a: 1}).a" 1)))
+             (check (format nil "eval-js ~s" (first case)) (b:eval-js browser (first case)) (second case)
+                    :test #'equalp))
+           (check "(when (eval-js b \"document.querySelector('#nope') !== null\") :ran)"
+                  (when (b:eval-js browser "document.querySelector('#nope') !== null") :ran) nil)
+           (let ((err (handler-case (b:eval-js browser "throw new Error('boom')")
+                        (b:browser-error (c) (princ-to-string c)))))
+             (show "eval-js \"throw new Error('boom')\"" err)
+             (check "a BROWSER-ERROR with the exception's text" (and (search "Error: boom" err) t) t))
+           (check "click :selector \"#missing\""
+                  (handler-case (b:click browser :selector "#missing")
+                    (b:browser-error () :browser-error))
+                  :browser-error)
+           (check "click :selector \"#go\"" (b:click browser :selector "#go") t)
+           (check "its onclick ran" (b:eval-js browser "document.querySelector('#go').textContent") "clicked")))
+
+(defun demo-threads (browser)
+  (section "9. Two threads on one browser (#2, round 2)"
+           (para "One thread reads the websocket at a time and files each reply for the command"
+                 "that waits for its id; the others wait until it files something. Two threads,"
+                 "25 EVAL-JS each, on one connection:")
+           (let* ((results (make-array 2 :initial-element nil))
+                  (threads (loop for i below 2
+                                 collect (let ((i i))
+                                           (bt2:make-thread
+                                            (lambda ()
+                                              (setf (aref results i)
+                                                    (handler-case
+                                                        (loop for k below 25
+                                                              count (eql (+ (* 100 i) k)
+                                                                         (b:eval-js browser (format nil "~d + ~d" (* 100 i) k))))
+                                                      (error (c) (princ-to-string c)))))
+                                            :name (format nil "demo ~d" i))))))
+             (mapc #'bt2:join-thread threads)
+             (check "right answers per thread" (coerce results 'list) '(25 25)))))
+
 (defun demo-connect (browser)
-  (section "7. CONNECT-CDP: a second client on a running browser"
-    (para "connect_over_cdp: CONNECT-CDP attaches its own session; its CLOSE-BROWSER detaches"
-          "and leaves the browser running.")
-    (let ((other (b:connect-cdp (b:cdp-ws-url browser))))
-      (check "other client: eval-js 6*7" (b:eval-js other "6*7") 42)
-      (b:close-browser other)
-      (check "browser still alive after the other client closed"
-             (stack-process:alive-p (b:chrome-browser-process browser)) t)
-      (check "launched client still works" (b:eval-js browser "1+1") 2))))
+  (section "10. CONNECT-CDP: a second client on a running browser"
+           (para "connect_over_cdp: CONNECT-CDP attaches its own session; its CLOSE-BROWSER detaches"
+                 "and leaves the browser running.")
+           (let ((other (b:connect-cdp (b:cdp-ws-url browser))))
+             (check "other client: eval-js 6*7" (b:eval-js other "6*7") 42)
+             (b:close-browser other)
+             (check "browser still alive after the other client closed"
+                    (stack-process:alive-p (b:chrome-browser-process browser)) t)
+             (check "launched client still works" (b:eval-js browser "1+1") 2))))
 
 (defun demo-close (browser)
-  (section "8. CLOSE-BROWSER"
-    (let ((process (b:chrome-browser-process browser))
-          (profile (b:chrome-browser-profile browser)))
-      (b:close-browser browser)
-      (check "process alive-p" (stack-process:alive-p process) nil)
-      (check "temporary profile exists" (and (probe-file profile) t) nil))))
+  (section "11. CLOSE-BROWSER"
+           (let ((process (b:chrome-browser-process browser))
+                 (profile (b:chrome-browser-profile browser)))
+             (b:close-browser browser)
+             (check "process alive-p" (stack-process:alive-p process) nil)
+             (check "temporary profile exists" (and (probe-file profile) t) nil))))
 
 (defun demo-with-browser ()
-  (section "9. WITH-BROWSER and *BROWSER-BACKEND* (#3)"
-    (para "WITH-BROWSER binds the backend and *BROWSER-BACKEND*; the NIL-backend methods now"
-          "use *BROWSER-BACKEND* (0.1.0 ignored it).")
-    (let (process)
-      (b:with-browser (w)
-        (setf process (b:chrome-browser-process w))
-        (b:navigate nil "data:text/html,<title>with-browser</title>")
-        (check "(eval-js nil \"document.title\")" (b:eval-js nil "document.title") "with-browser"))
-      (check "closed on the way out" (stack-process:alive-p process) nil))))
+  (section "12. WITH-BROWSER and *BROWSER-BACKEND* (#3)"
+           (para "WITH-BROWSER binds the backend and *BROWSER-BACKEND*; the NIL-backend methods now"
+                 "use *BROWSER-BACKEND* (0.1.0 ignored it).")
+           (let (process)
+             (b:with-browser (w)
+               (setf process (b:chrome-browser-process w))
+               (b:navigate nil "data:text/html,<title>with-browser</title>")
+               (check "(eval-js nil \"document.title\")" (b:eval-js nil "document.title") "with-browser"))
+             (check "closed on the way out" (stack-process:alive-p process) nil))))
 
 (defun run-demos ()
   "Run every section. → T when every check matched and no section failed."
   (setf *checks* 0 *mismatches* 0 *failed-sections* '())
   (demo-chrome-json)
   (cond
-    ((null (b:find-browser-executable))
-     (format t "~&~%No Chrome / Chromium / Edge found (set CHROME_PATH): sections 2-9 skipped.~%")
-     (push "no browser" *failed-sections*))
-    (t
-     (let ((browser (b:launch-browser)))
-       (unwind-protect
-            (progn
-              (demo-launch browser)
-              (demo-replies-by-id browser)
-              (demo-navigate browser)
-              (demo-events browser)
-              (demo-octets browser)
-              (demo-connect browser)
-              (demo-close browser))
-         (b:close-browser browser)))
-     (demo-with-browser)))
+   ((null (b:find-browser-executable))
+    (format t "~&~%No Chrome / Chromium / Edge found (set CHROME_PATH): sections 2-12 skipped.~%")
+    (push "no browser" *failed-sections*))
+   (t
+    (let ((browser (b:launch-browser)))
+      (unwind-protect
+          (progn
+            (demo-launch browser)
+            (demo-replies-by-id browser)
+            (demo-navigate browser)
+            (demo-events browser)
+            (demo-octets browser)
+            (demo-route browser)
+            (demo-js-values browser)
+            (demo-threads browser)
+            (demo-connect browser)
+            (demo-close browser))
+        (b:close-browser browser)))
+    (demo-with-browser)))
   (format t "~&~%~d checks, ~d mismatched~@[; failed sections: ~{~a~^, ~}~]~%"
           *checks* *mismatches* (reverse *failed-sections*))
   (and (zerop *mismatches*) (null *failed-sections*)))
