@@ -1,0 +1,73 @@
+http-backend-dexador 0.2.0, dexador 0.9.16.1, http-protocol 0.4.3, cl+ssl (no .asd version), SBCL 2.6.9
+
+========================================================================
+== Demo 1: proxy configs resolved per URL (#23)
+========================================================================
+Proxy variables in this process: HTTP_PROXY=unset, HTTPS_PROXY=unset, ALL_PROXY=unset, NO_PROXY=unset
+
+Client proxy http://demo:***@127.0.0.1:63856 (a loopback listener that records what it gets):
+  GET http://origin.test/path?q=1 => HTTP-RESPONSE 200 in 0.02 s, body "proxy got: GET http://origin.test/path?q=1 HTTP/1.1"
+    the proxy read: "GET http://origin.test/path?q=1 HTTP/1.1"
+                    Host: origin.test, Proxy-Authorization: Basic ZGVtbzpzM2NyZXQ=
+    (0.1.5 passed the HTTP-PROXY-CONFIG object to dexador: ETYPECASE failure;
+     dexador 0.9.16 sent the origin-form "GET /path?q=1", which squid answers with 400)
+  GET https://origin.test/ => SSL-ERROR-SSL: A failure in the SSL library occurred on handle #.(SB-SYS:INT-SAP #X770E... after 0.02 s
+    the proxy read: "CONNECT origin.test:443 HTTP/1.1" (HTTPS goes through a tunnel; this proxy refuses it)
+    (the 502 surfaces as a TLS error, not a proxy error: http-backend-dexador#30)
+
+A request's :proxy wins over the client's:
+  => HTTP-RESPONSE 200; client proxy saw 0 requests, request proxy saw 1: "GET http://origin.test/per-request HTTP/1.1"
+
+no_proxy: a host on the list goes direct:
+  GET http://127.0.0.1:63866/np with no_proxy "localhost, 127.0.0.1" => HTTP-RESPONSE 200 "direct"; the proxy saw 0 requests
+
+The default proxy config (system / trust-env) with no proxy variables set:
+  (make-http-client backend) => HTTP-RESPONSE 200 (0.1.5: CASE-FAILURE, #<HTTP-PROXY-CONFIG> fell through ETYPECASE)
+
+Proxies dexador cannot honour are refused before any byte is sent:
+  https://demo:***@127.0.0.1:63873
+    => UNSUPPORTED-OPERATION: Unsupported HTTP operation :HTTPS-PROXY — http-backend-dexador: dexador speaks plain TCP to the proxy, so https://127.0.0.1:...
+    message names the password: no
+  socks4://127.0.0.1:1080
+    => UNSUPPORTED-OPERATION: Unsupported HTTP operation :SOCKS4-PROXY — http-backend-dexador: dexador has no SOCKS4 (socks4://127.0.0.1:1080); use http-b...
+    message names the password: no
+  socks5://demo:***@127.0.0.1:1080
+    => UNSUPPORTED-OPERATION: Unsupported HTTP operation :SOCKS5-AUTH — http-backend-dexador: dexador's SOCKS5 has no authentication; use http-backend-async
+    message names the password: no
+  connections the https:// proxy listener got: 0 (dexador would have sent the request and
+  Proxy-Authorization to it over plain TCP)
+
+Userinfo in the URL is not sent in Host (dexador 0.9.16.1):
+  GET http://user:pw@127.0.0.1:P/userinfo => HTTP-RESPONSE 200; origin got Host: 127.0.0.1:P, Authorization: none
+    (requests would send Basic auth from the URL: http-protocol#55)
+
+========================================================================
+== Demo 2: the TOTAL deadline and the read timeout, HTTP and HTTPS (#24)
+========================================================================
+Each origin stays silent after the request head, then answers.
+  http, silent 5 s, :timeout 2.0                       => HTTP-TIMEOUT-ERROR: dexador: total timeout after 2.0 s after 2.01 s
+  https, silent 5 s, :timeout 2.0                      => HTTP-TIMEOUT-ERROR: dexador: total timeout after 2.0 s after 2.01 s
+  https, silent 6 s, (:connect 5 :read 1)              => HTTP-TIMEOUT-ERROR: dexador: read timeout after 1.0 s after 1.02 s
+  http -> 301 -> https, silent 6 s, (:connect 5 :read 1) => HTTP-TIMEOUT-ERROR: dexador: read timeout after 1.0 s after 1.02 s
+  https, silent 6 s, (:read 1.5)                       => HTTP-TIMEOUT-ERROR: dexador: read timeout after 1.5 s after 1.52 s
+  (0.1.5: both https rows with :read returned the response after 6 s; the TLS reads
+   went through cl+ssl's socket BIO, which never sees the fd-stream timeout)
+
+The read timeout bounds silence, not the whole body:
+  https, 8 octets 0.5 s apart, (:read 1) => HTTP-RESPONSE 200, body "........", after 4.07 s
+
+A streamed HTTPS body (:want-stream t) keeps the read timeout after send returns:
+  send => HTTP-RESPONSE 200 after 0.01 s (headers only)
+  first body read, the origin silent for 6 s => HTTP-TIMEOUT-ERROR: dexador: read timeout after 2.0 s on the response body after 2.01 s
+
+========================================================================
+== Demo 3: an unverified connection never serves a client that verifies
+========================================================================
+  :verify nil client, self-signed origin  => HTTP-RESPONSE 200 "tls ok"
+  :verify t client, same origin, next     => SSL-ERROR-SSL: A failure in the SSL library occurred on handle #.(SB-SYS:INT-SAP #X770E68800) (SSL_get_erro...
+    (raw cl+ssl condition, not http-tls-error: http-backend-dexador#31)
+  connections the origin accepted: 2 (the idle :verify nil one stayed in its own pool)
+
+========================================================================
+== done
+========================================================================

@@ -1,0 +1,98 @@
+cl-stack-http 0.2.0, http-protocol 0.4.3, event-protocol 0.3.0, http-backend-dexador 0.2.0, http-backend-async 0.2.28, event-backend-libuv 0.2.3, dexador 0.9.16.1
+(a warm-up request on dexador loaded the optional content-encoding codecs)
+
+========================================================================
+== Demo 1: the requests-shaped surface is external in cl-stack-http (#26)
+========================================================================
+In 0.1.12 these were inherited from http-protocol, not external, so
+`http:response-status` did not read (SIMPLE-READER-PACKAGE-ERROR).
+  symbol                       status     same symbol as http-protocol's
+  RESPONSE-STATUS              :EXTERNAL  yes
+  RESPONSE-HEADER              :EXTERNAL  yes
+  RESPONSE-HEADERS             :EXTERNAL  yes
+  RESPONSE-URL                 :EXTERNAL  yes
+  RESPONSE-HTTP-VERSION        :EXTERNAL  yes
+  RESPONSE-HISTORY             :EXTERNAL  yes
+  RESPONSE-COOKIES             :EXTERNAL  yes
+  RESPONSE-ELAPSED             :EXTERNAL  yes
+  RESPONSE-BODY                :EXTERNAL  yes
+  HTTP-ERROR                   :EXTERNAL  yes
+  HTTP-STATUS-ERROR            :EXTERNAL  yes
+  HTTP-STATUS-ERROR-STATUS     :EXTERNAL  yes
+  HTTP-TIMEOUT-ERROR           :EXTERNAL  yes
+  MAKE-HTTP-TIMEOUT            :EXTERNAL  yes
+  MAKE-HTTP-RETRY              :EXTERNAL  yes
+  MAKE-SECRET                  :EXTERNAL  yes
+  REVEAL                       :EXTERNAL  yes
+  *HTTP-BACKEND*               :EXTERNAL  yes
+
+Reading the QUICKSTART section 3 form with http = cl-stack-http:
+  read OK: LET with 2 body forms
+
+Running it against the loopback origin instead of httpbin.org:
+  200 HTTP/1.1
+conn=1 path=/get?q=1
+    origin  conn 1    0.25 s  /get?q=1                User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+
+Conditions through the facade package:
+  raise-for-status on a 404: HTTP-CLIENT-ERROR, http-status-error-status => 404
+  GET /delay/3 with (make-http-timeout :read 0.5): HTTP-TIMEOUT-ERROR after 0.5 s (typep http:http-timeout-error: T)
+
+========================================================================
+== Demo 2: :auto - dexador for blocking calls, async/libuv for -async calls (#27)
+========================================================================
+http-backend-async:*event-backend-maker* before any call: NIL
+event-protocol:*event-backend* before any call: NIL
+(ensure-http-backend :auto) => dexador backend
+
+Blocking (http:get ...) under :auto: 200 in 0.00 s
+(http:get-async ...) under :auto, awaited with run-promise: 200 in 0.04 s
+    origin  conn 1    0.77 s  /blocking               User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+    origin  conn 3    0.80 s  /get-async              User-Agent: -
+
+(with-backend (:async) (http:get ...)), no event-loop setup by the caller:
+  => 200 in 0.01 s (0.1.12: HTTP-ERROR "No event loop")
+    origin  conn 3    0.82 s  /with-backend-async     User-Agent: -
+  http-backend-async:*event-backend-maker* now: set by cl-stack-http
+
+Blocking :auto calls from a pool of 4 threads, 5 GETs each:
+  statuses per thread: ((200 200 200 200 200) (200 200 200 200 200)
+                        (200 200 200 200 200) (200 200 200 200 200))
+  20 requests over 4 connections, User-Agents: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+
+A default session: blocking calls on dexador, -async calls on async:
+  (session-backend s) => dexador
+  session-get => 200
+  two session-get-async, gathered => (200 200) in 0.00 s
+    origin  conn 7    0.82 s  /session-get            User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+    origin  conn 3    0.82 s  /session-get-async/2    User-Agent: -
+    origin  conn 8    0.82 s  /session-get-async/1    User-Agent: -
+
+========================================================================
+== Demo 3: run-promise, gather and await (event-protocol 0.3.0, #26)
+========================================================================
+asyncio.run(asyncio.gather(get(a), get(b), get(c))), each answer 1 s late:
+  => (200 200 200) after 1.01 s (one at a time would take 3 s)
+  run-promise returned although the origin still has 9 idle keep-alive connections
+  open from the clients' pools. await stops the loop once the promise settles;
+  event-protocol 0.2.3's run waited 61.9 s for idle connections (http-backend-async#79).
+    origin  conn 8    0.83 s  /delay/1?n=c            User-Agent: -
+    origin  conn 3    0.83 s  /delay/1?n=b            User-Agent: -
+    origin  conn 9    0.83 s  /delay/1?n=a            User-Agent: -
+
+gather keeps argument order, whatever order the answers come in:
+  => 0.60 s: conn=8 path=/delay/0.6 | conn=3 path=/delay/0.1 | conn=9 path=/delay/0.3
+
+await on a promise, not only on a (lambda (resolve reject)) starter:
+  (run-promise (lambda () (defer-promise *event-loop* (lambda () 42)))) => 42 in 0.000 s
+  a thunk that returns a plain value => :NOT-A-PROMISE in 0.000 s
+
+asyncio.wait_for: :timeout signals await-timeout:
+  sleep-promise 5 s under :timeout 0.5 => AWAIT-TIMEOUT after 0.50 s, await-timeout-seconds 0.5
+
+A rejected promise is re-signalled by run-promise:
+  get-async to a closed port => HTTP-CONNECTION-ERROR after 0.00 s (typep http:http-error: T)
+
+========================================================================
+== done
+========================================================================
