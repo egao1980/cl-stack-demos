@@ -1,0 +1,136 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+WARNING:
+   cl-repo: mime-protocol 0.2.0 stays loaded from ~/.cl-repository-client/mime-protocol-0.2.0/mime-protocol.asd; the registry also has 0.3.0 at ~/.local/share/cl-repository/systems/mime-protocol/0.3.0/mime-protocol.asd, which this image will not load. Code that needs 0.3.0 runs against the older copy: upgrade the client or load the project in a fresh image.
+; cl-repo: dependencies from cl-repo.lock (9 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+mime-protocol 0.3.0 (SBCL 2.6.9, Darwin): nested multiparts and header names
+
+==============================================================================
+== 1. The mail layout, printed
+==============================================================================
+  The layout every mail client sends: a text body with an HTML alternative, and
+  an attachment. Built with make-multipart-entity / make-text-entity /
+  make-binary-entity and SET-HEADER (names stored lowercase), then PRINT-MIME:
+
+    | From: ann@example.com
+    | To: bob@example.com
+    | Subject: Weekly report
+    | Message-ID: <weekly-1@example.com>
+    | MIME-Version: 1.0
+    | Content-Type: multipart/mixed; boundary=mixed-91c2
+    | 
+    | --mixed-91c2
+    | Content-Type: multipart/alternative; boundary=alt-7f3a
+    | 
+    | --alt-7f3a
+    | Content-Type: text/plain; charset=utf-8
+    | Content-Transfer-Encoding: 8bit
+    | 
+    | Hello Bob,
+    | the weekly report is attached.
+    | 
+    | --alt-7f3a
+    | Content-Type: text/html; charset=utf-8
+    | Content-Transfer-Encoding: 8bit
+    | 
+    | <p>Hello Bob,<br>the weekly <b>report</b> is attached.</p>
+    | 
+    | --alt-7f3a--
+    | 
+    | --mixed-91c2
+    | Content-Type: application/pdf
+    | Content-Disposition: attachment; filename=report.pdf
+    | Content-Transfer-Encoding: base64
+    | 
+    | JVBERi0xLjcKJeLjz9MKAQID/w==
+    | --mixed-91c2--
+    | 
+
+  730 octets, 33 lines, every one ending in CRLF (0 bare LF).
+
+==============================================================================
+== 2. Parsed back: the same tree, the same text (#9)
+==============================================================================
+  PARSE-MIME of that text (0.2.0 signalled "multipart boundary desync" here,
+  because the alternative part ends in CRLF):
+
+    multipart/mixed
+      multipart/alternative
+        text/plain  "Hello Bob,\r\nthe weekly report is attached.\r\n"
+        text/html  "<p>Hello Bob,<br>the weekly <b>report</b> is attached.</p>\r\n"
+      application/pdf  filename "report.pdf"  19 octets
+
+  the text part keeps its own final CRLF: yes
+  print -> parse -> print gives the same 730 octets: yes
+  header-value "From" -> "ann@example.com"; the attachment's filename -> "report.pdf"
+
+==============================================================================
+== 3. Edge cases: prefix boundaries, line breaks, LF-only, preamble
+==============================================================================
+  an inner boundary "b2" that has the outer "b" as a prefix ("--b" inside
+  "--b2" does not end the outer part):
+    multipart/mixed
+      multipart/mixed
+        text/plain  "in"
+      text/plain  "out"
+
+  part contents that end, or are made of, line breaks, each round-tripped alone:
+    ""                         -> ""
+    "x"                        -> "x"
+    "\r\n"                     -> "\r\n"
+    "a\r\n\r\nb\r\n"           -> "a\r\n\r\nb\r\n"
+    "--not-the-boundary\r\n"   -> "--not-the-boundary\r\n"
+
+  an LF-only message (no CR at all):
+      text/plain  "one"
+      text/html  "<p>two</p>"
+
+  a preamble, a part with no headers (it starts with the blank line) and an epilogue:
+    preamble "This is the preamble.", part "no headers in this part", epilogue "the epilogue"
+    the headerless part's type: (no Content-Type) (RFC 2045 says text/plain; filed as
+    egao1980/mime-protocol#13)
+
+==============================================================================
+== 4. Canonical header names on print, case-insensitive lookups
+==============================================================================
+  The model keeps names lowercase; PRINT-MIME writes them with CANONICAL-HEADER-NAME:
+    from                         -> From
+    subject                      -> Subject
+    mime-version                 -> MIME-Version
+    message-id                   -> Message-ID
+    content-transfer-encoding    -> Content-Transfer-Encoding
+    content-md5                  -> Content-MD5
+    dkim-signature               -> DKIM-Signature
+    x-mailer                     -> X-Mailer
+  lookups stay case-insensitive: header-value MIME-Version / mime-version / MIME-VERSION -> ("1.0" "1.0" "1.0")
+
+==============================================================================
+== 5. Cross-read with Python's email package, both ways
+==============================================================================
+  Python 3.13.18: email.message_from_bytes(policy=default) of the section 1 text:
+    multipart/mixed
+      multipart/alternative
+        text/plain  "Hello Bob,\r\nthe weekly report is attached.\r\n"
+        text/html  "<p>Hello Bob,<br>the weekly <b>report</b> is attached.</p>\r\n"
+      application/pdf  filename "report.pdf"  19 octets
+
+  Python's EmailMessage (set_content, add_alternative, add_attachment),
+  as_bytes(policy=SMTP), 938 octets, read by PARSE-MIME:
+    multipart/mixed
+      multipart/alternative
+        text/plain  "Thanks Ann,\r\nthe numbers look right.\r\n"
+        text/html  "<p>Thanks Ann,<br>the numbers look right.</p>\r\n"
+      application/pdf  filename "notes.pdf"  13 octets
+
+==============================================================================
+== Summary
+==============================================================================
+34 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
