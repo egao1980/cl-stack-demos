@@ -1,0 +1,3 @@
+# pages.pdf is ASCII but byte-exact: xref offsets and stream lengths count LF line ends.
+*.pdf binary
+*.png binary
