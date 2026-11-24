@@ -1,13 +1,16 @@
 (in-package #:harness-demos-score)
 
-;;;; A tour of score-protocol 0.1.0, slice SC0: the canonical, immutable model
-;;;; of a notated score. One public-domain hymn tune, NEW BRITAIN ("Amazing
-;;;; Grace": American folk melody, 1829; words by John Newton, 1779), is built
-;;;; in code (section 1). The sections then cover its element ids (2), bars
-;;;; and positions (3), validation (4), provenance and confidence (5) and the
-;;;; canonical s-expression form (6). Every result with a known answer is also
-;;;; checked: RUN-DEMOS returns NIL when one differs or a section stops on an
-;;;; error.
+;;;; A tour of score-protocol 0.2.0. Slice SC0 is the canonical, immutable
+;;;; model of a notated score; slice SC1 the edit-operation algebra and views.
+;;;; One public-domain hymn tune, NEW BRITAIN ("Amazing Grace": American folk
+;;;; melody, 1829; words by John Newton, 1779), is built in code (section 1).
+;;;; The sections then cover its element ids (2), bars and positions (3),
+;;;; validation (4), provenance and confidence (5), the canonical s-expression
+;;;; form (6), editing (7), undo and composition (8), re-barring (9),
+;;;; transposition (10) and views (11). Section 11 also builds a four-part
+;;;; fragment of OLD HUNDREDTH (melody by Louis Bourgeois, 1551). Every result
+;;;; with a known answer is also checked: RUN-DEMOS returns NIL when one
+;;;; differs or a section stops on an error.
 
 ;;; Output and checks ---------------------------------------------------------
 
@@ -110,12 +113,27 @@ the list of values."
   `(progn (format t "~&  ~a~%~%" (indent (code-text ',form :margin 96) 2))
           ,form))
 
+(defun strip-identities (text)
+  "TEXT without the \" {address}\" parts that PRINT-UNREADABLE-OBJECT writes for
+:IDENTITY T. Addresses differ from run to run; the rest of a report doesn't."
+  (with-output-to-string (s)
+    (loop with i = 0
+          while (< i (length text))
+          do (let ((close (and (char= (char text i) #\Space)
+                               (< (+ i 2) (length text))
+                               (char= (char text (1+ i)) #\{)
+                               (position #\} text :start i))))
+               (if (and close (> close (+ i 2))
+                        (every (lambda (c) (digit-char-p c 16)) (subseq text (+ i 2) close)))
+                   (setf i (1+ close))
+                   (progn (write-char (char text i) s) (incf i)))))))
+
 (defun condition-line (c)
   "The type of the condition C and its report, on one line: runs of blanks and
-newlines in the report become one space."
+newlines in the report become one space, and object addresses are left out."
   (let* ((*package* (find-package '#:harness-demos-score))
          (*print-case* :downcase)
-         (report (princ-to-string c)))
+         (report (strip-identities (princ-to-string c))))
     (format nil "~(~a~): ~{~a~^ ~}" (type-of c)
             (remove "" (uiop:split-string report :separator '(#\Space #\Newline #\Tab))
                     :test #'string=))))
@@ -390,7 +408,7 @@ MAKE-SCORE mints an id for each element, in document order."
                        :provenance (element-provenance measure)
                        :confidence (element-confidence measure)))))
 
-(defun replace-event (score new)
+(defun rebuild-event (score new)
   "SCORE with the event that has NEW's id replaced by NEW, through COPY-SCORE.
 Only the path down to the event is rebuilt: its voice measure, its voice and
 its part. Every other element is passed on as it is."
@@ -416,7 +434,7 @@ its part. Every other element is passed on as it is."
                               :confidence (element-confidence part))))
     (copy-score score :parts (substitute new-part part (fset:convert 'list (score-parts score))))))
 
-(defun replace-measure (score new)
+(defun rebuild-measure (score new)
   "SCORE with the measure that has NEW's id replaced by NEW."
   (let ((old (find-element score (element-id new))))
     (copy-score score :measures (substitute new old (fset:convert 'list (score-measure-map score))))))
@@ -445,7 +463,7 @@ The note that starts the tie is rebuilt (same id); COPY-SCORE adds the rest."
   (destructuring-bind ((b1 j1) (b2 j2)) (tie-notes)
     (let* ((start (melody-at score b1 j1))
            (stop (melody-at score b2 j2))
-           (tied (replace-event score (copy-note start :tie (make-tie :end (element-id stop))))))
+           (tied (rebuild-event score (copy-note start :tie (make-tie :end (element-id stop))))))
       (copy-score tied
                   :spanners (loop for ((sb sj) (eb ej)) in (slur-runs)
                                   collect (make-spanner :kind :slur
@@ -794,6 +812,9 @@ bar of the melody, the bass, the chord symbols, the spanners."
                              (format nil ":| x~d" (measure-info-repeat-end measure)))
                         (let ((mark (measure-info-rehearsal measure)))
                           (and mark (format nil "rehearsal ~a" (rehearsal-mark-text mark))))
+                        (and (measure-info-jump measure)
+                             (format nil "~{~(~a~)~^ ~}"
+                                     (mapcar #'jump-mark-kind (measure-info-jump measure))))
                         (let ((tempo (first (measure-info-tempo measure))))
                           (and tempo (format nil "~a q=~a" (tempo-mark-text tempo)
                                              (tempo-bpm (tempo-mark-tempo tempo)))))
@@ -945,25 +966,27 @@ bar of the melody, the bass, the chord symbols, the spanners."
   (para "MAKE-SCORE accepts any score whose values have the right types. Whether they"
         "fit together is reported, not refused: CHECK-SCORE returns a list of"
         "SCORE-ISSUEs (kind, subject id, bar, detail) and never signals. The hymn has"
-        "none. Here is a copy with four mistakes, each made with REPLACE-EVENT or"
-        "REPLACE-MEASURE (demo.lisp: rebuild one element, keep its id):")
+        "none. Here is a copy with four mistakes, each made with REBUILD-EVENT or"
+        "REBUILD-MEASURE (demo.lisp: rebuild one element through COPY-SCORE, keep its"
+        "id). The edit operations of section 7 can't make them: an edit that adds an"
+        "issue is refused with EDIT-BREAKS-SCORE.")
   (show (check-score *hymn*) nil)
   (setf *broken* *hymn*)
   (para ""
         "1. An overfull bar: the E4 quarter of bar 3 becomes a half note.")
-  (shown (setf *broken* (replace-event *broken* (copy-note (melody-at *broken* 3 1) :duration 1/2))))
+  (shown (setf *broken* (rebuild-event *broken* (copy-note (melody-at *broken* 3 1) :duration 1/2))))
   (para "2. A tie to a different pitch: the D5 that the bar-7 tie ends on becomes C5.")
-  (shown (setf *broken* (replace-event *broken* (copy-note (melody-at *broken* 8 0)
+  (shown (setf *broken* (rebuild-event *broken* (copy-note (melody-at *broken* 8 0)
                                                            :pitch (parse-pitch "C5")))))
   (para "3. A lyric on a rest: the bass rest of the pickup gets a syllable.")
-  (shown (setf *broken* (replace-event *broken*
+  (shown (setf *broken* (rebuild-event *broken*
                                        (make-rest-event :id (element-id (bass-at *broken* 0 0))
                                                         :duration 1/4
                                                         :lyrics (list (make-lyric :text "Oh"))))))
   (para "4. An ending past the end: the second ending, on the last bar, claims three"
         "measures.")
   (shown (setf *broken* (let ((last (bar-measure *broken* 17)))
-                          (replace-measure *broken*
+                          (rebuild-measure *broken*
                                            (copy-measure last :ending (make-ending :id (element-id (measure-info-ending last))
                                                                                    :passes '(2) :measures 3))))))
   (let ((issues (check-score *broken*)))
@@ -1093,7 +1116,7 @@ elements of *RECOGNITION*."
     (para "A reviewer who confirms the B4 eighth of bar 9 rebuilds it with the same id and"
           "confidence 1 (SC1's edits will do this, setting provenance :USER):")
     (let* ((note (melody-at read 9 1))
-           (fixed (replace-event read (copy-note note :confidence 1
+           (fixed (rebuild-event read (copy-note note :confidence 1
                                                       :provenance (make-provenance :source :user)))))
       (show (element-id (melody-at fixed 9 1)) (element-id note))
       (show (mapcar #'element-id (uncertain-elements fixed))
@@ -1221,12 +1244,839 @@ elements of *RECOGNITION*."
             (list (event-duration (event-at score 0 1 0)) (check-score score)))
           '(3/4 nil))))
 
+;;; 7. Editing ----------------------------------------------------------------------
+;;; SC1: an EDIT-OPERATION is a value; APPLY-EDIT returns the new score and a
+;;; change set. The helpers print a change set with what each id names, and
+;;; count how much of the old score the new one shares.
+
+(defvar *edit-log* '() "(BEFORE OP AFTER CHANGES) for each step of section 7, newest first.")
+(defvar *edited* nil "The hymn after the seven edits of section 7.")
+
+(defun measure-id (score bar) (element-id (bar-measure score bar)))
+(defun melody-id (score bar j) (element-id (melody-at score bar j)))
+(defun voice-id (score n) (element-id (voice-at score n)))
+
+(defun bar-text (score voice bar)
+  "The events of BAR in voice VOICE (0 the melody, 1 the bass), written as in
+the score table of section 1."
+  (multiple-value-bind (starts ends) (slur-ends score)
+    (format nil "~{~a~^ ~}"
+            (mapcar (lambda (event) (event-text event starts ends))
+                    (fset:convert 'list (fset:lookup (voice-measures (voice-at score voice))
+                                                     (- bar (score-first-bar score))))))))
+
+(defun bar-chords (score bar)
+  "The chord symbols of BAR, as in the score table."
+  (format nil "~{~a~^ ~}"
+          (mapcar #'chord-text
+                  (remove bar (fset:convert 'list (score-chord-symbols score))
+                          :key (lambda (anchor) (car (anchor-position anchor)))
+                          :test-not #'eql))))
+
+(defun id-what (score id)
+  "What the element of SCORE with ID is, in a few words."
+  (let ((element (find-element score id :errorp nil))
+        (none (make-hash-table)))
+    (typecase element
+      (null "not in the score")
+      (measure-info (format nil "bar ~d" (car (element-position score id))))
+      (voice (format nil "voice ~a" (voice-name element)))
+      (event (format nil "~a in bar ~d" (event-text element none none)
+                     (car (element-position score id))))
+      (tie (format nil "tie to ~a" (tie-end element)))
+      (lyric (format nil "lyric ~s" (lyric-text element)))
+      (spanner (format nil "~(~a~) ~a to ~a" (spanner-kind element)
+                       (spanner-start element) (spanner-end element)))
+      (chord-symbol-anchor (format nil "~a in bar ~d" (print-chord-symbol (anchor-symbol element))
+                                   (car (anchor-position element))))
+      (jump-mark (format nil "~(~a~)" (jump-mark-kind element)))
+      (rehearsal-mark (format nil "rehearsal ~a" (rehearsal-mark-text element)))
+      (t (string-downcase (class-name (class-of element)))))))
+
+(defun print-items (label items &key (width 86))
+  "LABEL, then ITEMS separated by commas and wrapped at WIDTH columns under it."
+  (let ((lines '()) (line ""))
+    (loop for (item . more) on items
+          for text = (format nil "~a~:[~;,~]" item more)
+          do (cond ((string= line "") (setf line text))
+                   ((> (+ 12 (length line) 1 (length text)) width)
+                    (push line lines)
+                    (setf line text))
+                   (t (setf line (concatenate 'string line " " text)))))
+    (push (if (string= line "") "-" line) lines)
+    (loop for text in (reverse lines)
+          for first = t then nil
+          do (out "  ~10a~a~%" (if first label "") text))))
+
+(defun print-change-set (before after changes)
+  "The three lists of CHANGES, each id with what it names: in AFTER, or in
+BEFORE for a removed one."
+  (flet ((described (ids score)
+           (mapcar (lambda (id) (format nil "~a (~a)" id (id-what score id))) ids)))
+    (print-items "created" (described (change-set-created changes) after))
+    (print-items "removed" (described (change-set-removed changes) before))
+    (print-items "modified" (described (change-set-modified changes) after))))
+
+(defun sharing (before after)
+  "(values shared kept rebuilt): of the elements of AFTER whose id BEFORE also
+has, how many are BEFORE's own objects (EQ), how many there are, and the ids of
+the others in document order."
+  (let ((old (make-hash-table :test #'equal))
+        (shared 0) (kept 0) (rebuilt '()))
+    (dolist (element (score-elements before))
+      (setf (gethash (element-id element) old) element))
+    (dolist (element (score-elements after))
+      (let ((same-id (gethash (element-id element) old)))
+        (when same-id
+          (incf kept)
+          (if (eq same-id element)
+              (incf shared)
+              (push (element-id element) rebuilt)))))
+    (values shared kept (nreverse rebuilt))))
+
+(defun report-sharing (before after)
+  (multiple-value-bind (shared kept rebuilt) (sharing before after)
+    (out "  EQ        ~d of the ~d elements kept are the old objects~%" shared kept)
+    (print-items "rebuilt" rebuilt)
+    (out "  counter   ~d -> ~d~%" (score-id-counter before) (score-id-counter after))))
+
+(defun run-step (score op bars expected)
+  "Apply OP to SCORE and print BARS of the melody before and after, the change
+set, the sharing and the counter. Check the change set (created removed
+modified) against EXPECTED, log the step and return the new score."
+  (multiple-value-bind (after changes) (apply-edit score op)
+    (dolist (bar bars)
+      (out "  bar ~2d  before  ~a~%          after   ~a~%" bar (bar-text score 0 bar) (bar-text after 0 bar)))
+    (when bars (format t "~%"))
+    (print-change-set score after changes)
+    (report-sharing score after)
+    (format t "~%")
+    (check (list (change-set-created changes) (change-set-removed changes)
+                 (change-set-modified changes))
+           expected "change set")
+    (check (check-score after) nil "check-score after the edit")
+    (push (list score op after changes) *edit-log*)
+    after))
+
+(defmacro edit-step (score op-form bars expected)
+  "Print OP-FORM and the canonical form of its operation, then RUN-STEP."
+  `(let ((op ,op-form))
+     (out "  ~a~%    => ~a~%~%" (indent (code-text ',op-form :margin 84) 2)
+          (indent (sexp-text (edit-to-sexp op) :margin 80) 7))
+     (run-step ,score op ,bars ,expected)))
+
+(defun last-changes () (fourth (first *edit-log*)))
+
+(defun restarts-around (thunk type)
+  "The names of the first three restarts around the first condition of TYPE
+that THUNK signals: the innermost, which the edit establishes."
+  (block nil
+    (handler-bind ((condition (lambda (c)
+                                (when (typep c type)
+                                  (return (subseq (mapcar #'restart-name (compute-restarts c))
+                                                  0 3))))))
+      (funcall thunk)
+      :no-condition)))
+
+(defun demo-editing ()
+  (para "SC1 makes every change to a score a value. An EDIT-OPERATION names one change"
+        "and APPLY-EDIT returns (values new-score change-set). The score passed in never"
+        "changes. The new one shares every untouched element with it. Operations name"
+        "their targets by id, never by place, so a logged operation means the same"
+        "thing after other edits. The change set lists the ids the edit CREATED,"
+        "REMOVED and MODIFIED. An element is modified when its own slots change or its"
+        "children's ids do. So when a note changes pitch, its voice is not modified."
+        "When a lyric's text changes, the note it sits on is not modified either."
+        ""
+        "Seven edits on the hymn, each applied to the result of the one before. Each"
+        "prints the operation's constructor call and its canonical form, the bars it"
+        "touches, the change set, and how much of the old score the new one shares:")
+  (setf *edit-log* '())
+  (let ((score *hymn*))
+    (para "1. SET-PITCH. Bar 15's A4 becomes F#4, a leading note into the last bar. The"
+          "note keeps its id and its lyrics, and only the note is modified. The voice"
+          "and the part above it are rebuilt to hold the new note. Every other element"
+          "of the score is the old score's own object:")
+    (setf score (edit-step score (make-set-pitch :id (melody-id score 15 1) :pitch (parse-pitch "F#4"))
+                           '(15) '(() () ("e-37"))))
+    (show (eq (voice-at score 1) (voice-at *hymn* 1)) t "the bass voice")
+    (show (every #'eq (fset:convert 'list (score-measure-map score))
+                 (fset:convert 'list (score-measure-map *hymn*)))
+          t "every measure")
+    (show (eq (melody-at score 15 0) (melody-at *hymn* 15 0)) t "the B4 beside it")
+    (format t "~%")
+    (para "2. SET-DURATION across a barline. Bar 12's E4, the end of a melisma, becomes a"
+          "half note. It starts on the third beat, so it runs over the barline. The first"
+          "piece is the note itself, with its id and its marks. The piece in bar 13 is a"
+          "new note, and a new tie joins the two. The longer note covers the first beat"
+          "of bar 13, so the D4 that started there is removed, and the rest of its time"
+          "becomes a quarter rest. The slur that ended on that D4 has lost an endpoint,"
+          "and the cascade removes it. The new ids continue the series. The counter was"
+          "175, and the tie, the piece and the rest get serials 176, 177 and 178, in"
+          "document order:")
+    (setf score (edit-step score (make-set-duration :id (melody-id score 12 1) :duration 1/2)
+                           '(12 13) '(("ti-4w" "e-4x" "e-4y") ("e-2t" "sp-4u") ("v-r" "e-2s"))))
+    (show (mapcar #'id-serial (change-set-created (last-changes))) '(176 177 178))
+    (show (tie-end (note-tie (melody-at score 12 1))) "e-4x")
+    (format t "~%")
+    (para "3. A shorter SET-DURATION. The final G4 of the second ending goes from a dotted"
+          "half to a half. The time it gave up is a gap, and the gap is filled with a"
+          "quarter rest. Its fermata and its lyric stay on the note:")
+    (setf score (edit-step score (make-set-duration :id (melody-id score 17 0) :duration 1/2)
+                           '(17) '(("e-4z") () ("v-r" "e-3e"))))
+    (para "4. INSERT-EVENT into a full bar. Bar 16, the first ending, holds G4 h and D4 q."
+          "An E4 eighth goes in before the D4. Everything after it in the bar moves an"
+          "eighth later. That would make the bar an eighth too long, and there is no"
+          "trailing rest to absorb it. So APPLY-EDIT signals MEASURE-OVERFULL, with the"
+          "voice, the bar and the excess:")
+    (let ((op (make-insert-event :voice (voice-id score 0) :measure (measure-id score 16) :offset 1/2
+                                 :event (make-note-event :pitch (parse-pitch "E4") :duration 1/8))))
+      (show-signal (apply-edit score op) measure-overfull)
+      (show (handler-case (apply-edit score op)
+              (measure-overfull (c)
+                (list (measure-overfull-voice c) (measure-overfull-bar c) (measure-overfull-excess c))))
+            '("v-r" 16 1/8))
+      (show (restarts-around (lambda () (apply-edit score op)) 'measure-overfull)
+            '(reflow skip-edit use-value))
+      (format t "~%")
+      (para "The REFLOW restart applies the same operation with REFLOW true. The E4 takes"
+            "its eighth, and the rest of the voice moves an eighth later and re-flows into"
+            "the bars. The D4 now crosses the barline, so it becomes two tied eighths. The"
+            "G4 of bar 17 moves, keeping its id. The quarter rest from step 3 is cut at"
+            "the end of the score, and what is left becomes a new eighth rest. REFLOW"
+            "follows the voice's time line bar after bar, so it pushes music from the first"
+            "ending into the second. Without the rest at the end, a note would be pushed"
+            "past the end of the score, which is EDIT-POSITION-INVALID.")
+      (let ((reflowed (handler-bind ((measure-overfull #'reflow)) (apply-edit score op))))
+        (show (score-equal reflowed (apply-edit score (make-insert-event :voice (edit-voice op) :measure (edit-measure op)
+                                                                         :offset 1/2 :event (edit-event op) :reflow t)))
+              t "the restart = the operation with :reflow t")
+        (format t "~%")))
+    (setf score (edit-step score (make-insert-event :voice (voice-id score 0) :measure (measure-id score 16) :offset 1/2
+                                                    :event (make-note-event :pitch (parse-pitch "E4") :duration 1/8)
+                                                    :reflow t)
+                           '(16 17) '(("e-50" "ti-51" "e-52" "e-53") ("e-4z") ("v-r" "e-3c"))))
+    (para "5. ADD-SPANNER: a slur over the new E4 and the D4. A spanner joins the end of"
+          "SCORE-SPANNERS. Spanners are children of the score, which has no id, so"
+          "nothing is modified and nothing is rebuilt:")
+    (setf score (edit-step score (make-add-spanner :spanner (make-spanner :kind :slur :start (melody-id score 16 1)
+                                                                           :end (melody-id score 16 2)))
+                           '(16) '(("sp-54") () ())))
+    (para "6. ADD-MARK: a fermata on \"see.\", the last note of verse 1. The note is"
+          "modified, because a child was added to it:")
+    (setf score (edit-step score (make-add-mark :target (melody-id score 16 0) :mark (make-fermata))
+                           '(16) '(("fe-55") () ("e-3a"))))
+    (para "7. Setting a lyric is ADD-MARK of a LYRIC. Many hymnals change \"saved a wretch"
+          "like me\" to \"saved a soul like me\". A lyric of the same verse on the note is"
+          "replaced, and the new lyric, built without an id, takes the old one's id"
+          "(ly-1s). So the lyric is modified, but the note is not, because its shallow"
+          "form holds only the lyric's id. The note is still a new object, since it holds"
+          "a new lyric:")
+    (setf score (edit-step score (make-add-mark :target (melody-id score 6 0) :mark (make-lyric :verse 1 :text "soul"))
+                           '() '(() () ("ly-1s"))))
+    (show (mapcar #'lyric-text (event-lyrics (melody-at score 6 0))) '("soul" "fears"))
+    (show (mapcar #'element-id (event-lyrics (melody-at score 6 0))) '("ly-1s" "ly-1t"))
+    (setf *edited* score)
+    (format t "~%")
+    (para "The hymn after the seven edits (compare section 1):")
+    (print-score-table *edited*)
+    (format t "~%")
+    (show (score-id-counter *edited*) 185)
+    (show (length (score-elements *edited*)) 182 "175 + 9 created - 2 removed")
+    (show (check-score *edited*) nil))
+  (format t "~%")
+  (para "Refusals. A failed precondition or rule is an INVALID-EDIT, a SCORE-ERROR that"
+        "names the operation. Some failures have their own subtype. Every refusal is"
+        "signalled before anything changes, inside the restarts SKIP-EDIT and USE-VALUE:")
+  (show-signal (apply-edit *hymn* (make-set-pitch :id "e-zz" :pitch (parse-pitch "C5"))) edit-target-missing)
+  (show-signal (apply-edit *hymn* (make-set-pitch :id (voice-id *hymn* 0) :pitch (parse-pitch "C5"))) invalid-edit)
+  (show-signal (apply-edit *hymn* (make-insert-event :voice (voice-id *hymn* 0) :measure (measure-id *hymn* 5)
+                                                     :offset 1/4
+                                                     :event (make-note-event :pitch (parse-pitch "A4") :duration 1/8)))
+               edit-position-invalid)
+  (show-signal (apply-edit *hymn* (make-add-mark :target (element-id (bass-at *hymn* 0 0))
+                                                 :mark (make-lyric :text "Oh")))
+               edit-breaks-score)
+  (show (typep (make-condition 'edit-breaks-score) 'score-invariant-violation) t)
+  (show (typep (make-condition 'edit-target-missing) 'unknown-element) t)
+  (format t "~%")
+  (para "SKIP-EDIT returns the score as it was, with an empty change set. USE-VALUE"
+        "applies another operation instead:")
+  (show (multiple-value-bind (score changes)
+            (handler-bind ((invalid-edit #'skip-edit))
+              (apply-edit *hymn* (make-set-pitch :id "e-zz" :pitch (parse-pitch "C5"))))
+          (list (eq score *hymn*) (change-set-empty-p changes)))
+        '(t t))
+  (show (multiple-value-bind (score changes)
+            (handler-bind ((edit-target-missing
+                             (lambda (c)
+                               (use-value (make-set-pitch :id (melody-id *hymn* 15 1) :pitch (parse-pitch "F#4")) c))))
+              (apply-edit *hymn* (make-set-pitch :id "e-zz" :pitch (parse-pitch "F#4"))))
+          (list (bar-text score 0 15) (change-set-modified changes)))
+        '("B4:h F#4:q" ("e-37"))))
+
+;;; 8. Undo, composition, the canonical form of operations -------------------------
+
+(defun op-kind (op) (first (edit-to-sexp op)))
+
+(defun wrap-words (text width)
+  "TEXT with newlines put between words so no line is longer than WIDTH."
+  (let ((lines '()) (line ""))
+    (dolist (word (uiop:split-string text :separator " "))
+      (cond ((string= line "") (setf line word))
+            ((> (+ (length line) 1 (length word)) width) (push line lines) (setf line word))
+            (t (setf line (concatenate 'string line " " word)))))
+    (push line lines)
+    (format nil "~{~a~^~%~}" (reverse lines))))
+
+(defun demo-undo ()
+  (para "INVERT-EDIT score op returns an operation that undoes OP on SCORE. It is read"
+        "off the pair (before, after), so it undoes what was actually applied, whatever"
+        "restart or cascade led there, and it restores removed elements with their own"
+        "ids. It is built from the library's own classes, mostly restore-style"
+        "operations in a COMPOSITE-EDIT, so it serialises like any other operation."
+        ""
+        "The inverse of each step of section 7, taken on the score the step was applied"
+        "to:")
+  (let* ((log (reverse *edit-log*))
+         (inverses (loop for (before op) in log collect (invert-edit before op))))
+    (out "  step  operation       inverse: ops  form size  kinds~%")
+    (loop for (nil op) in log
+          for inverse in inverses
+          for i from 1
+          for members = (edit-ops inverse)
+          do (out "  ~4d  ~14a  ~12d  ~9d  ~a~%" i (string-downcase (op-kind op))
+                  (length members) (length (with-standard-io-syntax (prin1-to-string (edit-to-sexp inverse))))
+                  (indent (wrap-words (format nil "~{~(~a~)~^ ~}"
+                                              (remove-duplicates (mapcar #'op-kind members) :from-end t))
+                                      38)
+                          47)))
+    (check (mapcar (lambda (inverse) (length (edit-ops inverse))) inverses) '(1 61 1 1 1 1 1)
+           "inverse sizes")
+    (format t "~%")
+    (para "Most inverses are a single restore. Step 1's restores bar 15 of the melody as it"
+          "was, with the note's own id, lyrics and provenance:")
+    (out "  ~a~%~%" (indent (sexp-text (edit-to-sexp (first inverses)) :margin 84) 2))
+    (para "Step 2's inverse holds 61 operations. It removes every chord symbol, silences"
+          "both voices, strips the measures and puts all of it back. The step removed a"
+          "slur from the middle of SCORE-SPANNERS, and the direct restore (remove the"
+          "spanners after it, add them back) was judged to collide with itself. It"
+          "doesn't, since the removals run first. The result is still exact, as the next"
+          "lines show, but the inverse is the size of the score: score-protocol#7.")
+    (para "Undo: the inverses applied in reverse order, newest first. Each one gives a"
+          "score SCORE-EQUAL to the score before its step. Its change set mirrors the"
+          "step's: CREATED is the step's REMOVED, REMOVED its CREATED, and MODIFIED holds"
+          "the same ids:")
+    (let ((score *edited*))
+      (loop for (before nil nil changes) in *edit-log*
+            for inverse in (reverse inverses)
+            for i downfrom (length *edit-log*)
+            do (multiple-value-bind (undone undo) (apply-edit score inverse)
+                 (let ((mirrored (and (equal (change-set-created undo) (change-set-removed changes))
+                                      (equal (change-set-removed undo) (change-set-created changes))
+                                      (null (set-exclusive-or (change-set-modified undo)
+                                                              (change-set-modified changes)
+                                                              :test #'string=)))))
+                   (out "  undo step ~d: score-equal to the score before it: ~(~a~); change set mirrored: ~(~a~)~%"
+                        i (score-equal undone before) mirrored)
+                   (check (score-equal undone before) t (format nil "undo step ~d" i))
+                   (check mirrored t (format nil "undo step ~d change set" i)))
+                 (setf score undone)))
+      (format t "~%")
+      (show (score-equal score *hymn*) t "back to the hymn of section 1")
+      (show (eq score *hymn*) nil "an equal value, not the same object")
+      (show (score-id-counter score) 185 "serials are never reused"))
+    (format t "~%")
+    (para "COMPOSE-EDITS makes one operation of several. Its members are applied in"
+          "order, each to the score the one before produced. The cascade and the check"
+          "run once, at the end. The seven steps as one operation:")
+    (let* ((ops (mapcar #'second log))
+           (composite (apply #'compose-edits ops)))
+      (out "  ~a~%~%" (indent (sexp-text (edit-to-sexp composite) :margin 84) 2))
+      (multiple-value-bind (after changes) (apply-edit *hymn* composite)
+        (show (score-equal after *edited*) t "the same score as step by step")
+        (format t "~%")
+        (print-change-set *hymn* after changes)
+        (format t "~%")
+        (para "The composite's change set runs from the hymn to the result. The rest made in"
+              "step 3 and cut in step 4 doesn't appear in it. Its inverse is again one"
+              "operation, and it undoes all seven steps:")
+        (show (score-equal (apply-edit after (invert-edit *hymn* composite)) *hymn*) t))
+      (show (eq (compose-edits (first ops)) (first ops)) t "one operation is itself")
+      (show (length (edit-ops (compose-edits composite (first ops)))) 8 "composites are spliced")
+      (show (multiple-value-bind (score changes) (apply-edit *hymn* (compose-edits))
+              (list (score-equal score *hymn*) (change-set-empty-p changes)))
+            '(t t) "the empty composite")
+      (format t "~%")
+      (para "EDIT-TO-SEXP writes an operation in the canonical form, the way sexp.lisp"
+            "writes elements: the kind keyword, then the slots as keys in a fixed order,"
+            "with the defaults left out. Given elements are element forms, and pitches,"
+            "meters, keys and intervals are music-theory text. The text is read back with"
+            "*READ-EVAL* NIL and SEXP-TO-EDIT. The copy writes the same form, and it"
+            "applies to the hymn exactly as the original does:")
+      (let* ((form (edit-to-sexp composite))
+             (text (with-standard-io-syntax (prin1-to-string form)))
+             (read-form (with-standard-io-syntax
+                          (let ((*read-eval* nil)) (read-from-string text))))
+             (copy (sexp-to-edit read-form)))
+        (show (length text) 637 "characters")
+        (show (equal (edit-to-sexp copy) form) t)
+        (show (eq copy composite) nil)
+        (multiple-value-bind (a ca) (apply-edit *hymn* composite)
+          (multiple-value-bind (b cb) (apply-edit *hymn* copy)
+            (show (list (score-equal a b) (equalp ca cb)) '(t t) "equal scores, equal change sets"))))
+      (show (every (lambda (inverse)
+                     (equal (edit-to-sexp (sexp-to-edit (edit-to-sexp inverse))) (edit-to-sexp inverse)))
+                   inverses)
+            t "the inverses round-trip too")
+      (format t "~%")
+      (para "A form with an unknown kind or key signals SCORE-FORMAT-ERROR (FORMAT :SEXP),"
+            "with the offending form as POSITION:")
+      (flet ((format-error (form)
+               (out "  ~a~%" (indent (sexp-text form :margin 84) 2))
+               (handler-case (progn (sexp-to-edit form)
+                                    (format t "    (no condition)~%")
+                                    (check :returned :signalled "sexp-to-edit"))
+                 (score-format-error (c)
+                   (out "    -> ~a~%       position: ~a~%" (condition-line c)
+                        (sexp-text (score-format-error-position c) :margin 1000))
+                   (check (score-format-error-format c) :sexp "score-format-error-format")))))
+        (format-error '(:set-pitch :id "e-37" :pitch "F#4" :colour :red))
+        (format-error '(:set-pitches :id "e-37" :pitch "F#4"))
+        (format-error '(:composite :ops ((:set-pitch :id "e-37" :pitch "F#4") (:add-mark :target "e-3a"
+                                                                                         :mark (:fermata :shape)))))))))
+
+;;; 9. Re-barring -------------------------------------------------------------------
+
+(defun print-bar-table (score bars)
+  (out "  bar  id     time  melody                  bass               chords~%")
+  (dolist (bar bars)
+    (out "  ~3d  ~5a  ~4a  ~22a  ~17a  ~a~%" bar (measure-id score bar)
+         (meter-string (bar-time score bar)) (bar-text score 0 bar) (bar-text score 1 bar)
+         (bar-chords score bar))))
+
+(defun demo-rebarring ()
+  (para "SET-TIME re-bars a region of the score. The region runs from the measure to the"
+        "next measure that has a time signature of its own. In the hymn only bar 0 has"
+        "one, so a SET-TIME on bar 1 would re-bar the whole tune. Giving bar 5 its own"
+        "3/4 first ends the region at bar 4. That changes only bar 5's measure:")
+  (multiple-value-bind (bounded changes)
+      (apply-edit *hymn* (make-set-time :measure (measure-id *hymn* 5) :time (parse-meter "3/4")))
+    (show (change-set-modified changes) '("m-8"))
+    (show (meter-string (measure-info-time (bar-measure bounded 5))) "3/4")
+    (format t "~%")
+    (para "3/4 to 6/8 on bars 1-4. A 6/8 bar holds six eighths, the same length as a 3/4"
+          "bar. Every barline stays where it was, so the measures are kept, nothing"
+          "moves and nothing is tied. Only bar 1's own TIME changes. Beaming and beat"
+          "grouping are left to the engraver:")
+    (multiple-value-bind (six-eight changes)
+        (apply-edit bounded (make-set-time :measure (measure-id bounded 1) :time (parse-meter "6/8")))
+      (show (list (change-set-created changes) (change-set-removed changes) (change-set-modified changes))
+            '(() () ("m-3")))
+      (show (loop for bar from 1 to 4
+                  always (and (eq (fset:lookup (voice-measures (voice-at six-eight 0)) bar)
+                                  (fset:lookup (voice-measures (voice-at bounded 0)) bar))
+                              (eq (fset:lookup (voice-measures (voice-at six-eight 1)) bar)
+                                  (fset:lookup (voice-measures (voice-at bounded 1)) bar))))
+            t "bars 1-4 of both voices are the same objects")
+      (show (mapcar (lambda (bar) (meter-string (bar-time six-eight bar))) '(1 2 3 4 5)) '("6/8" "6/8" "6/8" "6/8" "3/4")))
+    (format t "~%")
+    (para "3/4 to 2/4 on the same bars. The region lasts 3 whole notes, which makes six"
+          "bars of 2/4. Every voice keeps its time line, and the music re-flows into the"
+          "new bars. A measure is kept when a new bar starts where it started: bar 1"
+          "(offset 0) and old bar 3 (offset 3/2) keep their ids, and with them anything"
+          "on them. Old bars 2 and 4 started inside a new bar, so they are removed. The"
+          "other four bars are new measures. A note that now crosses a barline is split"
+          "into tied pieces, so ties flow across the new barlines. Chord symbols in the"
+          "region keep their absolute offsets: G7/B moves from (2 . 1/2) to (3 . 1/4)."
+          "Those after the region stay with their measures, two bars later. Before and"
+          "after:")
+    (print-bar-table bounded '(0 1 2 3 4 5 6))
+    (format t "~%")
+    (multiple-value-bind (two-four changes)
+        (apply-edit bounded (make-set-time :measure (measure-id bounded 1) :time (parse-meter "2/4")))
+      (print-bar-table two-four '(0 1 2 3 4 5 6 7 8))
+      (format t "~%")
+      (print-change-set bounded two-four changes)
+      (format t "~%")
+      (show (score-last-bar two-four) 19)
+      (show (mapcar (lambda (bar) (measure-id two-four bar)) '(1 4 7)) '("m-3" "m-6" "m-8")
+            "kept: old bars 1 and 3, and bar 5")
+      (show (count-if (lambda (id) (string= (id-prefix id) "ti")) (change-set-created changes)) 6
+            "new ties: 2 in the melody, 4 in the bass")
+      (show (mapcar (lambda (bar) (bar-chords two-four bar)) '(3 4 5)) '("G7/B@1/4" "C" "G@1/4"))
+      (show (check-score two-four) nil)
+      (show (score-equal (apply-edit two-four (invert-edit bounded (make-set-time :measure (measure-id bounded 1)
+                                                                                   :time (parse-meter "2/4"))))
+                         bounded)
+            t "and it undoes")))
+  (format t "~%")
+  (para "A refusal. SET-TIME on bar 8 to 2/4 would re-bar bars 8-17. Bar 9 starts 3/4"
+        "after bar 8, inside a 2/4 bar, so it would be removed. But bar 9 carries"
+        "rehearsal mark B, and re-barring would lose it. Bar 17, with the second"
+        "ending, would go the same way. The operation is refused before anything"
+        "changes:")
+  (let ((op (make-set-time :measure (measure-id *hymn* 8) :time (parse-meter "2/4"))))
+    (show-signal (apply-edit *hymn* op) invalid-edit)
+    (show (handler-case (apply-edit *hymn* op) (invalid-edit (c) (eq (invalid-edit-op c) op))) t
+          "the condition names the operation")
+    (show (multiple-value-bind (score changes) (handler-bind ((invalid-edit #'skip-edit)) (apply-edit *hymn* op))
+            (list (eq score *hymn*) (change-set-empty-p changes)))
+          '(t t) "SKIP-EDIT")))
+
+;;; 10. Transposition ---------------------------------------------------------------
+
+(defun print-chords (label score)
+  (print-items label (mapcar #'chord-text (fset:convert 'list (score-chord-symbols score)))))
+
+(defun demo-transposition ()
+  (para "TRANSPOSE moves the notes, the key signatures and the chord symbols. The"
+        "spelling comes from music-theory 0.5.0. For an interval it is TRANSPOSE-PITCH"
+        "and TRANSPOSE-CHORD-SYMBOL. For a target key it is TRANSPOSE-TO-KEY, whose"
+        "letter moves at most three steps. Every note keeps its id and its accidental"
+        "display. A chord symbol loses its TEXT, so it prints from its parts."
+        ""
+        "Up a major second: G major becomes A major.")
+  (let ((m2 (parse-interval "M2")))
+    (multiple-value-bind (up changes) (apply-edit *hymn* (make-transpose :interval m2))
+      (show (interval-name m2) "M2")
+      (show (key-name (bar-key up 0)) "A major")
+      (print-chords "before" *hymn*)
+      (print-chords "after" up)
+      (format t "~%")
+      (print-bar-table up '(7 8))
+      (format t "~%")
+      (show (list (length (change-set-created changes)) (length (change-set-removed changes))
+                  (length (change-set-modified changes)))
+            '(0 0 77) "58 notes and chord notes, 18 chord symbols, bar 0's key")
+      (show (tie-end (note-tie (melody-at up 7 0))) (melody-id up 8 0) "the tie still joins E5 to E5")
+      (show (check-score up) nil)))
+  (format t "~%")
+  (para "To a key. With TO-KEY, every pitch goes from the key in force at FROM (G major)"
+        "to TO-KEY by TRANSPOSE-TO-KEY: it keeps its scale degree and alteration. Chord"
+        "symbols move the same way. G major to Ab major:")
+  (multiple-value-bind (ab) (apply-edit *hymn* (make-transpose :to-key (parse-key "Ab major")))
+    (show (key-name (bar-key ab 0)) "Ab major")
+    (print-chords "after" ab)
+    (format t "~%")
+    (print-bar-table ab '(7 8 17))
+    (format t "~%")
+    (show (check-score ab) nil)
+    (format t "~%")
+    (para "Up an augmented unison, G major becomes G# major, with eight sharps. That is"
+          "not one of the 30 keys, and PARSE-KEY refuses it. For each key it moves,"
+          "TRANSPOSE takes (choose-enharmonic-key K' :max-accidentals 7). That returns K'"
+          "when K' is one of the 30 keys, and otherwise the one of them that sounds the"
+          "same. Then it respells the notes and chord symbols from K' to that key. So"
+          "the result is Ab major, spelled for Ab major, not G# major with eight sharps:")
+    (show-signal (parse-key "G# major") music-theory:invalid-key)
+    (let ((g-sharp (make-key :tonic (parse-pitch-class "G#") :mode :major)))
+      (show (key-name (choose-enharmonic-key g-sharp :max-accidentals 7)) "Ab major" "4 flats, not 8 sharps")
+      (show (key-signature (choose-enharmonic-key g-sharp)) -4))
+    (show (key-name (choose-enharmonic-key (parse-key "F# major"))) "F# major" "6 sharps: kept")
+    (show (key-name (choose-enharmonic-key (parse-key "C# major"))) "Db major")
+    (show (key-name (choose-enharmonic-key (parse-key "C# major") :max-accidentals 7)) "C# major")
+    (multiple-value-bind (a1) (apply-edit *hymn* (make-transpose :interval (parse-interval "A1")))
+      (show (key-name (bar-key a1 0)) "Ab major")
+      (show (bar-text a1 0 8) "Eb5:h' C5:q[mf]")
+      (show (score-equal a1 ab) t "the same score as TO-KEY Ab major")))
+  (format t "~%")
+  (para "A range. FROM and TO limit the transposition to bars 9-15, the second half of"
+        "the verse, up a major second. Bar 9 gets A major as its own key. Bar 16, the"
+        "measure after TO, keeps its signatures: it gets G major as its own key, so the"
+        "endings are still in G. Chord symbols move only inside the range:")
+  (multiple-value-bind (part-way)
+      (apply-edit *hymn* (make-transpose :interval (parse-interval "M2")
+                                         :from (measure-id *hymn* 9) :to (measure-id *hymn* 15)))
+    (out "  bar  key       own key  melody~%")
+    (loop for bar from 8 to 17
+          do (out "  ~3d  ~8a  ~7a  ~a~%" bar (key-name (bar-key part-way bar))
+                  (if (measure-info-key (bar-measure part-way bar)) "yes" "-")
+                  (bar-text part-way 0 bar)))
+    (format t "~%")
+    (print-chords "chords" part-way)
+    (show (mapcar (lambda (bar) (key-name (measure-info-key (bar-measure part-way bar)))) '(9 16))
+          '("A major" "G major"))
+    (show (check-score part-way) nil))
+  (format t "~%")
+  (para "Exactly one of INTERVAL and TO-KEY, and FROM not after TO:")
+  (show-signal (apply-edit *hymn* (make-transpose :interval (parse-interval "M2") :to-key (parse-key "A major")))
+               invalid-edit)
+  (show-signal (apply-edit *hymn* (make-transpose :interval (parse-interval "M2") :from (measure-id *hymn* 9)
+                                                  :to (measure-id *hymn* 3)))
+               edit-position-invalid))
+
+;;; 11. Views -----------------------------------------------------------------------
+;;; OLD HUNDREDTH: the melody of Psalm 100 in the Genevan Psalter, by Louis
+;;; Bourgeois (1551), in G major and the even rhythm of modern hymnals. The
+;;; first line only, words "All people that on earth do dwell" (William Kethe,
+;;; 1561). The alto, tenor and bass are a plain chordal setting written for
+;;; this demo. Each voice is its own part, as in an open choral score.
+
+(defparameter *chorale*
+  '(("Soprano" "S." :treble     (("G4" 1/2)) (("G4" 1/4) ("F#4" 1/4) ("E4" 1/4) ("D4" 1/4)) (("G4" 1/4) ("A4" 1/4) ("B4" 1/2)))
+    ("Alto"    "A." :treble     (("D4" 1/2)) (("D4" 1/4) ("D4" 1/4) ("B3" 1/4) ("B3" 1/4))  (("D4" 1/4) ("D4" 1/4) ("D4" 1/2)))
+    ("Tenor"   "T." :treble-8vb (("B3" 1/2)) (("B3" 1/4) ("A3" 1/4) ("G3" 1/4) ("G3" 1/4))  (("G3" 1/4) ("F#3" 1/4) ("G3" 1/2)))
+    ("Bass"    "B." :bass       (("G2" 1/2)) (("B2" 1/4) ("D3" 1/4) ("E3" 1/4) ("G2" 1/4))  (("B2" 1/4) ("D3" 1/4) ("G2" 1/2))))
+  "Name, abbreviation, clef, then the bars from the half-note pickup.")
+
+(defun build-chorale ()
+  (make-score :metadata '(:title "All people that on earth do dwell" :subtitle "OLD HUNDREDTH"
+                          :composer "Louis Bourgeois, 1551" :lyricist "William Kethe, 1561")
+              :measures (list (make-measure-info :time (parse-meter "4/4") :key (parse-key "G major")
+                                                 :pickup-p t :length 1/2)
+                              (make-measure-info)
+                              (make-measure-info :barline :final))
+              :parts (loop for (name abbreviation clef . bars) in *chorale*
+                           collect (make-part
+                                    :name name :abbreviation abbreviation
+                                    :staves (list (make-staff :clef clef))
+                                    :voices (list (make-voice
+                                                   :name name :staff 1
+                                                   :measures (loop for bar in bars
+                                                                   collect (loop for (pitch duration) in bar
+                                                                                 collect (make-note-event :pitch (parse-pitch pitch)
+                                                                                                          :duration duration)))))))))
+
+(defun all-voices (score)
+  (loop for part in (fset:convert 'list (score-parts score)) append (part-voices part)))
+
+(defun voice-events (voice)
+  (loop for events in (fset:convert 'list (voice-measures voice)) append (fset:convert 'list events)))
+
+(defun all-events (score)
+  (loop for voice in (all-voices score) append (voice-events voice)))
+
+(defun voice-line (voice &key (bars 4))
+  "The first BARS bars of VOICE, | between bars."
+  (let* ((none (make-hash-table))
+         (all (fset:convert 'list (voice-measures voice)))
+         (shown (subseq all 0 (min bars (length all)))))
+    (format nil "~{~a~^ | ~}~:[~; | ...~]"
+            (mapcar (lambda (events)
+                      (format nil "~{~a~^ ~}" (mapcar (lambda (e) (event-text e none none))
+                                                      (fset:convert 'list events))))
+                    shown)
+            (> (length all) bars))))
+
+(defun print-parts (score)
+  "Each part of SCORE: id, name, staves, then each voice with its staff, stem and music."
+  (dolist (part (fset:convert 'list (score-parts score)))
+    (out "  part ~a ~a, staves ~{~(~a~)~^ ~}~%" (element-id part)
+         (if (part-name part) (format nil "~s" (part-name part)) "(no name)")
+         (mapcar #'staff-clef (part-staves part)))
+    (dolist (voice (part-voices part))
+      (out "    voice ~5a ~8a staff ~d  stem ~5a  ~a~%" (element-id voice) (voice-name voice)
+           (voice-staff voice) (string-downcase (or (voice-stem voice) "-")) (voice-line voice)))))
+
+(defun id-map-identity-p (id-map)
+  (block nil
+    (fset:do-map (view-id source-id id-map)
+      (unless (string= view-id source-id) (return nil)))
+    t))
+
+(defvar *form* nil "The hymn as an A section with a Fine, then a four-bar interlude and a D.C. al Fine.")
+
+(defparameter *interlude*
+  '((("B4" 1/2) ("D5" 1/4)) (("C5" 1/2) ("A4" 1/4)) (("B4" 1/2) ("G4" 1/4)) (("A4" 3/4)))
+  "A four-bar interlude for the melody, bars 18-21.")
+(defparameter *interlude-bass* '((("G2" 3/4)) (("C3" 3/4)) (("G2" 3/4)) (("D3" 3/4))))
+(defparameter *interlude-chords* '((18 "G") (19 "C") (20 "G") (21 "D7")))
+
+(defun note-bars (bars)
+  (mapcar (lambda (bar)
+            (mapcar (lambda (spec) (make-note-event :pitch (parse-pitch (first spec)) :duration (second spec)))
+                    bar))
+          bars))
+
+(defun form-edit (score)
+  "One operation that turns the hymn into an A B A form: Fine on the second
+ending, then a four-bar interlude with rehearsal mark C and D.C. al Fine."
+  (apply #'compose-edits
+         (make-add-mark :target (measure-id score 17) :mark (make-jump-mark :kind :fine))
+         (make-insert-measures
+          :measure-infos (list (make-measure-info :rehearsal (make-rehearsal-mark :text "C"))
+                               (make-measure-info) (make-measure-info)
+                               (make-measure-info :barline :final
+                                                  :jump (list (make-jump-mark :kind :da-capo-al-fine))))
+          :contents (list (cons (voice-id score 0) (note-bars *interlude*))
+                          (cons (voice-id score 1) (note-bars *interlude-bass*))))
+         (loop for (bar text) in *interlude-chords*
+               collect (make-add-chord-symbol
+                        :anchor (make-chord-symbol-anchor :position (cons bar 0)
+                                                          :symbol (parse-chord-symbol text))))))
+
+(defun playback-order (view id-map passes source)
+  "(pass . source-bar) for each bar of the unfolded VIEW."
+  (loop for bar from (score-first-bar view) to (score-last-bar view)
+        for id = (measure-id view bar)
+        collect (cons (fset:lookup passes id)
+                      (car (element-position source (fset:lookup id-map id))))))
+
+(defun order-runs (order)
+  "ORDER as runs of consecutive bars played on the same pass: (first last pass)."
+  (let ((runs '()))
+    (dolist (entry order)
+      (destructuring-bind (pass . bar) entry
+        (let ((run (first runs)))
+          (if (and run (= pass (third run)) (= bar (1+ (second run))))
+              (setf (second run) bar)
+              (push (list bar bar pass) runs)))))
+    (nreverse runs)))
+
+(defun demo-views ()
+  (para "A view is a pure function of a source score. It returns a new score and an ID"
+        "MAP, an FSet map from each view id that comes from the source to the source id."
+        "Elements carried over unchanged are the source's own objects (EQ). Elements a"
+        "view makes, and every copy after the first, get minted ids that continue the"
+        "source's counter. The view of a valid score is valid."
+        ""
+        "EXTRACT-PART takes a part or a voice. The view keeps the source's measure map,"
+        "every chord symbol, and the spanners whose two ends it keeps. The melody voice"
+        "on its own:")
+  (multiple-value-bind (melody id-map) (extract-part *hymn* (voice-id *hymn* 0))
+    (print-parts melody)
+    (format t "~%")
+    (show (eq (voice-at melody 0) (voice-at *hymn* 0)) t "already staff 1, stem NIL: the same voice")
+    (show (list (fset:size (score-spanners melody)) (fset:size (score-chord-symbols melody))) '(5 18)
+          "the five slurs, every chord symbol")
+    (show (list (fset:size id-map) (id-map-identity-p id-map)) '(147 t) "every id maps to itself")
+    (show (check-score melody) nil))
+  (format t "~%")
+  (para "The bass voice moves from staff 2 to staff 1 of a part with one staff, the bass"
+        "clef. The voice is rebuilt, since its STAFF changed, but its events are the"
+        "source's. No slur has both ends in the bass:")
+  (multiple-value-bind (bass) (extract-part *hymn* (voice-id *hymn* 1))
+    (print-parts bass)
+    (format t "~%")
+    (show (every #'eq (voice-events (voice-at bass 0)) (voice-events (voice-at *hymn* 1))) t)
+    (show (fset:size (score-spanners bass)) 0))
+  (show (multiple-value-bind (whole) (extract-part *hymn* (element-id (fset:first (score-parts *hymn*))))
+          (list (score-equal whole *hymn*) (eq (fset:first (score-parts whole)) (fset:first (score-parts *hymn*)))))
+        '(t t) "the whole part: the hymn again")
+  (show-signal (extract-part *hymn* "v-zz") unknown-element)
+  (show (multiple-value-bind (view)
+            (handler-bind ((unknown-element (lambda (c) (use-value (voice-id *hymn* 1) c))))
+              (extract-part *hymn* "v-zz"))
+          (voice-name (voice-at view 0)))
+        "Bass" "USE-VALUE: another id")
+  (format t "~%")
+  (para "CONDENSED-VIEW puts up to four voices on two staves, the hymnal reduction. The"
+        "hymn has two voices, so this uses a four-part fragment of OLD HUNDREDTH: the"
+        "first line of Louis Bourgeois's melody (1551), with an alto, tenor and bass"
+        "written for this demo. It is an open score, with one part per voice:")
+  (let ((chorale (build-chorale)))
+    (print-parts chorale)
+    (format t "~%")
+    (show (check-score chorale) nil)
+    (show (score-id-counter chorale) 47)
+    (format t "~%")
+    (para "The condensed view has one new part with a treble and a bass staff. Soprano"
+          "and alto share staff 1, tenor and bass share staff 2. The upper voice of each"
+          "staff gets STEM :UP and the lower STEM :DOWN. The part, minted, has no name,"
+          "since the voices come from four parts:")
+    (multiple-value-bind (condensed id-map) (condensed-view chorale)
+      (print-parts condensed)
+      (format t "~%")
+      (let ((part (fset:first (score-parts condensed))))
+        (show (list (element-id part) (mapcar #'element-id (part-staves part))) '("p-1c" ("st-1d" "st-1e"))
+              "serials 48-50"))
+      (show (every #'eq (all-events condensed) (all-events chorale))
+            t "every event is the source's")
+      (show (every #'eq (fset:convert 'list (score-measure-map condensed))
+                   (fset:convert 'list (score-measure-map chorale)))
+            t "the source's measures")
+      (show (list (fset:size id-map) (id-map-identity-p id-map)) '(39 t)
+            "3 measures, 4 voices, 32 notes; not the part or staves")
+      (show (check-score condensed) nil)
+      (format t "~%")
+      (para "And EXTRACT-PART of a voice of the condensed view gives the alto line on its"
+            "own staff, with STEM NIL again:")
+      (multiple-value-bind (alto) (extract-part condensed (element-id (second (all-voices condensed))))
+        (print-parts alto)
+        (show (every #'eq (voice-events (voice-at alto 0)) (voice-events (second (all-voices chorale)))) t)))
+    (show-signal (condensed-view chorale :voices (let ((s (element-id (first (all-voices chorale))))) (list s s)))
+                 score-error))
+  (format t "~%")
+  (para "UNFOLD expands repeats, endings and jumps into playback order. For a score with"
+        "all three, one composite edit turns the hymn into an A B A form. A Fine goes on"
+        "the second ending (bar 17). Then come a four-bar interlude (rehearsal C, bars"
+        "18-21, appended with INSERT-MEASURES) and a D.C. al Fine on its last bar. The"
+        "interlude's chords are added too:")
+  (multiple-value-bind (form changes) (apply-edit *hymn* (form-edit *hymn*))
+    (setf *form* form)
+    (print-change-set *hymn* form changes)
+    (format t "~%")
+    (out "  bar  id     marks~%")
+    (dolist (bar '(0 1 9 16 17 18 21))
+      (out "  ~3d  ~5a  ~a~%" bar (measure-id form bar) (measure-marks-text (bar-measure form bar))))
+    (format t "~%")
+    (print-bar-table form '(18 19 20 21))
+    (show (check-score form) nil))
+  (format t "~%")
+  (para "The walk plays bars 0-16 and repeats from bar 1, where the repeat starts. On the"
+        "second pass it skips the first ending and plays the second (bar 17). Fine"
+        "doesn't stop it yet, because no jump has asked for it. It goes on through the"
+        "interlude, and D.C. al Fine sends it back to the start. After a jump, repeats"
+        "are not taken again and only the last ending of each group is played, so it"
+        "plays 0-15 and bar 17 again, then stops at the Fine. PASS counts how many times"
+        "a source measure has been played. The playback order, as (pass . bar) for each"
+        "bar of the view:")
+  (multiple-value-bind (view id-map passes) (unfold *form*)
+    (let ((order (playback-order view id-map passes *form*)))
+      (print-items "order" (mapcar (lambda (entry) (format nil "(~d . ~d)" (car entry) (cdr entry))) order))
+      (format t "~%")
+      (print-items "runs" (mapcar (lambda (run)
+                                    (destructuring-bind (first last pass) run
+                                      (if (= first last)
+                                          (format nil "~d (pass ~d)" first pass)
+                                          (format nil "~d-~d (pass ~d)" first last pass))))
+                                  (order-runs order)))
+      (format t "~%")
+      (check (order-runs order) '((0 16 1) (1 15 2) (17 21 1) (0 0 2) (1 15 3) (17 17 2)) "playback runs")
+      (show (length order) 54)
+      (show (score-duration view) 79/2 "whole notes of playback")
+      (show (fset:size (score-parts view)) 1)
+      (show (loop for measure in (fset:convert 'list (score-measure-map view))
+                  never (or (measure-info-repeat-start measure) (measure-info-repeat-end measure)
+                            (measure-info-ending measure) (measure-info-jump measure)))
+            t "no repeat signs, endings or jumps left")
+      (show (check-score view) nil)
+      (format t "~%")
+      (para "Each view bar is a copy of its source bar. Repeat signs, endings and jump marks"
+            "are gone, since the view has nothing left to navigate. The first copy of an"
+            "element keeps its id, and later copies get minted ids (the source's counter"
+            "was 197). The id map sends every copy to its source, and PASSES gives its"
+            "pass. So a playback cursor at a view onset knows the source element and the"
+            "pass, which is enough for a score follower to highlight the note, or to pick"
+            "the verse. The melody's onset -> element-id map at the turns of the walk:")
+      (out "  view bar  source bar  pass  onset    view id  source id  note~%")
+      (let ((none (make-hash-table)))
+        (dolist (bar '(15 16 17 32 33 36 37 53))
+          (dolist (event (fset:convert 'list (fset:lookup (voice-measures (voice-at view 0)) bar)))
+            (let ((id (element-id event)))
+              (out "  ~8d  ~10d  ~4d  ~7a  ~7a  ~9a  ~a~%" bar
+                   (car (element-position *form* (fset:lookup id-map (measure-id view bar))))
+                   (fset:lookup passes id)
+                   (absolute-offset view (element-position view id))
+                   id (fset:lookup id-map id) (event-text event none none))))))
+      (format t "~%")
+      (show (fset:lookup id-map (melody-id view 17 0)) (melody-id *form* 1 0) "view bar 17 is bar 1 again")
+      (show (fset:lookup passes (melody-id view 38 0)) 3 "bar 1 for the third time, after the D.C.")
+      (show (list (score-id-counter *form*) (score-id-counter view)) '(197 501))
+      (show (score-equal (unfold view) view) t "unfolding a view gives the same measures again")))
+  (format t "~%")
+  (para "The hymn alone, with its repeat and two endings and no jump, unfolds to 33 bars:")
+  (multiple-value-bind (view id-map passes) (unfold *hymn*)
+    (show (order-runs (playback-order view id-map passes *hymn*)) '((0 16 1) (1 15 2) (17 17 1))
+          "(first last pass)")))
+
 ;;; Running -------------------------------------------------------------------------
 
 (defun run-demos ()
   "Print the tour. Returns T when every check matched and no section failed."
   (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '()))
-    (format t "~&score-protocol ~a (slice SC0, the canonical score model) on music-theory ~a~%"
+    (format t "~&score-protocol ~a (slices SC0, the score model, and SC1, edits and views) on music-theory ~a~%"
             (asdf:component-version (asdf:find-system "score-protocol"))
             (asdf:component-version (asdf:find-system "music-theory")))
     (section "1. Building a score: a hymn tune in code" (demo-build))
@@ -1235,6 +2085,11 @@ elements of *RECOGNITION*."
     (section "4. Validation: CHECK-SCORE and VALIDATE-SCORE" (demo-validation))
     (section "5. Provenance and confidence" (demo-provenance))
     (section "6. The canonical s-expression form" (demo-sexp))
+    (section "7. Editing: operations as values" (demo-editing))
+    (section "8. Undo, composition and the canonical form of operations" (demo-undo))
+    (section "9. Re-barring with SET-TIME" (demo-rebarring))
+    (section "10. Transposition" (demo-transposition))
+    (section "11. Views: EXTRACT-PART, CONDENSED-VIEW and UNFOLD" (demo-views))
     (banner "Summary")
     (format t "~d results checked against expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"

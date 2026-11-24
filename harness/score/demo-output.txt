@@ -8,7 +8,7 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-score-protocol 0.1.0 (slice SC0, the canonical score model) on music-theory 0.4.0
+score-protocol 0.2.0 (slices SC0, the score model, and SC1, edits and views) on music-theory 0.5.0
 
 ========================================================================
 == 1. Building a score: a hymn tune in code
@@ -402,24 +402,26 @@ the last position, and a bar past the end to the score's duration:
 MAKE-SCORE accepts any score whose values have the right types. Whether they
 fit together is reported, not refused: CHECK-SCORE returns a list of
 SCORE-ISSUEs (kind, subject id, bar, detail) and never signals. The hymn has
-none. Here is a copy with four mistakes, each made with REPLACE-EVENT or
-REPLACE-MEASURE (demo.lisp: rebuild one element, keep its id):
+none. Here is a copy with four mistakes, each made with REBUILD-EVENT or
+REBUILD-MEASURE (demo.lisp: rebuild one element through COPY-SCORE, keep its
+id). The edit operations of section 7 can't make them: an edit that adds an
+issue is refused with EDIT-BREAKS-SCORE.
 
   (check-score *hymn*) => nil
 
 1. An overfull bar: the E4 quarter of bar 3 becomes a half note.
 
-  (setf *broken* (replace-event *broken* (copy-note (melody-at *broken* 3 1) :duration 1/2)))
+  (setf *broken* (rebuild-event *broken* (copy-note (melody-at *broken* 3 1) :duration 1/2)))
 
 2. A tie to a different pitch: the D5 that the bar-7 tie ends on becomes C5.
 
   (setf *broken*
-          (replace-event *broken* (copy-note (melody-at *broken* 8 0) :pitch (parse-pitch "C5"))))
+          (rebuild-event *broken* (copy-note (melody-at *broken* 8 0) :pitch (parse-pitch "C5"))))
 
 3. A lyric on a rest: the bass rest of the pickup gets a syllable.
 
   (setf *broken*
-          (replace-event *broken*
+          (rebuild-event *broken*
                          (make-rest-event :id (element-id (bass-at *broken* 0 0)) :duration 1/4
                                           :lyrics (list (make-lyric :text "Oh")))))
 
@@ -428,7 +430,7 @@ measures.
 
   (setf *broken*
           (let ((last (bar-measure *broken* 17)))
-            (replace-measure *broken*
+            (rebuild-measure *broken*
                              (copy-measure last :ending
                                            (make-ending :id
                                                         (element-id (measure-info-ending last))
@@ -662,7 +664,800 @@ and the reading goes on:
     => (3/4 nil)
 
 ========================================================================
+== 7. Editing: operations as values
+========================================================================
+SC1 makes every change to a score a value. An EDIT-OPERATION names one change
+and APPLY-EDIT returns (values new-score change-set). The score passed in never
+changes. The new one shares every untouched element with it. Operations name
+their targets by id, never by place, so a logged operation means the same
+thing after other edits. The change set lists the ids the edit CREATED,
+REMOVED and MODIFIED. An element is modified when its own slots change or its
+children's ids do. So when a note changes pitch, its voice is not modified.
+When a lyric's text changes, the note it sits on is not modified either.
+
+Seven edits on the hymn, each applied to the result of the one before. Each
+prints the operation's constructor call and its canonical form, the bars it
+touches, the change set, and how much of the old score the new one shares:
+
+1. SET-PITCH. Bar 15's A4 becomes F#4, a leading note into the last bar. The
+note keeps its id and its lyrics, and only the note is modified. The voice
+and the part above it are rebuilt to hold the new note. Every other element
+of the score is the old score's own object:
+
+  (make-set-pitch :id (melody-id score 15 1) :pitch (parse-pitch "F#4"))
+    => (:set-pitch :id "e-37" :pitch "F#4")
+
+  bar 15  before  B4:h A4:q
+          after   B4:h F#4:q
+
+  created   -
+  removed   -
+  modified  e-37 (F#4:q in bar 15)
+  EQ        172 of the 175 elements kept are the old objects
+  rebuilt   p-o, v-r, e-37
+  counter   175 -> 175
+
+  (eq (voice-at score 1) (voice-at *hymn* 1)) => t   ; the bass voice
+  (every #'eq (fset:convert 'list (score-measure-map score))
+         (fset:convert 'list (score-measure-map *hymn*)))
+    => t   ; every measure
+  (eq (melody-at score 15 0) (melody-at *hymn* 15 0)) => t   ; the B4 beside it
+
+2. SET-DURATION across a barline. Bar 12's E4, the end of a melisma, becomes a
+half note. It starts on the third beat, so it runs over the barline. The first
+piece is the note itself, with its id and its marks. The piece in bar 13 is a
+new note, and a new tie joins the two. The longer note covers the first beat
+of bar 13, so the D4 that started there is removed, and the rest of its time
+becomes a quarter rest. The slur that ended on that D4 has lost an endpoint,
+and the cascade removes it. The new ids continue the series. The counter was
+175, and the tie, the piece and the rest get serials 176, 177 and 178, in
+document order:
+
+  (make-set-duration :id (melody-id score 12 1) :duration 1/2)
+    => (:set-duration :id "e-2s" :duration 1/2)
+
+  bar 12  before  G4:h( E4:q
+          after   G4:h E4:q~
+  bar 13  before  D4:h) D4:q
+          after   E4:q r:q D4:q
+
+  created   ti-4w (tie to e-4x), e-4x (E4:q in bar 13), e-4y (r:q in bar 13)
+  removed   e-2t (D4:h in bar 13), sp-4u (slur e-2p to e-2t)
+  modified  v-r (voice Melody), e-2s (E4:q~ in bar 12)
+  EQ        170 of the 173 elements kept are the old objects
+  rebuilt   p-o, v-r, e-2s
+  counter   175 -> 178
+
+  (mapcar #'id-serial (change-set-created (last-changes))) => (176 177 178)
+  (tie-end (note-tie (melody-at score 12 1))) => "e-4x"
+
+3. A shorter SET-DURATION. The final G4 of the second ending goes from a dotted
+half to a half. The time it gave up is a gap, and the gap is filled with a
+quarter rest. Its fermata and its lyric stay on the note:
+
+  (make-set-duration :id (melody-id score 17 0) :duration 1/2)
+    => (:set-duration :id "e-3e" :duration 1/2)
+
+  bar 17  before  G4:h.^
+          after   G4:h^ r:q
+
+  created   e-4z (r:q in bar 17)
+  removed   -
+  modified  v-r (voice Melody), e-3e (G4:h^ in bar 17)
+  EQ        173 of the 176 elements kept are the old objects
+  rebuilt   p-o, v-r, e-3e
+  counter   178 -> 179
+
+4. INSERT-EVENT into a full bar. Bar 16, the first ending, holds G4 h and D4 q.
+An E4 eighth goes in before the D4. Everything after it in the bar moves an
+eighth later. That would make the bar an eighth too long, and there is no
+trailing rest to absorb it. So APPLY-EDIT signals MEASURE-OVERFULL, with the
+voice, the bar and the excess:
+
+  (apply-edit score op)
+    -> measure-overfull: invalid edit #<insert-event>: voice "v-r" overfills bar 16 by 1/8
+  (handler-case (apply-edit score op)
+                (measure-overfull (c)
+                 (list (measure-overfull-voice c) (measure-overfull-bar c)
+                       (measure-overfull-excess c))))
+    => ("v-r" 16 1/8)
+  (restarts-around (lambda () (apply-edit score op)) 'measure-overfull)
+    => (reflow skip-edit use-value)
+
+The REFLOW restart applies the same operation with REFLOW true. The E4 takes
+its eighth, and the rest of the voice moves an eighth later and re-flows into
+the bars. The D4 now crosses the barline, so it becomes two tied eighths. The
+G4 of bar 17 moves, keeping its id. The quarter rest from step 3 is cut at
+the end of the score, and what is left becomes a new eighth rest. REFLOW
+follows the voice's time line bar after bar, so it pushes music from the first
+ending into the second. Without the rest at the end, a note would be pushed
+past the end of the score, which is EDIT-POSITION-INVALID.
+
+  (score-equal reflowed
+               (apply-edit score
+                           (make-insert-event :voice (edit-voice op) :measure
+                                              (edit-measure op) :offset 1/2 :event
+                                              (edit-event op) :reflow t)))
+    => t   ; the restart = the operation with :reflow t
+
+  (make-insert-event :voice (voice-id score 0) :measure (measure-id score 16) :offset
+                     1/2 :event
+                     (make-note-event :pitch (parse-pitch "E4") :duration 1/8)
+                     :reflow t)
+    => (:insert-event :voice "v-r" :measure "m-k" :offset 1/2 :event
+        (:note :pitch "E4" :duration 1/8) :reflow t)
+
+  bar 16  before  G4:h D4:q
+          after   G4:h E4:e D4:e~
+  bar 17  before  G4:h^ r:q
+          after   D4:e G4:h^ r:e
+
+  created   e-50 (E4:e in bar 16), ti-51 (tie to e-52), e-52 (D4:e in bar 17),
+            e-53 (r:e in bar 17)
+  removed   e-4z (r:q in bar 17)
+  modified  v-r (voice Melody), e-3c (D4:e~ in bar 16)
+  EQ        173 of the 176 elements kept are the old objects
+  rebuilt   p-o, v-r, e-3c
+  counter   179 -> 183
+
+5. ADD-SPANNER: a slur over the new E4 and the D4. A spanner joins the end of
+SCORE-SPANNERS. Spanners are children of the score, which has no id, so
+nothing is modified and nothing is rebuilt:
+
+  (make-add-spanner :spanner
+                    (make-spanner :kind :slur :start (melody-id score 16 1) :end
+                                  (melody-id score 16 2)))
+    => (:add-spanner :spanner (:spanner :kind :slur :start "e-50" :end "e-3c"))
+
+  bar 16  before  G4:h E4:e D4:e~
+          after   G4:h E4:e( D4:e~)
+
+  created   sp-54 (slur e-50 to e-3c)
+  removed   -
+  modified  -
+  EQ        180 of the 180 elements kept are the old objects
+  rebuilt   -
+  counter   183 -> 184
+
+6. ADD-MARK: a fermata on "see.", the last note of verse 1. The note is
+modified, because a child was added to it:
+
+  (make-add-mark :target (melody-id score 16 0) :mark (make-fermata))
+    => (:add-mark :target "e-3a" :mark (:fermata))
+
+  bar 16  before  G4:h E4:e( D4:e~)
+          after   G4:h^ E4:e( D4:e~)
+
+  created   fe-55 (fermata)
+  removed   -
+  modified  e-3a (G4:h^ in bar 16)
+  EQ        178 of the 181 elements kept are the old objects
+  rebuilt   p-o, v-r, e-3a
+  counter   184 -> 185
+
+7. Setting a lyric is ADD-MARK of a LYRIC. Many hymnals change "saved a wretch
+like me" to "saved a soul like me". A lyric of the same verse on the note is
+replaced, and the new lyric, built without an id, takes the old one's id
+(ly-1s). So the lyric is modified, but the note is not, because its shallow
+form holds only the lyric's id. The note is still a new object, since it holds
+a new lyric:
+
+  (make-add-mark :target (melody-id score 6 0) :mark
+                 (make-lyric :verse 1 :text "soul"))
+    => (:add-mark :target "e-1r" :mark (:lyric :text "soul"))
+
+  created   -
+  removed   -
+  modified  ly-1s (lyric "soul")
+  EQ        178 of the 182 elements kept are the old objects
+  rebuilt   p-o, v-r, e-1r, ly-1s
+  counter   185 -> 185
+
+  (mapcar #'lyric-text (event-lyrics (melody-at score 6 0))) => ("soul" "fears")
+  (mapcar #'element-id (event-lyrics (melody-at score 6 0))) => ("ly-1s" "ly-1t")
+
+The hymn after the seven edits (compare section 1):
+
+  bar  chords      melody              verse 1     verse 2         bass
+    0  N.C.        D4:q[mp]            A-                          r:q
+    1  G           G4:h B4:e( G4:e)    maz- ing_   grace that_     G2:h.[mp]
+    2  G7/B@1/2    B4:h A4:q           grace! how  taught my       G2:h B2:q
+    3  C           G4:h E4:q           sweet the   heart to        C3:h.
+    4  G           D4:h D4:q           sound That  fear, And       G2:h.
+    5              G4:h B4:e( G4:e)    saved a_    grace my_       G2:h.
+    6  Em          B4:h A4:q           soul like   fears re-       E2:h.
+    7  D           D5:h.~              me!_        lieved;_        D2:h.
+    8  D7/F#       D5:h' B4:q[mf]      I           How             F#2:h.
+    9  G           D5:h B4:e( D5:e)    once was_   pre- cious_     G2:h.
+   10  G7/B@1/2    B4:h G4:q           lost, but   did that        G2:h B2:q
+   11  C           D4:h E4:q           now am      grace ap-       C3:h.
+   12  G Em@1/2    G4:h E4:q~          found;_     pear_           G2:h E2:q
+   13  D           E4:q r:q D4:q       Was         The             D2:h.
+   14  G           G4:h B4:e( G4:e)    blind, but_ hour I_         G2:h.
+   15  D7          B4:h F#4:q          now I       first be-       D2:h.
+   16  G           G4:h^ E4:e( D4:e~)  see.        'Twas           G2:h r:q
+   17  G           D4:e G4:h^ r:e                  lieved!         <G2 D3>:h.^
+
+  (score-id-counter *edited*) => 185
+  (length (score-elements *edited*)) => 182   ; 175 + 9 created - 2 removed
+  (check-score *edited*) => nil
+
+Refusals. A failed precondition or rule is an INVALID-EDIT, a SCORE-ERROR that
+names the operation. Some failures have their own subtype. Every refusal is
+signalled before anything changes, inside the restarts SKIP-EDIT and USE-VALUE:
+
+  (apply-edit *hymn* (make-set-pitch :id "e-zz" :pitch (parse-pitch "C5")))
+    -> edit-target-missing: invalid edit #<set-pitch>: no element with id "e-zz"
+  (apply-edit *hymn*
+              (make-set-pitch :id (voice-id *hymn* 0) :pitch (parse-pitch "C5")))
+    -> invalid-edit: invalid edit #<set-pitch>: v-r is not a note
+  (apply-edit *hymn*
+              (make-insert-event :voice (voice-id *hymn* 0) :measure
+                                 (measure-id *hymn* 5) :offset 1/4 :event
+                                 (make-note-event :pitch (parse-pitch "A4") :duration
+                                                  1/8)))
+    -> edit-position-invalid: invalid edit #<insert-event>: position (5 . 1/4): not an event boundary of the voice measure
+  (apply-edit *hymn*
+              (make-add-mark :target (element-id (bass-at *hymn* 0 0)) :mark
+                             (make-lyric :text "Oh")))
+    -> edit-breaks-score: invalid edit #<add-mark>: 1 new issue, first #S(score-issue :kind :misplaced-lyric :id "ly-4w" :bar 0 :detail nil)
+  (typep (make-condition 'edit-breaks-score) 'score-invariant-violation) => t
+  (typep (make-condition 'edit-target-missing) 'unknown-element) => t
+
+SKIP-EDIT returns the score as it was, with an empty change set. USE-VALUE
+applies another operation instead:
+
+  (multiple-value-bind (score changes)
+      (handler-bind ((invalid-edit #'skip-edit))
+        (apply-edit *hymn* (make-set-pitch :id "e-zz" :pitch (parse-pitch "C5"))))
+    (list (eq score *hymn*) (change-set-empty-p changes)))
+    => (t t)
+  (multiple-value-bind (score changes)
+      (handler-bind ((edit-target-missing
+                      (lambda (c)
+                        (use-value
+                         (make-set-pitch :id (melody-id *hymn* 15 1) :pitch
+                                         (parse-pitch "F#4"))
+                         c))))
+        (apply-edit *hymn* (make-set-pitch :id "e-zz" :pitch (parse-pitch "F#4"))))
+    (list (bar-text score 0 15) (change-set-modified changes)))
+    => ("B4:h F#4:q" ("e-37"))
+
+========================================================================
+== 8. Undo, composition and the canonical form of operations
+========================================================================
+INVERT-EDIT score op returns an operation that undoes OP on SCORE. It is read
+off the pair (before, after), so it undoes what was actually applied, whatever
+restart or cascade led there, and it restores removed elements with their own
+ids. It is built from the library's own classes, mostly restore-style
+operations in a COMPOSITE-EDIT, so it serialises like any other operation.
+
+The inverse of each step of section 7, taken on the score the step was applied
+to:
+
+  step  operation       inverse: ops  form size  kinds
+     1  set-pitch                  1        559  set-voice-measures
+     2  set-duration              61      16946  remove-chord-symbol remove-spanner
+                                               set-voice-measures replace-measure
+                                               add-chord-symbol add-spanner
+     3  set-duration               1        351  set-voice-measures
+     4  insert-event               1        798  set-voice-measures
+     5  add-spanner                1         69  remove-spanner
+     6  add-mark                   1        676  set-voice-measures
+     7  add-mark                   1        565  set-voice-measures
+
+Most inverses are a single restore. Step 1's restores bar 15 of the melody as it
+was, with the note's own id, lyrics and provenance:
+
+  (:composite :ops
+   ((:set-voice-measures :voice "v-r" :measure "m-j" :measures
+     (((:note :id "e-34" :pitch "B4" :duration 1/2 :lyrics
+        ((:lyric :id "ly-35" :text "now")
+         (:lyric :id "ly-36" :verse 2 :text "first")))
+       (:note :id "e-37" :pitch "A4" :duration 1/4 :lyrics
+        ((:lyric :id "ly-38" :text "I")
+         (:lyric :id "ly-39" :verse 2 :text "be" :syllabic :begin))))))))
+
+Step 2's inverse holds 61 operations. It removes every chord symbol, silences
+both voices, strips the measures and puts all of it back. The step removed a
+slur from the middle of SCORE-SPANNERS, and the direct restore (remove the
+spanners after it, add them back) was judged to collide with itself. It
+doesn't, since the removals run first. The result is still exact, as the next
+lines show, but the inverse is the size of the score: score-protocol#7.
+
+Undo: the inverses applied in reverse order, newest first. Each one gives a
+score SCORE-EQUAL to the score before its step. Its change set mirrors the
+step's: CREATED is the step's REMOVED, REMOVED its CREATED, and MODIFIED holds
+the same ids:
+
+  undo step 7: score-equal to the score before it: t; change set mirrored: t
+  undo step 6: score-equal to the score before it: t; change set mirrored: t
+  undo step 5: score-equal to the score before it: t; change set mirrored: t
+  undo step 4: score-equal to the score before it: t; change set mirrored: t
+  undo step 3: score-equal to the score before it: t; change set mirrored: t
+  undo step 2: score-equal to the score before it: t; change set mirrored: t
+  undo step 1: score-equal to the score before it: t; change set mirrored: t
+
+  (score-equal score *hymn*) => t   ; back to the hymn of section 1
+  (eq score *hymn*) => nil   ; an equal value, not the same object
+  (score-id-counter score) => 185   ; serials are never reused
+
+COMPOSE-EDITS makes one operation of several. Its members are applied in
+order, each to the score the one before produced. The cascade and the check
+run once, at the end. The seven steps as one operation:
+
+  (:composite :ops
+   ((:set-pitch :id "e-37" :pitch "F#4") (:set-duration :id "e-2s" :duration 1/2)
+    (:set-duration :id "e-3e" :duration 1/2)
+    (:insert-event :voice "v-r" :measure "m-k" :offset 1/2 :event
+     (:note :pitch "E4" :duration 1/8) :reflow t)
+    (:add-spanner :spanner (:spanner :kind :slur :start "e-50" :end "e-3c"))
+    (:add-mark :target "e-3a" :mark (:fermata))
+    (:add-mark :target "e-1r" :mark (:lyric :text "soul"))))
+
+  (score-equal after *edited*) => t   ; the same score as step by step
+
+  created   ti-4w (tie to e-4x), e-4x (E4:q in bar 13), e-4y (r:q in bar 13),
+            fe-55 (fermata), e-50 (E4:e in bar 16), ti-51 (tie to e-52),
+            e-52 (D4:e in bar 17), e-53 (r:e in bar 17), sp-54 (slur e-50 to e-3c)
+  removed   e-2t (D4:h in bar 13), sp-4u (slur e-2p to e-2t)
+  modified  v-r (voice Melody), ly-1s (lyric "soul"), e-2s (E4:q~ in bar 12),
+            e-37 (F#4:q in bar 15), e-3a (G4:h^ in bar 16), e-3c (D4:e~ in bar 16),
+            e-3e (G4:h^ in bar 17)
+
+The composite's change set runs from the hymn to the result. The rest made in
+step 3 and cut in step 4 doesn't appear in it. Its inverse is again one
+operation, and it undoes all seven steps:
+
+  (score-equal (apply-edit after (invert-edit *hymn* composite)) *hymn*) => t
+  (eq (compose-edits (first ops)) (first ops)) => t   ; one operation is itself
+  (length (edit-ops (compose-edits composite (first ops))))
+    => 8   ; composites are spliced
+  (multiple-value-bind (score changes)
+      (apply-edit *hymn* (compose-edits))
+    (list (score-equal score *hymn*) (change-set-empty-p changes)))
+    => (t t)   ; the empty composite
+
+EDIT-TO-SEXP writes an operation in the canonical form, the way sexp.lisp
+writes elements: the kind keyword, then the slots as keys in a fixed order,
+with the defaults left out. Given elements are element forms, and pitches,
+meters, keys and intervals are music-theory text. The text is read back with
+*READ-EVAL* NIL and SEXP-TO-EDIT. The copy writes the same form, and it
+applies to the hymn exactly as the original does:
+
+  (length text) => 637   ; characters
+  (equal (edit-to-sexp copy) form) => t
+  (eq copy composite) => nil
+  (list (score-equal a b) (equalp ca cb))
+    => (t t)   ; equal scores, equal change sets
+  (every
+   (lambda (inverse)
+     (equal (edit-to-sexp (sexp-to-edit (edit-to-sexp inverse)))
+            (edit-to-sexp inverse)))
+   inverses)
+    => t   ; the inverses round-trip too
+
+A form with an unknown kind or key signals SCORE-FORMAT-ERROR (FORMAT :SEXP),
+with the offending form as POSITION:
+
+  (:set-pitch :id "e-37" :pitch "F#4" :colour :red)
+    -> score-format-error: sexp format error: unknown key :COLOUR at (:set-pitch :id "e-37" :pitch "F#4" :colour :red)
+       position: (:set-pitch :id "e-37" :pitch "F#4" :colour :red)
+  (:set-pitches :id "e-37" :pitch "F#4")
+    -> score-format-error: sexp format error: expected an operation form at (:set-pitches :id "e-37" :pitch "F#4")
+       position: (:set-pitches :id "e-37" :pitch "F#4")
+  (:composite :ops
+   ((:set-pitch :id "e-37" :pitch "F#4")
+    (:add-mark :target "e-3a" :mark (:fermata :shape))))
+    -> score-format-error: sexp format error: not a property list at (:fermata :shape)
+       position: (:fermata :shape)
+
+========================================================================
+== 9. Re-barring with SET-TIME
+========================================================================
+SET-TIME re-bars a region of the score. The region runs from the measure to the
+next measure that has a time signature of its own. In the hymn only bar 0 has
+one, so a SET-TIME on bar 1 would re-bar the whole tune. Giving bar 5 its own
+3/4 first ends the region at bar 4. That changes only bar 5's measure:
+
+  (change-set-modified changes) => ("m-8")
+  (meter-string (measure-info-time (bar-measure bounded 5))) => "3/4"
+
+3/4 to 6/8 on bars 1-4. A 6/8 bar holds six eighths, the same length as a 3/4
+bar. Every barline stays where it was, so the measures are kept, nothing
+moves and nothing is tied. Only bar 1's own TIME changes. Beaming and beat
+grouping are left to the engraver:
+
+  (list (change-set-created changes) (change-set-removed changes)
+        (change-set-modified changes))
+    => (nil nil ("m-3"))
+  (loop for bar from 1 to 4
+        always (and
+                (eq (fset:lookup (voice-measures (voice-at six-eight 0)) bar)
+                    (fset:lookup (voice-measures (voice-at bounded 0)) bar))
+                (eq (fset:lookup (voice-measures (voice-at six-eight 1)) bar)
+                    (fset:lookup (voice-measures (voice-at bounded 1)) bar))))
+    => t   ; bars 1-4 of both voices are the same objects
+  (mapcar (lambda (bar) (meter-string (bar-time six-eight bar))) '(1 2 3 4 5))
+    => ("6/8" "6/8" "6/8" "6/8" "3/4")
+
+3/4 to 2/4 on the same bars. The region lasts 3 whole notes, which makes six
+bars of 2/4. Every voice keeps its time line, and the music re-flows into the
+new bars. A measure is kept when a new bar starts where it started: bar 1
+(offset 0) and old bar 3 (offset 3/2) keep their ids, and with them anything
+on them. Old bars 2 and 4 started inside a new bar, so they are removed. The
+other four bars are new measures. A note that now crosses a barline is split
+into tied pieces, so ties flow across the new barlines. Chord symbols in the
+region keep their absolute offsets: G7/B moves from (2 . 1/2) to (3 . 1/4).
+Those after the region stay with their measures, two bars later. Before and
+after:
+
+  bar  id     time  melody                  bass               chords
+    0  m-1    3/4   D4:q[mp]                r:q                N.C.
+    1  m-3    3/4   G4:h B4:e( G4:e)        G2:h.[mp]          G
+    2  m-5    3/4   B4:h A4:q               G2:h B2:q          G7/B@1/2
+    3  m-6    3/4   G4:h E4:q               C3:h.              C
+    4  m-7    3/4   D4:h D4:q               G2:h.              G
+    5  m-8    3/4   G4:h B4:e( G4:e)        G2:h.
+    6  m-9    3/4   B4:h A4:q               E2:h.              Em
+
+  bar  id     time  melody                  bass               chords
+    0  m-1    3/4   D4:q[mp]                r:q                N.C.
+    1  m-3    2/4   G4:h                    G2:h~[mp]          G
+    2  m-4w   2/4   B4:e( G4:e) B4:q~       G2:q G2:q~
+    3  m-4x   2/4   B4:q A4:q               G2:q B2:q          G7/B@1/4
+    4  m-6    2/4   G4:h                    C3:h~              C
+    5  m-4y   2/4   E4:q D4:q~              C3:q G2:q~         G@1/4
+    6  m-4z   2/4   D4:q D4:q               G2:h
+    7  m-8    3/4   G4:h B4:e( G4:e)        G2:h.
+    8  m-9    3/4   B4:h A4:q               E2:h.              Em
+
+  created   m-4w (bar 2), m-4x (bar 3), m-4y (bar 5), m-4z (bar 6),
+            ti-50 (tie to e-51), e-51 (B4:q in bar 3), ti-52 (tie to e-53),
+            e-53 (D4:q in bar 6), ti-54 (tie to e-55), e-55 (G2:q in bar 2),
+            ti-56 (tie to e-57), e-57 (G2:q in bar 3), ti-58 (tie to e-59),
+            e-59 (C3:q in bar 5), ti-5a (tie to e-5b), e-5b (G2:h in bar 6)
+  removed   m-5 (bar 2), m-7 (bar 4)
+  modified  m-3 (bar 1), v-r (voice Melody), e-12 (B4:q~ in bar 2),
+            e-1e (D4:q~ in bar 5), v-3h (voice Bass), e-3j (G2:h~[mp] in bar 1),
+            e-3l (G2:q~ in bar 2), e-3n (C3:h~ in bar 4), e-3o (G2:q~ in bar 5),
+            h-4a (G7/B in bar 3), h-4b (C in bar 4), h-4c (G in bar 5),
+            h-4d (Em in bar 8), h-4e (D in bar 9), h-4f (D7/F# in bar 10),
+            h-4g (G in bar 11), h-4h (G7/B in bar 12), h-4i (C in bar 13),
+            h-4j (G in bar 14), h-4k (Em in bar 14), h-4l (D in bar 15),
+            h-4m (G in bar 16), h-4n (D7 in bar 17), h-4o (G in bar 18),
+            h-4p (G in bar 19)
+
+  (score-last-bar two-four) => 19
+  (mapcar (lambda (bar) (measure-id two-four bar)) '(1 4 7))
+    => ("m-3" "m-6" "m-8")   ; kept: old bars 1 and 3, and bar 5
+  (count-if (lambda (id) (string= (id-prefix id) "ti")) (change-set-created changes))
+    => 6   ; new ties: 2 in the melody, 4 in the bass
+  (mapcar (lambda (bar) (bar-chords two-four bar)) '(3 4 5))
+    => ("G7/B@1/4" "C" "G@1/4")
+  (check-score two-four) => nil
+  (score-equal
+   (apply-edit two-four
+               (invert-edit bounded
+                            (make-set-time :measure (measure-id bounded 1) :time
+                                           (parse-meter "2/4"))))
+   bounded)
+    => t   ; and it undoes
+
+A refusal. SET-TIME on bar 8 to 2/4 would re-bar bars 8-17. Bar 9 starts 3/4
+after bar 8, inside a 2/4 bar, so it would be removed. But bar 9 carries
+rehearsal mark B, and re-barring would lose it. Bar 17, with the second
+ending, would go the same way. The operation is refused before anything
+changes:
+
+  (apply-edit *hymn* op)
+    -> invalid-edit: invalid edit #<set-time>: re-barring would remove a measure with a key, a repeat, an ending, a jump or a rehearsal mark
+  (handler-case (apply-edit *hymn* op) (invalid-edit (c) (eq (invalid-edit-op c) op)))
+    => t   ; the condition names the operation
+  (multiple-value-bind (score changes)
+      (handler-bind ((invalid-edit #'skip-edit))
+        (apply-edit *hymn* op))
+    (list (eq score *hymn*) (change-set-empty-p changes)))
+    => (t t)   ; SKIP-EDIT
+
+========================================================================
+== 10. Transposition
+========================================================================
+TRANSPOSE moves the notes, the key signatures and the chord symbols. The
+spelling comes from music-theory 0.5.0. For an interval it is TRANSPOSE-PITCH
+and TRANSPOSE-CHORD-SYMBOL. For a target key it is TRANSPOSE-TO-KEY, whose
+letter moves at most three steps. Every note keeps its id and its accidental
+display. A chord symbol loses its TEXT, so it prints from its parts.
+
+Up a major second: G major becomes A major.
+
+  (interval-name m2) => "M2"
+  (key-name (bar-key up 0)) => "A major"
+  before    N.C., G, G7/B@1/2, C, G, Em, D, D7/F#, G, G7/B@1/2, C, G, Em@1/2, D, G,
+            D7, G, G
+  after     N.C., A, A7/C#@1/2, D, A, F#m, E, E7/G#, A, A7/C#@1/2, D, A, F#m@1/2, E,
+            A, E7, A, A
+
+  bar  id     time  melody                  bass               chords
+    7  m-a    3/4   E5:h.~                  E2:h.              E
+    8  m-b    3/4   E5:h' C#5:q[mf]         G#2:h.             E7/G#
+
+  (list (length (change-set-created changes)) (length (change-set-removed changes))
+        (length (change-set-modified changes)))
+    => (0 0 77)   ; 58 notes and chord notes, 18 chord symbols, bar 0's key
+  (tie-end (note-tie (melody-at up 7 0))) => "e-20"   ; the tie still joins E5 to E5
+  (check-score up) => nil
+
+To a key. With TO-KEY, every pitch goes from the key in force at FROM (G major)
+to TO-KEY by TRANSPOSE-TO-KEY: it keeps its scale degree and alteration. Chord
+symbols move the same way. G major to Ab major:
+
+  (key-name (bar-key ab 0)) => "Ab major"
+  after     N.C., Ab, Ab7/C@1/2, Db, Ab, Fm, Eb, Eb7/G, Ab, Ab7/C@1/2, Db, Ab, Fm@1/2,
+            Eb, Ab, Eb7, Ab, Ab
+
+  bar  id     time  melody                  bass               chords
+    7  m-a    3/4   Eb5:h.~                 Eb2:h.             Eb
+    8  m-b    3/4   Eb5:h' C5:q[mf]         G2:h.              Eb7/G
+   17  m-m    3/4   Ab4:h.^                 <Ab2 Eb3>:h.^      Ab
+
+  (check-score ab) => nil
+
+Up an augmented unison, G major becomes G# major, with eight sharps. That is
+not one of the 30 keys, and PARSE-KEY refuses it. For each key it moves,
+TRANSPOSE takes (choose-enharmonic-key K' :max-accidentals 7). That returns K'
+when K' is one of the 30 keys, and otherwise the one of them that sounds the
+same. Then it respells the notes and chord symbols from K' to that key. So
+the result is Ab major, spelled for Ab major, not G# major with eight sharps:
+
+  (parse-key "G# major")
+    -> invalid-key: invalid-key "G# major": signature beyond seven sharps or flats
+  (key-name (choose-enharmonic-key g-sharp :max-accidentals 7))
+    => "Ab major"   ; 4 flats, not 8 sharps
+  (key-signature (choose-enharmonic-key g-sharp)) => -4
+  (key-name (choose-enharmonic-key (parse-key "F# major")))
+    => "F# major"   ; 6 sharps: kept
+  (key-name (choose-enharmonic-key (parse-key "C# major"))) => "Db major"
+  (key-name (choose-enharmonic-key (parse-key "C# major") :max-accidentals 7))
+    => "C# major"
+  (key-name (bar-key a1 0)) => "Ab major"
+  (bar-text a1 0 8) => "Eb5:h' C5:q[mf]"
+  (score-equal a1 ab) => t   ; the same score as TO-KEY Ab major
+
+A range. FROM and TO limit the transposition to bars 9-15, the second half of
+the verse, up a major second. Bar 9 gets A major as its own key. Bar 16, the
+measure after TO, keeps its signatures: it gets G major as its own key, so the
+endings are still in G. Chord symbols move only inside the range:
+
+  bar  key       own key  melody
+    8  G major   -        D5:h' B4:q[mf]
+    9  A major   yes      E5:h C#5:e( E5:e)
+   10  A major   -        C#5:h A4:q
+   11  A major   -        E4:h F#4:q
+   12  A major   -        A4:h( F#4:q
+   13  A major   -        E4:h) E4:q
+   14  A major   -        A4:h C#5:e( A4:e)
+   15  A major   -        C#5:h B4:q
+   16  G major   yes      G4:h D4:q
+   17  G major   -        G4:h.^
+
+  chords    N.C., G, G7/B@1/2, C, G, Em, D, D7/F#, A, A7/C#@1/2, D, A, F#m@1/2, E, A,
+            E7, G, G
+  (mapcar (lambda (bar) (key-name (measure-info-key (bar-measure part-way bar))))
+          '(9 16))
+    => ("A major" "G major")
+  (check-score part-way) => nil
+
+Exactly one of INTERVAL and TO-KEY, and FROM not after TO:
+
+  (apply-edit *hymn*
+              (make-transpose :interval (parse-interval "M2") :to-key
+                              (parse-key "A major")))
+    -> invalid-edit: invalid edit #<transpose>: exactly one of INTERVAL and TO-KEY must be given
+  (apply-edit *hymn*
+              (make-transpose :interval (parse-interval "M2") :from
+                              (measure-id *hymn* 9) :to (measure-id *hymn* 3)))
+    -> edit-position-invalid: invalid edit #<transpose>: position 3: the range runs backwards
+
+========================================================================
+== 11. Views: EXTRACT-PART, CONDENSED-VIEW and UNFOLD
+========================================================================
+A view is a pure function of a source score. It returns a new score and an ID
+MAP, an FSet map from each view id that comes from the source to the source id.
+Elements carried over unchanged are the source's own objects (EQ). Elements a
+view makes, and every copy after the first, get minted ids that continue the
+source's counter. The view of a valid score is valid.
+
+EXTRACT-PART takes a part or a voice. The view keeps the source's measure map,
+every chord symbol, and the spanners whose two ends it keeps. The melody voice
+on its own:
+
+  part p-o "Melody", staves treble
+    voice v-r   Melody   staff 1  stem -      D4:q[mp] | G4:h B4:e G4:e | B4:h A4:q | G4:h E4:q | ...
+
+  (eq (voice-at melody 0) (voice-at *hymn* 0))
+    => t   ; already staff 1, stem NIL: the same voice
+  (list (fset:size (score-spanners melody)) (fset:size (score-chord-symbols melody)))
+    => (5 18)   ; the five slurs, every chord symbol
+  (list (fset:size id-map) (id-map-identity-p id-map))
+    => (147 t)   ; every id maps to itself
+  (check-score melody) => nil
+
+The bass voice moves from staff 2 to staff 1 of a part with one staff, the bass
+clef. The voice is rebuilt, since its STAFF changed, but its events are the
+source's. No slur has both ends in the bass:
+
+  part p-o "Bass", staves bass
+    voice v-3h  Bass     staff 1  stem -      r:q | G2:h.[mp] | G2:h B2:q | C3:h. | ...
+
+  (every #'eq (voice-events (voice-at bass 0)) (voice-events (voice-at *hymn* 1)))
+    => t
+  (fset:size (score-spanners bass)) => 0
+  (multiple-value-bind (whole)
+      (extract-part *hymn* (element-id (fset:first (score-parts *hymn*))))
+    (list (score-equal whole *hymn*)
+          (eq (fset:first (score-parts whole)) (fset:first (score-parts *hymn*)))))
+    => (t t)   ; the whole part: the hymn again
+  (extract-part *hymn* "v-zz")
+    -> unknown-element: no element with id "v-zz"
+  (multiple-value-bind (view)
+      (handler-bind ((unknown-element (lambda (c) (use-value (voice-id *hymn* 1) c))))
+        (extract-part *hymn* "v-zz"))
+    (voice-name (voice-at view 0)))
+    => "Bass"   ; USE-VALUE: another id
+
+CONDENSED-VIEW puts up to four voices on two staves, the hymnal reduction. The
+hymn has two voices, so this uses a four-part fragment of OLD HUNDREDTH: the
+first line of Louis Bourgeois's melody (1551), with an alto, tenor and bass
+written for this demo. It is an open score, with one part per voice:
+
+  part p-4 "Soprano", staves treble
+    voice v-6   Soprano  staff 1  stem -      G4:h | G4:q F#4:q E4:q D4:q | G4:q A4:q B4:h
+  part p-f "Alto", staves treble
+    voice v-h   Alto     staff 1  stem -      D4:h | D4:q D4:q B3:q B3:q | D4:q D4:q D4:h
+  part p-q "Tenor", staves treble-8vb
+    voice v-s   Tenor    staff 1  stem -      B3:h | B3:q A3:q G3:q G3:q | G3:q F#3:q G3:h
+  part p-11 "Bass", staves bass
+    voice v-13  Bass     staff 1  stem -      G2:h | B2:q D3:q E3:q G2:q | B2:q D3:q G2:h
+
+  (check-score chorale) => nil
+  (score-id-counter chorale) => 47
+
+The condensed view has one new part with a treble and a bass staff. Soprano
+and alto share staff 1, tenor and bass share staff 2. The upper voice of each
+staff gets STEM :UP and the lower STEM :DOWN. The part, minted, has no name,
+since the voices come from four parts:
+
+  part p-1c (no name), staves treble bass
+    voice v-6   Soprano  staff 1  stem up     G4:h | G4:q F#4:q E4:q D4:q | G4:q A4:q B4:h
+    voice v-h   Alto     staff 1  stem down   D4:h | D4:q D4:q B3:q B3:q | D4:q D4:q D4:h
+    voice v-s   Tenor    staff 2  stem up     B3:h | B3:q A3:q G3:q G3:q | G3:q F#3:q G3:h
+    voice v-13  Bass     staff 2  stem down   G2:h | B2:q D3:q E3:q G2:q | B2:q D3:q G2:h
+
+  (list (element-id part) (mapcar #'element-id (part-staves part)))
+    => ("p-1c" ("st-1d" "st-1e"))   ; serials 48-50
+  (every #'eq (all-events condensed) (all-events chorale))
+    => t   ; every event is the source's
+  (every #'eq (fset:convert 'list (score-measure-map condensed))
+         (fset:convert 'list (score-measure-map chorale)))
+    => t   ; the source's measures
+  (list (fset:size id-map) (id-map-identity-p id-map))
+    => (39 t)   ; 3 measures, 4 voices, 32 notes; not the part or staves
+  (check-score condensed) => nil
+
+And EXTRACT-PART of a voice of the condensed view gives the alto line on its
+own staff, with STEM NIL again:
+
+  part p-1c "Alto", staves treble
+    voice v-h   Alto     staff 1  stem -      D4:h | D4:q D4:q B3:q B3:q | D4:q D4:q D4:h
+  (every #'eq (voice-events (voice-at alto 0))
+         (voice-events (second (all-voices chorale))))
+    => t
+  (condensed-view chorale :voices
+                  (let ((s (element-id (first (all-voices chorale)))))
+                    (list s s)))
+    -> score-error: score-error: the voice "v-6" is given twice
+
+UNFOLD expands repeats, endings and jumps into playback order. For a score with
+all three, one composite edit turns the hymn into an A B A form. A Fine goes on
+the second ending (bar 17). Then come a four-bar interlude (rehearsal C, bars
+18-21, appended with INSERT-MEASURES) and a D.C. al Fine on its last bar. The
+interlude's chords are added too:
+
+  created   jm-4w (fine), m-4x (bar 18), rh-4y (rehearsal C), m-4z (bar 19),
+            m-50 (bar 20), m-51 (bar 21), jm-52 (da-capo-al-fine),
+            e-53 (B4:h in bar 18), e-54 (D5:q in bar 18), e-55 (C5:h in bar 19),
+            e-56 (A4:q in bar 19), e-57 (B4:h in bar 20), e-58 (G4:q in bar 20),
+            e-59 (A4:h. in bar 21), e-5a (G2:h. in bar 18), e-5b (C3:h. in bar 19),
+            e-5c (G2:h. in bar 20), e-5d (D3:h. in bar 21), h-5e (G in bar 18),
+            h-5f (C in bar 19), h-5g (G in bar 20), h-5h (D7 in bar 21)
+  removed   -
+  modified  m-m (bar 17), v-r (voice Melody), v-3h (voice Bass)
+
+  bar  id     marks
+    0  m-1    pickup Moderato q=84
+    1  m-3    |: rehearsal A
+    9  m-c    rehearsal B
+   16  m-k    [1. :| x2
+   17  m-m    [2. fine final barline
+   18  m-4x   rehearsal C
+   21  m-51   da-capo-al-fine final barline
+
+  bar  id     time  melody                  bass               chords
+   18  m-4x   3/4   B4:h D5:q               G2:h.              G
+   19  m-4z   3/4   C5:h A4:q               C3:h.              C
+   20  m-50   3/4   B4:h G4:q               G2:h.              G
+   21  m-51   3/4   A4:h.                   D3:h.              D7
+  (check-score form) => nil
+
+The walk plays bars 0-16 and repeats from bar 1, where the repeat starts. On the
+second pass it skips the first ending and plays the second (bar 17). Fine
+doesn't stop it yet, because no jump has asked for it. It goes on through the
+interlude, and D.C. al Fine sends it back to the start. After a jump, repeats
+are not taken again and only the last ending of each group is played, so it
+plays 0-15 and bar 17 again, then stops at the Fine. PASS counts how many times
+a source measure has been played. The playback order, as (pass . bar) for each
+bar of the view:
+
+  order     (1 . 0), (1 . 1), (1 . 2), (1 . 3), (1 . 4), (1 . 5), (1 . 6), (1 . 7),
+            (1 . 8), (1 . 9), (1 . 10), (1 . 11), (1 . 12), (1 . 13), (1 . 14),
+            (1 . 15), (1 . 16), (2 . 1), (2 . 2), (2 . 3), (2 . 4), (2 . 5), (2 . 6),
+            (2 . 7), (2 . 8), (2 . 9), (2 . 10), (2 . 11), (2 . 12), (2 . 13),
+            (2 . 14), (2 . 15), (1 . 17), (1 . 18), (1 . 19), (1 . 20), (1 . 21),
+            (2 . 0), (3 . 1), (3 . 2), (3 . 3), (3 . 4), (3 . 5), (3 . 6), (3 . 7),
+            (3 . 8), (3 . 9), (3 . 10), (3 . 11), (3 . 12), (3 . 13), (3 . 14),
+            (3 . 15), (2 . 17)
+
+  runs      0-16 (pass 1), 1-15 (pass 2), 17-21 (pass 1), 0 (pass 2), 1-15 (pass 3),
+            17 (pass 2)
+
+  (length order) => 54
+  (score-duration view) => 79/2   ; whole notes of playback
+  (fset:size (score-parts view)) => 1
+  (loop for measure in (fset:convert 'list (score-measure-map view))
+        never (or (measure-info-repeat-start measure)
+                  (measure-info-repeat-end measure) (measure-info-ending measure)
+                  (measure-info-jump measure)))
+    => t   ; no repeat signs, endings or jumps left
+  (check-score view) => nil
+
+Each view bar is a copy of its source bar. Repeat signs, endings and jump marks
+are gone, since the view has nothing left to navigate. The first copy of an
+element keeps its id, and later copies get minted ids (the source's counter
+was 197). The id map sends every copy to its source, and PASSES gives its
+pass. So a playback cursor at a view onset knows the source element and the
+pass, which is enough for a score follower to highlight the note, or to pick
+the verse. The melody's onset -> element-id map at the turns of the walk:
+
+  view bar  source bar  pass  onset    view id  source id  note
+        15          15     1  43/4     e-34     e-34       B4:h
+        15          15     1  45/4     e-37     e-37       A4:q
+        16          16     1  23/2     e-3a     e-3a       G4:h
+        16          16     1  12       e-3c     e-3c       D4:q
+        17           1     2  49/4     e-6j     e-v        G4:h
+        17           1     2  51/4     e-6m     e-y        B4:e
+        17           1     2  103/8    e-6p     e-11       G4:e
+        32          17     1  47/2     e-3e     e-3e       G4:h.^
+        33          18     1  97/4     e-53     e-53       B4:h
+        33          18     1  99/4     e-54     e-54       D5:q
+        36          21     1  53/2     e-59     e-59       A4:h.
+        37           0     2  109/4    e-8z     e-s        D4:q[mp]
+        53          17     2  155/4    e-bi     e-3e       G4:h.^
+
+  (fset:lookup id-map (melody-id view 17 0)) => "e-v"   ; view bar 17 is bar 1 again
+  (fset:lookup passes (melody-id view 38 0))
+    => 3   ; bar 1 for the third time, after the D.C.
+  (list (score-id-counter *form*) (score-id-counter view)) => (197 501)
+  (score-equal (unfold view) view)
+    => t   ; unfolding a view gives the same measures again
+
+The hymn alone, with its repeat and two endings and no jump, unfolds to 33 bars:
+
+  (order-runs (playback-order view id-map passes *hymn*))
+    => ((0 16 1) (1 15 2) (17 17 1))   ; (first last pass)
+
+========================================================================
 == Summary
 ========================================================================
-226 results checked against expected values: 0 mismatched.
+346 results checked against expected values: 0 mismatched.
 Every section ran to the end.
