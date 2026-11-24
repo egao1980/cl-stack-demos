@@ -1,0 +1,254 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (2 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+; compiling file "~/Projects/cl-workspace/.worktrees/clrepo/cl-stack-demos/harness/cl-repo/src/demo.lisp" (written 24 NOV 2026 01:55:59 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/.worktrees/clrepo/cl-stack-demos/harness/cl-repo/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.037
+
+==============================================================================
+== The clients
+==============================================================================
+  cl-repo 0.27.35: <clients>/0.27.35/cl-oci-0.27.35/
+  cl-repo 0.27.34: <clients>/0.27.34/cl-oci-0.27.34/
+  Each command runs the client's own launcher (roswell/cl-repo) in a fresh HOME with
+  ROSWELL_HOME kept, so Roswell's SBCL is used and nothing of this user's cl-repo state.
+  Compiler and download lines are left out of the listings.
+  cl-repo 0.27.34 compiled into the shared fasl cache: exit 0, 28.2 s
+  cl-repo 0.27.35 compiled into the shared fasl cache: exit 0, 27.6 s
+
+==============================================================================
+== #166: `cl-repo ros` starts the image without Quicklisp
+==============================================================================
+
+-- cl-repo 0.27.34 (before) --
+  $ cl-repo ros -e '(format t "QL=~a~%" (and (find-package "QL") t))' -q
+    ; cl-repo: wrote cl-repo.lock (0 packages)
+    QL=T
+    [exit 0]
+
+-- cl-repo 0.27.35 (after) --
+  $ cl-repo ros -e '(format t "QL=~a~%" (and (find-package "QL") t))' -q
+    ; cl-repo: wrote cl-repo.lock (0 packages)
+    QL=NIL
+    [exit 0]
+  ok  `cl-repo ros` starts Roswell with +Q: no Quicklisp in the image
+  $ cl-repo ros -Q -e '(format t "QL=~a~%" (and (find-package "QL") t))' -q
+    ; cl-repo: dependencies from cl-repo.lock (0 packages)
+    QL=T
+    [exit 0]
+  ok  a -Q from the user turns Roswell's Quicklisp back on
+
+==============================================================================
+== #163: a lock entry for an untagged install is pinned by digest
+==============================================================================
+
+-- cl-repo 0.27.34 (before) --
+  cl-utilities is published with a commit tag only (cl-stack-systems#80), so it installs as "latest".
+  $ cl-repo install cl-utilities
+    Installed cl-utilities latest to <tmp>/home-9/.local/share/cl-repository/systems/cl-utilities/latest/
+    [exit 0]
+  $ cl-repo sync
+    ; cl-repo: wrote cl-repo.lock (1 package)
+    [exit 0]
+  cl-repo.lock:
+    ;;; cl-repo.lock -- auto-generated, do not edit
+    ((:system "cl-utilities" :version "latest" :index-digest "" :registry ""))
+  A fresh machine: a new HOME, the project and its lock.
+  $ cl-repo sync --locked
+    ; cl-repo: installing cl-utilities latest from cl-repo.lock
+    Error: Not found at https://ghcr.io/v2/egao1980/cl-systems/cl-utilities/manifests/latest
+    [exit 1]
+
+-- cl-repo 0.27.35 (after) --
+  cl-utilities is published with a commit tag only (cl-stack-systems#80), so it installs as "latest".
+  $ cl-repo install cl-utilities
+    Installed cl-utilities latest to <tmp>/home-13/.local/share/cl-repository/systems/cl-utilities/latest/
+    [exit 0]
+  $ cl-repo sync
+    ; cl-repo: wrote cl-repo.lock (1 package)
+    [exit 0]
+  cl-repo.lock:
+    ;;; cl-repo.lock -- auto-generated, do not edit
+    ((:system "cl-utilities" :version "latest" :index-digest
+      "sha256:628ec42733ad8579f4a585fd5293f6a8975a24c17cb9ee118843ebaf385a57af"
+      :registry "https://ghcr.io"))
+  ok  the lock records cl-utilities latest with its digest and registry
+  A fresh machine: a new HOME, the project and its lock.
+  $ cl-repo sync --locked
+    ; cl-repo: installing cl-utilities latest from cl-repo.lock
+    ; cl-repo: no tag latest for cl-utilities; pulling sha256:628ec42733ad8579f4a585fd5293f6a8975a24c17cb9ee118843ebaf385a57af
+    Installed cl-utilities latest to <tmp>/home-15/.local/share/cl-repository/systems/cl-utilities/latest/
+    ; cl-repo: dependencies from cl-repo.lock (1 package)
+    [exit 0]
+  ok  `cl-repo sync --locked` succeeds on the fresh machine
+  ok  it pulls cl-utilities latest by the lock's digest
+  ok  cl-utilities latest is installed there
+
+==============================================================================
+== #165: a missing minimum version is reported as one
+==============================================================================
+
+-- cl-repo 0.27.34 (before) --
+  demo165 needs csv-protocol 0.9.0 or later; GHCR has older versions only.
+  $ cl-repo sync
+    ; cl-repo: ensure deps for local demo165 → csv-protocol
+    ; cl-repo: found alexandria:1.0.1 in https://ghcr.io (CL-REPO)
+    Installed alexandria 1.0.1 to <tmp>/home-17/.local/share/cl-repository/systems/alexandria/1.0.1/
+    ; cl-repo: found babel:0.5.0 in https://ghcr.io (CL-REPO)
+    Installed babel 0.5.0 to <tmp>/home-17/.local/share/cl-repository/systems/babel/0.5.0/
+    ; cl-repo: found serdes-protocol:0.2.2 in https://ghcr.io (CL-REPO)
+    Installed serdes-protocol 0.2.2 to <tmp>/home-17/.local/share/cl-repository/systems/serdes-protocol/0.2.2/
+    ; cl-repo: found trivial-features:1.0 in https://ghcr.io (CL-REPO)
+    Installed trivial-features 1.0 to <tmp>/home-17/.local/share/cl-repository/systems/trivial-features/1.0/
+    ; cl-repo: found trivial-gray-streams:2.1 in https://ghcr.io (CL-REPO)
+    Installed trivial-gray-streams 2.1 to <tmp>/home-17/.local/share/cl-repository/systems/trivial-gray-streams/2.1/
+    Error: cl-repo: system csv-protocol is not in the registry
+    [exit 1]
+  installed afterwards: alexandria, babel-streams, babel, serdes-protocol, sexp-protocol, trivial-features, trivial-gray-streams
+
+-- cl-repo 0.27.35 (after) --
+  demo165 needs csv-protocol 0.9.0 or later; GHCR has older versions only.
+  $ cl-repo sync
+    ; cl-repo: ensure deps for local demo165 → csv-protocol
+    ; cl-repo: no published csv-protocol is 0.9.0 or later
+    Error: cl-repo: csv-protocol 0.9.0 or later is required; the registry has 0.1.0 (published versions: 0.1.0)
+    [exit 1]
+  installed afterwards: nothing
+  ok  the sync fails
+  ok  and says which minimum is missing and what the registry has
+  ok  not that csv-protocol is missing from the registry
+  ok  nothing of the rejected version is installed
+
+==============================================================================
+== #167: a sync resolves to the newest published version
+==============================================================================
+
+-- cl-repo 0.27.34 (before) --
+  An older schema-protocol is installed first; the project has no lock.
+  $ cl-repo install schema-protocol:0.2.0
+    Installed schema-protocol 0.2.0 to <tmp>/home-21/.local/share/cl-repository/systems/schema-protocol/0.2.0/
+    [exit 0]
+  $ cl-repo sync
+    ; cl-repo: ensure deps for local demo167 → closer-mop
+    ; cl-repo: found closer-mop:1.0.0 in https://ghcr.io (CL-REPO)
+    Installed closer-mop 1.0.0 to <tmp>/home-21/.local/share/cl-repository/systems/closer-mop/1.0.0/
+    ; cl-repo: wrote cl-repo.lock (2 packages)
+    [exit 0]
+  locked: schema-protocol 0.2.0; installed: 0.2.0
+
+-- cl-repo 0.27.35 (after) --
+  An older schema-protocol is installed first; the project has no lock.
+  $ cl-repo install schema-protocol:0.2.0
+    Installed schema-protocol 0.2.0 to <tmp>/home-23/.local/share/cl-repository/systems/schema-protocol/0.2.0/
+    [exit 0]
+  $ cl-repo sync
+    ; cl-repo: schema-protocol 0.2.0 is installed and 0.2.2 is published; resolving the newest
+    ; cl-repo: ensure deps for local demo167 → closer-mop, schema-protocol
+    ; cl-repo: found closer-mop:1.0.0 in https://ghcr.io (CL-REPO)
+    Installed closer-mop 1.0.0 to <tmp>/home-23/.local/share/cl-repository/systems/closer-mop/1.0.0/
+    ; cl-repo: found schema-protocol:0.2.2 in https://ghcr.io (CL-REPO)
+    Installed schema-protocol 0.2.2 to <tmp>/home-23/.local/share/cl-repository/systems/schema-protocol/0.2.2/
+    ; cl-repo: wrote cl-repo.lock (2 packages)
+    [exit 0]
+  locked: schema-protocol 0.2.2; installed: 0.2.0, 0.2.2
+  ok  the sync sees that 0.2.2 is published
+  ok  and locks that newest published version, not the installed 0.2.0
+
+==============================================================================
+== #170: a qlfile-only project gets the closure of its entries
+==============================================================================
+
+-- cl-repo 0.27.34 (before) --
+  The project is one qlfile line, `ql schema-protocol-json`, and no .asd.
+  $ cl-repo ros -e '(asdf:load-system "schema-protocol-json")' -e '(format t "LOADED schema-protocol-json ~a~%" (asdf:component-version (asdf:find-system "schema-protocol-json")))' -q
+    Installed schema-protocol-json 0.1.3 to <tmp>/home-25/.local/share/cl-repository/systems/schema-protocol-json/0.1.3/
+    ; cl-repo: wrote cl-repo.lock (1 package)
+    debugger invoked on a ASDF/FIND-COMPONENT:MISSING-DEPENDENCY in thread
+    #<THREAD tid=259 "main thread" RUNNING {70083C0463}>:
+      Component "schema-protocol" not found, required by
+      #<SYSTEM "schema-protocol-json">
+    Type HELP for debugger help, or (SB-EXT:EXIT) to exit from SBCL.
+    restarts (invokable by number or by possibly-abbreviated name):
+      0: [RETRY                        ] Retry loading schema-protocol.
+      1:                                 Retry ASDF operation.
+      2: [CLEAR-CONFIGURATION-AND-RETRY] Retry ASDF operation after resetting the
+                                         configuration.
+      3:                                 Retry ASDF operation.
+      4:                                 Retry ASDF operation after resetting the
+                                         configuration.
+      5: [CONTINUE                     ] Ignore runtime option --eval #<(SIMPLE-ARRAY
+    … 11 more lines
+    [exit 0]
+  locked: schema-protocol-json
+
+-- cl-repo 0.27.35 (after) --
+  The project is one qlfile line, `ql schema-protocol-json`, and no .asd.
+  $ cl-repo ros -e '(asdf:load-system "schema-protocol-json")' -e '(format t "LOADED schema-protocol-json ~a~%" (asdf:component-version (asdf:find-system "schema-protocol-json")))' -q
+    Installed schema-protocol-json 0.1.3 to <tmp>/home-27/.local/share/cl-repository/systems/schema-protocol-json/0.1.3/
+    ; cl-repo: ensure deps for local schema-protocol-json → schema-protocol, closer-mop
+    ; cl-repo: found closer-mop:1.0.0 in https://ghcr.io (CL-REPO)
+    Installed closer-mop 1.0.0 to <tmp>/home-27/.local/share/cl-repository/systems/closer-mop/1.0.0/
+    ; cl-repo: found schema-protocol:0.2.2 in https://ghcr.io (CL-REPO)
+    Installed schema-protocol 0.2.2 to <tmp>/home-27/.local/share/cl-repository/systems/schema-protocol/0.2.2/
+    ; cl-repo: closer-mop already available via ASDF
+    ; cl-repo: wrote cl-repo.lock (3 packages)
+    LOADED schema-protocol-json 0.1.3
+    [exit 0]
+  locked: closer-mop, schema-protocol, schema-protocol-json
+  ok  schema-protocol-json loads
+  ok  the lock holds the entry and its dependencies (schema-protocol, closer-mop)
+
+==============================================================================
+== #162: six images share one fasl root
+==============================================================================
+
+-- cl-repo 0.27.34 (before) --
+  demo162 depends on dexador. One sync first; then each round empties the fasl root
+  ($XDG_CACHE_HOME/common-lisp/) and starts 6 `cl-repo ros` runs at once. Each run's
+  client process compiles the client (dexador included) into that root, then its project
+  image loads dexador. A round counts the `; compiling file` lines of all 6 runs.
+  $ cl-repo sync
+    [exit 0] ; cl-repo: wrote cl-repo.lock (0 packages)
+  dexador is loaded from the client's tree
+  round 1: 1 of 6 runs loaded dexador; 1869 compiles for 499 distinct files (45.9 s)
+    run 1: exit 1: Failed to find the TRUENAME of <tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/http-backend-async-0.2.28/src/websocket.fasl:
+    run 2: exit 1: Unhandled TYPE-ERROR in thread #<SB-THREAD:THREAD tid=259 "main thread" RUNNING
+    run 3: exit 1: Couldn't load #P"<tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/http-protocol-0.4.3/src/pool.fasl":
+    run 4: exit 1: Failed to find the TRUENAME of <tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/alexandria-1.0.1/alexandria-1/io.fasl:
+    run 6: exit 1: Unhandled TYPE-ERROR in thread #<SB-THREAD:THREAD tid=259 "main thread" RUNNING
+    1370 compiles redid a file that another run (or the same one) had compiled
+  round 2: 1 of 6 runs loaded dexador; 1653 compiles for 499 distinct files (42.6 s)
+    run 1: exit 1: Failed to find the TRUENAME of <tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/ws-protocol-0.4.2/src/package.fasl:
+    run 2: exit 1: Couldn't load #P"<tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/alexandria-1.0.1/alexandria-1/definitions.fasl":
+    run 3: exit 1: Couldn't load #P"<tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/ws-protocol-0.4.2/src/conditions.fasl":
+    run 4: exit 1: Unhandled TYPE-ERROR in thread #<SB-THREAD:THREAD tid=259 "main thread" RUNNING
+    run 5: exit 1: Failed to find the TRUENAME of <tmp>/cache162-31/common-lisp/cl-repo/sbcl-2.4.11.roswell-macosx-arm64<clients>/0.27.34/ironclad-0.61/src/ciphers/xchacha.fasl:
+    1154 compiles redid a file that another run (or the same one) had compiled
+
+-- cl-repo 0.27.35 (after) --
+  demo162 depends on dexador. One sync first; then each round empties the fasl root
+  ($XDG_CACHE_HOME/common-lisp/) and starts 6 `cl-repo ros` runs at once. Each run's
+  client process compiles the client (dexador included) into that root, then its project
+  image loads dexador. A round counts the `; compiling file` lines of all 6 runs.
+  $ cl-repo sync
+    [exit 0] ; cl-repo: wrote cl-repo.lock (0 packages)
+  dexador is loaded from the client's tree
+  round 1: 6 of 6 runs loaded dexador; 499 compiles for 499 distinct files (31.8 s)
+  ok  round 1: every run loads dexador
+  ok  round 1: each file is compiled once
+  round 2: 6 of 6 runs loaded dexador; 499 compiles for 499 distinct files (32.4 s)
+  ok  round 2: every run loads dexador
+  ok  round 2: each file is compiled once
+
+==============================================================================
+== Summary
+==============================================================================
+  18 checks of cl-repo 0.27.35, 0 failed (256 s)
