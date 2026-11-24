@@ -1,0 +1,262 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (4 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+logic-protocol 0.2.0 on logic-backend-datalog 0.1.0, sat-protocol 0.2.0 on sat-backend-dpll 0.1.0
+(SBCL 2.6.9)
+
+==============================================================================
+== 1. Weak rules in the rule DSL: weights, levels, errors and restarts
+==============================================================================
+Each form is read by PARSE-RULE. A weak rule has kind :WEAK, no head, and its
+cost in RULE-WEIGHT / RULE-LEVEL / RULE-TERMS (also at the front of RULE-PROPERTIES).
+
+  (rule (weak 3 ?x) :- (late ?x))
+    kind :weak  weight 3  level 0  terms (?x)
+    properties (:weight 3 :level 0 :terms (?x) :source "demo")
+  (rule (weak (5 1) ?a ?b) :- (clash ?a ?b))
+    kind :weak  weight 5  level 1  terms (?a ?b)
+    properties (:weight 5 :level 1 :terms (?a ?b) :source "demo")
+  (rule (weak (3 0) ?x) :- (late ?x))
+    kind :weak  weight 3  level 0  terms (?x)
+    properties (:weight 3 :level 0 :terms (?x) :source "demo")
+  (rule (weak ?c ?x) :- (cost ?x ?c))
+    kind :weak  weight ?c  level 0  terms (?x)
+    properties (:weight ?c :level 0 :terms (?x) :source "demo")
+  (rule (weak (-1 2)) :- (bonus ?x) (not (late ?x)))
+    kind :weak  weight -1  level 2  terms nil
+    properties (:weight -1 :level 2 :terms nil :source "demo")
+
+(weak 3 ?x) and (weak (3 0) ?x) are the same cost: weight 3 at level 0.
+
+Malformed weak rules signal LOGIC-SYNTAX-ERROR (FORM = the whole rule):
+  (rule (weak) :- (late ?x))             -> (weak COST TERM...) needs a COST: W or (W L)
+  (rule (weak "3" ?x) :- (late ?x))      -> "3" is not a weak COST: W or (W L), W an integer or a variable, L an integer
+  (rule (weak 1.5 ?x) :- (late ?x))      -> 1.5 is not a weak COST: W or (W L), W an integer or a variable, L an integer
+  (rule (weak (3 ?l) ?x) :- (late ?x))   -> (3 ?l) is not a weak COST: W or (W L), W an integer or a variable, L an integer
+  (rule (weak (3 1 2) ?x) :- (late ?x))  -> (3 1 2) is not a weak COST: W or (W L), W an integer or a variable, L an integer
+  (rule (weak 3 ?x))                     -> a weak constraint needs at least one body literal
+  (rule (flagged ?x) :- (late ?x) (weak 1 ?x)) -> (weak 1 ?x) is not a body literal (atom, built-in or (not …))
+
+Safety: (rule (weak ?w ?x) :- (late ?x)) parses, but RULE-UNSAFE-VARIABLES = (?w):
+the weight ?w is a head variable that no positive body literal binds.
+
+A weak rule in the program: ADD-RULE on the Datalog backend (features (:stratified-negation :time-step :incremental))
+  logic:logic-unsupported-rule: backend :datalog lacks :weak-constraints, needed by (rule (weak 3 ?x) :- (late ?x))
+    restarts (logic:drop-rule logic:use-backend) -> DROP-RULE
+
+WEAK-INSTANCES grounds them against the model instead, on any backend.
+Base facts: ((late job1) (late job2) (clash job1 job3) (cost job1 2) (cost job2 high))
+Rules given:
+  (rule (weak 3 ?x) :- (late ?x))
+  (rule (weak (5 1) ?a ?b) :- (clash ?a ?b))
+  (rule (weak ?w ?x) :- (late ?x))
+  (rule (late-or-clash ?x) :- (late ?x))
+  logic:logic-unsafe-rule: Unsafe (not range-restricted) rule (rule (weak ?w ?x) :- (late ?x)): ?w not bound by a positive literal
+    -> DROP-RULE
+  logic:logic-syntax-error: Malformed logic form (rule (late-or-clash ?x) :- (late ?x)): a :normal rule is not a weak constraint (rule (weak COST TERM...) :- LIT...)
+    -> DROP-RULE
+Instances (WEIGHT LEVEL . TERMS), sorted, each with its ground bodies:
+  (3 0 job1)               <- ((late job1))
+  (3 0 job2)               <- ((late job2))
+  (5 1 job1 job3)          <- ((clash job1 job3))
+WEAK-COST, highest level first: ((1 . 5) (0 . 6))
+
+Instances are a set, as in clingo. (weak 3 ?x) :- (cost ?x ?c) gives (3 0 job1)
+and (3 0 job2) again, so they merge with the late ones:
+  (3 0 job1)               <- ((late job1)) | ((cost job1 2))
+  (3 0 job2)               <- ((late job2)) | ((cost job2 high))
+  WEAK-COST ((0 . 6)): each instance costs 3 once
+A tag term keeps them apart, the usual way to write it:
+  (3 0 costed job1) (3 0 costed job2) (3 0 late job1) (3 0 late job2)
+  WEAK-COST ((0 . 12))
+
+A variable weight takes its value from the body. (cost job2 high) binds it to a
+symbol: LOGIC-SYNTAX-ERROR on that instance, inside a CONTINUE restart
+(skip it, as clingo drops it):
+  Malformed logic form (high 0 job2): the weight high of a weak constraint instance is not an integer
+    -> CONTINUE
+  instances ((2 0 job1))
+
+==============================================================================
+== 2. A scheduling problem: Datalog derives the facts, WEAK-INSTANCES grounds the costs
+==============================================================================
+Base facts (37): tasks, slots, who each task needs and who leads it, who is away
+when, the order to keep, due slots, preferred slots, and the overtime cost.
+Rules:
+  (rule (blocked ?t ?s) :- (needs ?t ?p) (away ?p ?s))
+  (rule (option ?t ?s) :- (task ?t) (slot ?s) (not (blocked ?t ?s)))
+  (rule (before ?a ?b) :- (precedes ?a ?b))
+  (rule (before ?a ?c) :- (precedes ?a ?b) (before ?b ?c))
+  (rule (shares ?a ?b ?p) :- (needs ?a ?p) (needs ?b ?p) (< ?a ?b))
+  (rule (late-in ?t ?s) :- (option ?t ?s) (due ?t ?d) (> ?s ?d))
+  (rule (preferred ?t ?s) :- (option ?t ?s) (lead ?t ?p) (likes ?p ?s))
+
+Derived OPTION facts (a task may use a slot when nobody it needs is away):
+  task     slot 1 slot 2 slot 3 slot 4 needs
+  design   yes    yes    -      yes    ana ben
+  build    yes    yes    yes    yes    ben
+  test     -      yes    -      yes    cy
+  docs     yes    yes    yes    yes    dee
+  review   -      yes    -      yes    ana cy
+  release  yes    yes    yes    yes    ben dee
+
+BEFORE, the transitive closure of PRECEDES (a recursive rule):
+  (before "build" "release") (before "design" "build") (before "design" "release") (before "test" "release")
+SHARES (pairs that need the same person, each pair once by string order):
+  (shares "build" "design" ben) (shares "build" "release" ben) (shares "design" "release" ben) (shares "design" "review" ana) (shares "docs" "release" dee) (shares "review" "test" cy)
+LATE-IN (slots past the due slot): (late-in "docs" 3) (late-in "docs" 4) (late-in "review" 4) (late-in "test" 4)
+PREFERRED (the lead likes that slot): (preferred "build" 2) (preferred "docs" 1) (preferred "release" 1)
+
+The choice (assign TASK SLOT) stays open. The weak and hard rules are written
+ASP-style over it and kept out of the program:
+  (rule (weak (5 1) clash ?a ?b) :- (assign ?a ?s) (assign ?b ?s) (shares ?a ?b ?p))
+  (rule (weak 3 late ?t) :- (assign ?t ?s) (late-in ?t ?s))
+  (rule (weak ?w overtime ?t) :- (assign ?t ?s) (slot-cost ?s ?w))
+  (rule (weak -1 preferred ?t) :- (assign ?t ?s) (preferred ?t ?s))
+  (rule :- (assign ?a ?sa) (assign ?b ?sb) (before ?a ?b) (>= ?sa ?sb))
+plus: each task takes exactly one of its options, and a slot holds at most 3 tasks.
+
+WEAK-INSTANCES with all 19 candidate choice atoms assumed (one call, the program
+is unchanged afterwards):
+  (-1 0 preferred "build")           <- ((assign "build" 2) (preferred "build" 2))
+  (-1 0 preferred "docs")            <- ((assign "docs" 1) (preferred "docs" 1))
+  (-1 0 preferred "release")         <- ((assign "release" 1) (preferred "release" 1))
+  (3 0 late "docs")                  <- ((assign "docs" 3) (late-in "docs" 3))
+                                     |  ((assign "docs" 4) (late-in "docs" 4))
+  (3 0 late "review")                <- ((assign "review" 4) (late-in "review" 4))
+  (3 0 late "test")                  <- ((assign "test" 4) (late-in "test" 4))
+  (3 0 overtime "build")             <- ((assign "build" 4) (slot-cost 4 3))
+  (3 0 overtime "design")            <- ((assign "design" 4) (slot-cost 4 3))
+  (3 0 overtime "docs")              <- ((assign "docs" 4) (slot-cost 4 3))
+  (3 0 overtime "release")           <- ((assign "release" 4) (slot-cost 4 3))
+  (3 0 overtime "review")            <- ((assign "review" 4) (slot-cost 4 3))
+  (3 0 overtime "test")              <- ((assign "test" 4) (slot-cost 4 3))
+  (5 1 clash "build" "design")       <- ((assign "build" 1) (assign "design" 1) (shares "build" "design" ben))
+                                     |  ((assign "build" 2) (assign "design" 2) (shares "build" "design" ben))
+                                     |  ((assign "build" 4) (assign "design" 4) (shares "build" "design" ben))
+  (5 1 clash "build" "release")      <- ((assign "build" 1) (assign "release" 1) (shares "build" "release" ben))
+                                     |  ((assign "build" 2) (assign "release" 2) (shares "build" "release" ben))
+                                     |  ((assign "build" 3) (assign "release" 3) (shares "build" "release" ben))
+                                     |  ((assign "build" 4) (assign "release" 4) (shares "build" "release" ben))
+  (5 1 clash "design" "release")     <- ((assign "design" 1) (assign "release" 1) (shares "design" "release" ben))
+                                     |  ((assign "design" 2) (assign "release" 2) (shares "design" "release" ben))
+                                     |  ((assign "design" 4) (assign "release" 4) (shares "design" "release" ben))
+  (5 1 clash "design" "review")      <- ((assign "design" 2) (assign "review" 2) (shares "design" "review" ana))
+                                     |  ((assign "design" 4) (assign "review" 4) (shares "design" "review" ana))
+  (5 1 clash "docs" "release")       <- ((assign "docs" 1) (assign "release" 1) (shares "docs" "release" dee))
+                                     |  ((assign "docs" 2) (assign "release" 2) (shares "docs" "release" dee))
+                                     |  ((assign "docs" 3) (assign "release" 3) (shares "docs" "release" dee))
+                                     |  ((assign "docs" 4) (assign "release" 4) (shares "docs" "release" dee))
+  (5 1 clash "review" "test")        <- ((assign "review" 2) (assign "test" 2) (shares "review" "test" cy))
+                                     |  ((assign "review" 4) (assign "test" 4) (shares "review" "test" cy))
+
+A hand-made schedule, every task as early as the order allows:
+    slot 1: design, docs
+    slot 2: build, test, review
+    slot 3: release
+    slot 4: -
+  its instances: (-1 0 preferred "build") (-1 0 preferred "docs") (5 1 clash "review" "test")
+  WEAK-COST: ((1 . 5) (0 . -2))
+
+==============================================================================
+== 3. The bridge: Datalog to weighted MaxSAT, solved :CORE-GUIDED with a :LEX objective
+==============================================================================
+Preconditions: ASSIGN is read by no program rule and is no base fact, and it
+occurs only positively in the weak and constraint bodies: yes
+The 31 non-choice literals of the groundings hold in the model with no choice
+assumed: yes
+
+Compiled: 19 choice variables, 18 soft variables; 6 one-hot groups, 3 capacity
+constraints, 30 order clauses (ground bodies of the integrity constraint).
+CNF: 108 variables (71 auxiliary), 259 clauses.
+Objective (:lex level-1 level-0): 6 and 12 weighted literals; constant offsets (0 -3)
+(the -1 rewards become (1 . (not v)) minus 1).
+
+Brute force over all 768 one-hot assignments (WEAK-COST under :ASSUME, 0.019s):
+29 feasible; the hard formula has 29 models on the choice variables.
+lex optimum (0 4) (1 assignment); one weighted sum: optimum 3 (1 assignment).
+
+MINIMIZE (:lex level-1 level-0) with :STRATEGY :CORE-GUIDED:
+    slot 1: design, docs
+    slot 2: build, test
+    slot 3: release
+    slot 4: review
+  SAT cost (0 7) + offsets (0 -3) = per level ((1 . 0) (0 . 4)); optimal-p t (0.007s)
+  backend calls: 39 solve, 38 final-conflict (sat-backend-dpll keeps the default
+  BACKEND-FINAL-CONFLICT, which returns every assumption, so each core is shrunk
+  by deletion through further calls)
+  WEAK-COST of that schedule (logic-protocol): ((0 . 4))
+  (no level-1 instance holds, so WEAK-COST has no level-1 entry: it counts as 0)
+
+Every strategy on the same :lex objective (:timeout 60):
+  strategy           per level  optimal-p  solves  final-conflict  seconds
+  :linear-bdd        (0 4)      t          7       0               0.001
+  :linear-totalizer  (0 4)      t          7       0               0.001
+  :stratified        (0 4)      t          7       0               0.001
+  :core-guided       (0 4)      t          39      38              0.001
+
+Without levels: one weighted sum of every instance, :CORE-GUIDED:
+    slot 1: design, docs
+    slot 2: build, test, review
+    slot 3: release
+    slot 4: -
+  cost 3 (optimal-p t), per level ((1 . 5) (0 . -2)): it accepts a level-1 clash
+  to save level-0 cost, which the :lex objective never does.
+
+==============================================================================
+== 4. Explanations: why is this schedule penalised?
+==============================================================================
+The :lex optimum's penalties and rewards, with the ground bodies that fired:
+  (-1 0 preferred "build")     <- ((assign "build" 2) (preferred "build" 2))
+  (-1 0 preferred "docs")      <- ((assign "docs" 1) (preferred "docs" 1))
+  (3 0 late "review")          <- ((assign "review" 4) (late-in "review" 4))
+  (3 0 overtime "review")      <- ((assign "review" 4) (slot-cost 4 3))
+
+Why is "review" late? The fixed fact in that grounding is (late-in "review" 4). EXPLAIN:
+  (late-in "review" 4)
+    by (rule (late-in ?t ?s) :- (option ?t ?s) (due ?t ?d) (> ?s ?d))
+    with ?t = "review", ?s = 4, ?d = 2
+    built-ins: (> 4 2)
+      (option "review" 4)
+        by (rule (option ?t ?s) :- (task ?t) (slot ?s) (not (blocked ?t ?s)))
+        with ?t = "review", ?s = 4
+        not in the model: (blocked "review" 4)
+          (task "review")  base fact
+          (slot 4)  base fact
+      (due "review" 2)  base fact
+  height 2; base facts (due "review" 2) (slot 4) (task "review")
+
+Why not on time? "review" is due at 2. Slot 1: EXPLAIN (option "review" 1) is a why-not:
+  rule (rule (option ?t ?s) :- (task ?t) (slot ?s) (not (blocked ?t ?s)))
+  fails at literal 2: (not (blocked "review" 1))
+  and (blocked "review" 1) holds:
+    (blocked "review" 1)
+      by (rule (blocked ?t ?s) :- (needs ?t ?p) (away ?p ?s))
+      with ?t = "review", ?s = 1, ?p = cy
+        (needs "review" cy)  base fact
+        (away cy 1)  base fact
+
+Slot 2 has room (at most 3 tasks), but "test" is there. What if "review" moves to slot 2 too?
+  WEAK-COST ((1 . 5) (0 . -2)) (sum 3, against 4): the new penalty is (5 1 clash "review" "test")
+  and its fixed fact (shares "review" "test" cy) holds because
+    (shares "review" "test" cy)
+      by (rule (shares ?a ?b ?p) :- (needs ?a ?p) (needs ?b ?p) (< ?a ?b))
+      with ?a = "review", ?b = "test", ?p = cy
+      built-ins: (< "review" "test")
+        (needs "review" cy)  base fact
+        (needs "test" cy)  base fact
+  A level-1 cost outweighs any level-0 saving, so the :lex optimum keeps the
+  two apart and pays 3 for lateness plus 3 for overtime.
+
+==============================================================================
+== Summary
+==============================================================================
+65 results checked against expected values: 0 mismatched.
+Every section ran to the end.
