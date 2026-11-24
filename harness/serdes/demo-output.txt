@@ -1,0 +1,186 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: dependencies from cl-repo.lock (20 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+serdes-protocol 0.3.0 with score-backend-musicxml 0.1.1 on score-protocol 0.3.0
+
+========================================================================
+== 1. Formats and round trips
+========================================================================
+serdes-protocol is a registry of formats: ENCODE and DECODE find the backend
+registered for :FORMAT and call it. Loading score-backend-musicxml registers
+:MUSICXML (text) and :MXL (a compressed archive, octets) with their media types.
+The value is a score-protocol score: the first phrase of the "Ode to Joy"
+melody (Beethoven, 1824), in C major and 4/4, built in code (MAKE-MELODY).
+
+  (serdes:format-media-type :musicxml) => "application/vnd.recordare.musicxml+xml"
+  (serdes:format-media-type :mxl) => "application/vnd.recordare.musicxml"
+  (list (serdes:format-binary-p :musicxml) (serdes:format-binary-p :mxl)) => (nil t)
+  (serdes:find-format-for-media-type "application/vnd.recordare.musicxml") => :mxl
+  (type-of (serdes:find-backend :musicxml))
+    => score-backend-musicxml:musicxml-serdes-backend
+
+  (subseq (text-lines *text*) 0 3)
+    => ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>" "<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 4.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">" "<score-partwise version=\"4.0\">")
+  (string= *text* (write-musicxml *melody*)) => t   ; what the backend writes
+  (score-equal (serdes:decode *text* :format :musicxml) *melody*)
+    => t   ; ids and all
+  (length octets) => 4556
+  (score-equal (serdes:decode-octets octets :format :musicxml) *melody*) => t
+  (string=
+   (with-output-to-string (s) (serdes:encode *melody* :format :musicxml :stream s))
+   *text*)
+    => t   ; :STREAM
+  (coerce (subseq mxl 0 4) 'list) => (80 75 3 4)   ; a ZIP archive
+  (score-equal (serdes:decode mxl :format :mxl) *melody*) => t
+
+Warnings are not errors: serdes leaves them alone, so a handler around ENCODE
+gets the backend's own warning. A note with a confidence (MusicXML has no
+place for one) gives LOSSY-CONVERSION:
+
+  (mapcar #'condition-line warnings)
+    => ("lossy-conversion: lossy conversion to musicxml: provenance and confidence dropped")
+
+========================================================================
+== 2. Decode errors, translated in place: SKIP-ELEMENT from outside DECODE
+========================================================================
+A MusicXML file with an element the model has no place for: a trill on the
+fifth note (WITH-TRILLS inserts the <ornaments> element). Read directly, the
+reader signals MUSICXML-UNSUPPORTED inside a SKIP-ELEMENT restart:
+
+  (count-if (lambda (line) (search "trill-mark" line)) (text-lines trill)) => 1
+  (read-musicxml trill)
+    -> musicxml-unsupported: musicxml format error: outside the MusicXML mapping at "/score-partwise[1]/part[1]/measure[2]/note[1]/notations[1]/ornaments[1]"
+
+Through serdes the caller sees SERDES-DECODE-ERROR, as in 0.2. What 0.3.0
+changes is when and with what. The error is signalled where the reader
+signalled, before anything unwinds. Its SERDES-ERROR-CAUSE is the reader's
+condition, and the reader's restarts are associated with it. INSIDE-HANDLER
+(demo.lisp) looks from a HANDLER-BIND bound outside DECODE:
+
+  (serdes:decode trill :format :musicxml)
+    -> serdes-decode-error: Serdes error: decode failed for :MUSICXML: musicxml format error: outside the MusicXML mapping at "/score-partwise[1]/part[1]/measure[2]/note[1]/notations[1]/ornaments[1]"
+  (inside-handler (e serdes:serdes-decode-error)
+      (serdes:decode trill :format :musicxml)
+    (let ((cause (serdes:serdes-error-cause e)))
+      (list (type-of cause) (musicxml-unsupported-element cause))))
+    => (musicxml-unsupported "ornaments")   ; the cause: the reader's condition
+  (inside-handler (e serdes:serdes-decode-error)
+      (serdes:decode trill :format :musicxml)
+    (restart-names e 1))
+    => (skip-element)   ; the most recent restart is the reader's
+  (inside-handler (e serdes:serdes-decode-error)
+      (serdes:decode trill :format :musicxml)
+    (and (find-restart 'skip-element e) t))
+    => t   ; found through the condition: associated with it
+
+So the caller can take the reader's way out. A handler for
+SERDES-DECODE-ERROR that looks at the cause and calls SKIP-ELEMENT reads the
+file without the trills, once per trill, in document order. Here there are
+trills on the 5th and the 13th note:
+
+  (handler-bind ((serdes:serdes-decode-error
+                  (lambda (e)
+                    (let ((cause (serdes:serdes-error-cause e)))
+                      (when (typep cause 'musicxml-unsupported)
+                        (push (score-format-error-position cause) skipped)
+                        (skip-element e))))))
+    (serdes:decode trills :format :musicxml))
+
+  (length skipped) => 2
+  skipped at "/score-partwise[1]/part[1]/measure[2]/note[1]/notations[1]/ornaments[1]"
+  skipped at "/score-partwise[1]/part[1]/measure[4]/note[1]/notations[1]/ornaments[1]"
+  (score-equal score *melody*) => t   ; the melody without its trills, ids and all
+  (score-equal score (read-musicxml trills :unsupported :skip))
+    => t   ; the same as the reader's own :SKIP policy
+
+Rules that stay as they were. A handler for the reader's own type, bound
+around DECODE, is not called: the outside sees only the SERDES-DECODE-ERROR.
+Bind SERDES-ERROR and test the cause instead. A HANDLER-CASE still unwinds
+first, so the restart is gone by the time its clause runs, but the cause is
+kept:
+
+  (handler-case
+   (handler-bind ((musicxml-unsupported
+                   (lambda (c) (declare (ignore c)) (incf called))))
+     (serdes:decode trill :format :musicxml))
+   (serdes:serdes-decode-error (e)
+    (list called (type-of (serdes:serdes-error-cause e))
+          (and (find-restart 'skip-element e) t))))
+    => (0 musicxml-unsupported nil)   ; (handler calls, cause, restart left)
+
+And the backend called directly (BACKEND-DECODE on FIND-BACKEND) translates
+nothing:
+
+  (serdes:backend-decode (serdes:find-backend :musicxml) trill)
+    -> musicxml-unsupported: musicxml format error: outside the MusicXML mapping at "/score-partwise[1]/part[1]/measure[2]/note[1]/notations[1]/ornaments[1]"
+
+========================================================================
+== 3. Encode errors: STORE-VALUE through ENCODE
+========================================================================
+ENCODE works the same way. WRITE-MUSICXML checks its argument with CHECK-TYPE,
+which signals a TYPE-ERROR inside a STORE-VALUE restart. Through serdes 0.3.0
+the caller gets SERDES-ENCODE-ERROR with the TYPE-ERROR as its cause, and can
+answer the writer's STORE-VALUE with the score it meant to pass:
+
+  (serdes:encode "Ode to Joy" :format :musicxml)
+    -> serdes-encode-error: Serdes error: encode failed for :MUSICXML: The value of SCORE-BACKEND-MUSICXML::SCORE is "Ode to Joy", which is not of type SCORE-PROTOCOL:SCORE.
+  (inside-handler (e serdes:serdes-encode-error)
+      (serdes:encode "Ode to Joy" :format :musicxml)
+    (let ((cause (serdes:serdes-error-cause e)))
+      (list (typep cause 'type-error) (type-error-datum cause)
+            (and (find-restart 'store-value e) t))))
+    => (t "Ode to Joy" t)   ; (type-error-p datum store-value)
+  (handler-bind ((serdes:serdes-encode-error
+                  (lambda (e)
+                    (when (typep (serdes:serdes-error-cause e) 'type-error)
+                      (store-value *melody* e)))))
+    (serdes:encode "Ode to Joy" :format :musicxml))
+
+  (string= text *text*) => t   ; the melody, written
+  (inside-handler (e serdes:serdes-encode-error)
+      (serdes:encode 42 :format :mxl)
+    (type-error-datum (serdes:serdes-error-cause e)))
+    => 42   ; :MXL alike
+
+========================================================================
+== 4. What is passed through
+========================================================================
+A SERDES-ERROR is never wrapped: one that serdes signals itself, or that a
+backend signals, reaches the caller as it is, with no cause. An unknown format
+is serdes's own:
+
+  (serdes:decode *text* :format :abc)
+    -> serdes-unknown-format: Unknown serdes format :abc: load or register a backend for this format
+  (inside-handler (e serdes:serdes-error)
+      (serdes:decode *text* :format :abc)
+    (list (type-of e) (serdes:serdes-error-cause e)))
+    => (serdes:serdes-unknown-format nil)
+
+The reader wraps the errors of the layers below it (XML, ZIP) in
+SCORE-FORMAT-ERROR, which serdes translates like any other backend error.
+Text that is not well-formed XML, and an archive cut short:
+
+  (serdes:decode "<score-partwise version=\"4.0\">" :format :musicxml)
+    -> serdes-decode-error: Serdes error: decode failed for :MUSICXML: musicxml format error: unclosed element at (1 . 30)
+  (inside-handler (e serdes:serdes-decode-error)
+      (serdes:decode "<score-partwise version=\"4.0\">" :format :musicxml)
+    (type-of (serdes:serdes-error-cause e)))
+    => score-format-error
+  (serdes:decode short :format :mxl)
+    -> serdes-decode-error: Serdes error: decode failed for :MXL: mxl format error: not a zip archive
+  (inside-handler (e serdes:serdes-decode-error)
+      (serdes:decode short :format :mxl)
+    (type-of (serdes:serdes-error-cause e)))
+    => score-format-error
+
+========================================================================
+== Summary
+========================================================================
+28 results checked against expected values: 0 mismatched.
+Every section ran to the end.
