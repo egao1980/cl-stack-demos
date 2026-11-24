@@ -1,5 +1,10 @@
 (defpackage #:harness-demos-midi
   (:use #:cl)
   (:local-nicknames (#:midi #:midi-protocol)
-                    (#:proc #:process-protocol))
+                    (#:proc #:process-protocol)
+                    (#:sp #:score-protocol)
+                    (#:mt #:music-theory)
+                    (#:smidi #:score-backend-midi)
+                    (#:sat #:sat-protocol)
+                    (#:cdcl #:sat-backend-cdcl))
   (:export #:run-demos))
