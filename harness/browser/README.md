@@ -2,7 +2,7 @@
 
 `harness-demos-browser` drives a real headless Chrome with **browser-protocol 0.2.0** (egao1980/browser-protocol#4). That release fixes browser-protocol#1 (stack JSON and base64), #2 (launch, CDP replies by id, `navigate` waits for the page) and #3 (`*browser-backend*` for the `NIL`-backend methods). It covers what the python-to-cl Selenium / Playwright page needs: launch a browser, go to a page and wait for it, evaluate JavaScript, take a screenshot, print a PDF, and close.
 
-The code is in [`src/demo.lisp`](src/demo.lisp). [`demo-output.txt`](demo-output.txt) is the output of the last run (macOS arm64, SBCL 2.6.9, Chrome 158), with home and temp paths replaced by `~` and `<tmp>`. That run used the PR #4 checkout (head `bb0aaa8`) on the ASDF path, with its locked dependencies, before 0.2.0 was on GHCR. Re-run it with `cl-repo run` once 0.2.0 is published.
+The code is in [`src/demo.lisp`](src/demo.lisp). [`demo-output.txt`](demo-output.txt) is the output of the last run (macOS arm64, SBCL 2.6.9, Chrome 158), with home and temp paths replaced by `~` and `<tmp>`. That run used browser-protocol 0.2.0 as published on GHCR (`cl-repo run` pulled `browser-protocol:0.2.0`), after PR #4 was merged. The run before it used the PR #4 checkout (head `bb0aaa8`), with the same 50 checks.
 
 ## Run
 

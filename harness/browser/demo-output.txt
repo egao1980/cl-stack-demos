@@ -25,9 +25,9 @@ page with a flattened session: one socket, page commands carry the sessionId.
 
   find-browser-executable                /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
   process alive-p                        T
-  profile                                <tmp>/browser-protocol-1U85Q5Q-RO84EE/profile/
-  browser websocket                      ws://127.0.0.1:63993
-  session id (flatten)                   A6AD4B92… (32 chars)
+  profile                                <tmp>/browser-protocol-1U85RRK-QT4ECY/profile/
+  browser websocket                      ws://127.0.0.1:54847
+  session id (flatten)                   EBA10A65… (32 chars)
   user agent                             Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
   ok       connected: T
 
@@ -39,7 +39,7 @@ Target.targetCreated event per target before the reply. 0.1.0 took the first eve
 as the reply and every later EVAL-JS read the next event (NIL, NIL, NIL). 0.2.0
 reads until the reply with its id and keeps the events in a bounded buffer.
 
-  Target.targetCreated events buffered   5: page, service_worker, browser_ui, service_worker, service_worker
+  Target.targetCreated events buffered   3: page, service_worker, browser_ui
   ok       at least the page: T
   ok       eval-js 1+1, 2+2, 3+3: (2 4 6)
 
