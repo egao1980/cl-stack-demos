@@ -4,6 +4,8 @@
 
 Every number comes from the run. Each answer is checked independently: model counts against binomial sums, the knapsack against brute force over all subsets, N-queens against the known solution counts, every chain optimum (plain, revised and lexicographic) against a dynamic-programming oracle in the demo, every SAT model against its clauses, and the statuses of the two backends against each other and against MiniSat's recorded statuses where they exist. The summary line reports the mismatches. Sections 1 to 8 are in [`src/demo.lisp`](src/demo.lisp), sections 9 to 12 and `run-demos` in [`src/cdcl.lisp`](src/cdcl.lisp), and [`demo-output.txt`](demo-output.txt) is the output of the last run.
 
+Incremental sessions (sat-protocol 0.3.0, slice L2b-2) are in [`../sat-sessions/`](../sat-sessions/).
+
 Every front-end call names its backend with `:backend`. `run-demos` binds `sat:*sat-backend*` to NIL, so a call without one would signal `sat-no-backend` instead of quietly using whichever backend loaded first. Loading sat-backend-cdcl alone would make a `cdcl-backend` the default.
 
 ## Run
