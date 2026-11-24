@@ -1,0 +1,317 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: wrote cl-repo.lock (36 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
+Documents and data formats (Darwin ARM64, SBCL 2.6.9)
+doc-extract-backend-pdf 0.2.0, doc-extract-protocol 0.4.0, compression-protocol 0.5.1, yaml-protocol 0.2.2, cl-stack-config 0.3.0, image-protocol 0.2.0, image-backend-stb 0.2.1
+
+==============================================================================
+== 1. PDF text with no password (doc-extract-backend-pdf#9)
+==============================================================================
+libpdfium loaded: T
+fixtures/report.pdf: 2,141 bytes, two A5 pages written by reportlab, not encrypted.
+(make-pdf-doc-extract-backend) has :password NIL, so libpdfium gets a NULL password.
+0.1.4 passed NIL to a :string argument: every unencrypted PDF failed with
+"NIL is not a Lisp string or pointer."
+
+extract-text, pathname source:
+  | Quarterly report$
+  | Sales grew in both regions.$
+  | North 120 135, South 98 110.$
+  | Notes$
+  | R&D grew too.$
+extract-text, octet source: the same 96 characters.
+extract-metadata: (:MOD-DATE "D:20000101000000+00'00'" :CREATION-DATE "D:20000101000000+00'00'" :PRODUCER
+                   "ReportLab PDF Library - www.reportlab.com" :CREATOR
+                   "ReportLab PDF Library - www.reportlab.com" :SUBJECT "unspecified" :AUTHOR "Docs team"
+                   :TITLE "Quarterly report" :FORMAT :PDF :PAGE-COUNT 2)
+:password "" gives the same text: T
+
+fixtures/report-locked.pdf: the same pages, AES-256, user password "open sesame".
+  :password NIL => DOC-EXTRACT-ERROR: doc-extract error (PDF): failed to load PDF (password)
+  :password "wrong" => DOC-EXTRACT-ERROR: doc-extract error (PDF): failed to load PDF (password)
+  :password "open sesame" => the text of report.pdf: T
+  :password 42 => SIMPLE-TYPE-ERROR (check-type)
+
+pypdf's view of the same files:
+  pypdf 6.1.1, report.pdf: 2 pages, title "Quarterly report"
+  pypdf | Quarterly report$
+  pypdf | Sales grew in both regions.$
+  pypdf | North 120 135, South 98 110.$
+  pypdf | $
+  pypdf | Notes$
+  pypdf | R&D grew too.$
+  pypdf | $
+  pypdf, report-locked.pdf with no password: pypdf.errors.FileNotDecryptedError (File has not been decrypted)
+  pypdf, report-locked.pdf with "open sesame": the same words as libpdfium
+
+==============================================================================
+== 2. DOCX and XLSX (doc-extract-protocol#6, compression-protocol#10)
+==============================================================================
+0.3.1 read the openpyxl workbook as "" and ran the python-docx table cells together
+("regionq2North135"), split runs mid-word and kept "&amp;".
+
+fixtures/report.docx (python-docx, 36,899 bytes): extract-text
+  | Quarterly report$
+  | Sales grew in both regions.$
+  | R&D grew too.$
+  | Totals$
+  | region	q1	q2$
+  | North	120	135$
+  | South	98	110$
+  | Notes$
+  | Figures are in thousands.$
+extract-sections: (("Quarterly report" 1) ("Totals" 2) ("Notes" 2))
+extract-document:
+  section "Quarterly report" (level 1)
+    text para: "Sales grew in both regions."
+    text para: "R&D grew too."
+    section "Totals" (level 2)
+      table 3 x 3:
+        | region | q1 | q2 |
+        | --- | --- | --- |
+        | North | 120 | 135 |
+        | South | 98 | 110 |
+    section "Notes" (level 2)
+      text para: "Figures are in thousands."
+
+fixtures/report.xlsx (openpyxl, 5,427 bytes): extract-text
+  | region	q1	q2	total$
+  | North	120	135$
+  | South	98	110$
+  | R&D only$
+  | 3.5$
+extract-document:
+  section "Totals" (level 1)
+    table 3 x 4:
+      | region | q1 | q2 | total |
+      | --- | --- | --- | --- |
+      | North | 120 | 135 |  |
+      | South | 98 | 110 |  |
+  section "Notes" (level 1)
+    table 2 x 1:
+      | R&D only |
+      | --- |
+      | 3.5 |
+
+report.docx re-zipped by compression-protocol's writer (stored, like zipfile's
+default ZIP_STORED) with report.xlsx added as word/embeddings/Microsoft_Excel_Worksheet.xlsx:
+835,438 bytes, 18 entries, 2 end-of-central-directory signatures (the inner one first).
+extract-text gives the text of report.docx: T
+(compression-protocol 0.5.0 took the inner record first: "not a docx package (zip):
+compression error: corrupt zip central directory")
+
+Damaged uploads signal doc-extract-error, with the zip or XML condition as its cause:
+  the first half of report.docx =>
+    DOC-EXTRACT-ERROR: doc-extract error (DOCX): not a docx package (zip): compression error: not a zip archive (EOCD missing)
+    cause: ARCHIVE-ERROR
+  report.docx with one byte of word/document.xml's data inverted =>
+    DOC-EXTRACT-ERROR: doc-extract error (DOCX): damaged package part word/document.xml: compression error (:DEFLATE): corrupt deflate data:...
+    cause: COMPRESSION-ERROR
+  a text file named .docx =>
+    DOC-EXTRACT-ERROR: doc-extract error (DOCX): not a docx package (zip): compression error: not a zip archive (EOCD missing)
+    cause: ARCHIVE-ERROR
+
+python-docx's and openpyxl's view of the same files:
+  python-docx 1.2.0, openpyxl 3.1.5
+  report.docx paragraphs: ("Quarterly report" "Sales grew in both regions." "R&D grew too." "Totals" "Notes"
+                           "Figures are in thousands.")
+  table rows: (("region" "q1" "q2") ("North" "120" "135") ("South" "98" "110"))
+  report.xlsx sheet "Totals" (data_only=True): (("region" "q1" "q2" "total") ("North" "120" "135" "")
+                                                ("South" "98" "110" ""))
+  report.xlsx sheet "Notes" (data_only=True): (("R&D only") ("3.5"))
+  the stored package: 6 paragraphs, same as report.docx: T
+  the first half: docx.opc.exceptions.PackageNotFoundError
+  the inverted byte: zlib.error
+
+==============================================================================
+== 3. YAML block output with no trailing blank (yaml-protocol#7)
+==============================================================================
+Each line below ends with $, so a trailing space would show as " $".
+0.2.1 wrote "langs: " for the first one: a space before the newline of
+every key whose value is a nested mapping or sequence.
+
+(yaml:decode "{name: Ada, langs: [lisp, ml]}"):
+  (yaml:encode ...) => 32 characters, lines ending in a blank: NIL
+  | langs:$
+  |   - lisp$
+  |   - ml$
+  | name: Ada$
+
+A deeper document (nested mappings and sequences, [], null):
+  (yaml:encode ...) => 184 characters, lines ending in a blank: NIL
+  | matrix:$
+  |   - - 1$
+  |     - 2$
+  |   - - 3$
+  |     - 4$
+  | service:$
+  |   db:$
+  |     host: db.internal$
+  |     pool:$
+  |       max: 8$
+  |       min: 1$
+  |   name: reports$
+  |   owner: null$
+  |   ports:$
+  |     - 8080$
+  |     - 8443$
+  |   tags: []$
+
+Shared objects (one vector under two keys, one mapping twice):
+  (yaml:encode ...) => 97 characters, lines ending in a blank: NIL
+  | people:$
+  |   - &id1$
+  |     langs: &id2$
+  |       - lisp$
+  |       - ml$
+  |     name: Ada$
+  |     teaches: *id2$
+  |   - *id1$
+
+The text ends without a final newline, where PyYAML's dump ends with one
+(yaml-protocol#11, found by this demo).
+
+PyYAML's view of the three outputs:
+  PyYAML 6.0.3
+  1. yaml.safe_load gives the same data: T; lines ending in a blank: NIL
+     PyYAML's own safe_dump of it:
+     py | langs:$
+     py | - lisp$
+     py | - ml$
+     py | name: Ada$
+  2. yaml.safe_load gives the same data: T; lines ending in a blank: NIL
+     PyYAML's own safe_dump of it:
+     py | matrix:$
+     py | - - 1$
+     py |   - 2$
+     py | - - 3$
+     py |   - 4$
+     py | service:$
+     py |   db:$
+     py |     host: db.internal$
+     py |     pool:$
+     py |       max: 8$
+     py |       min: 1$
+     py |   name: reports$
+     py |   owner: null$
+     py |   ports:$
+     py |   - 8080$
+     py |   - 8443$
+     py |   tags: []$
+  3. yaml.safe_load gives the same data: T; lines ending in a blank: NIL
+     PyYAML's own safe_dump of it:
+     py | people:$
+     py | - &id002$
+     py |   langs: &id001$
+     py |   - lisp$
+     py |   - ml$
+     py |   name: Ada$
+     py |   teaches: *id001$
+     py | - *id002$
+
+==============================================================================
+== 4. .env files and typed settings (cl-stack-config#8)
+==============================================================================
+fixtures/app.env:
+  | # The reports service (python-dotenv syntax)$
+  | export APP_DATABASE__HOST=db.internal$
+  | APP_DATABASE__PORT = 5432$
+  | APP_URL=postgres://${APP_DATABASE__HOST}:${APP_DATABASE__PORT:-5432}/reports$
+  | APP_BACKUP_URL=${APP_BACKUP_HOST:-backup.internal}/reports$
+  | APP_GREETING="hello\nworld, it's \"quoted\""$
+  | APP_PEM="-----BEGIN KEY-----$
+  | MIIB$
+  | -----END KEY-----"$
+  | APP_VERBOSE=true      # a comment after a blank$
+  | APP_COLOR=#336699$
+  | APP_MAX_CONNECTIONS=8$
+  | APP_EMPTY=$
+  | APP_FLAG$
+
+(read-dotenv #p"fixtures/app.env" :environ '()) =>
+  APP_DATABASE__HOST     "db.internal"
+  APP_DATABASE__PORT     "5432"
+  APP_URL                "postgres://db.internal:5432/reports"
+  APP_BACKUP_URL         "backup.internal/reports"
+  APP_GREETING           "hello\nworld, it's \"quoted\""
+  APP_PEM                "-----BEGIN KEY-----\nMIIB\n-----END KEY-----"
+  APP_VERBOSE            "true"
+  APP_COLOR              "#336699"
+  APP_MAX_CONNECTIONS    "8"
+  APP_EMPTY              ""
+  APP_FLAG               NIL
+
+A bare NAME has the value NIL and is never set; ${NAME:-default} reads the file
+first, then :environ (here empty), as dotenv_values does.
+
+parse-dotenv of "A=1\nnot a statement\nB=2": (("A" . "1") ("B" . "2")), dotenv-syntax-warning on line(s) (2)
+
+load-dotenv with DOCS_DEMO_KEEP already set: set (("DOCS_DEMO_NEW" . "from-file")); DOCS_DEMO_KEEP is "from-the-environment"
+load-dotenv :override t: DOCS_DEMO_KEEP is "from-file"
+
+(load-config #p"fixtures/app.toml" :prefix "APP" :dotenv #p"fixtures/app.env"
+             :environ '(("APP_MAX_CONNECTIONS" . "16"))), then (load-into 'app-settings config):
+  (:VERBOSE T :HOST "db.internal" :PORT 5432 :MAX-CONNECTIONS 16)
+file < .env < environment: host and port come from .env ("5432" coerced to an
+integer), max_connections from the environment, "true" is T.
+
+With APP_MAX_CONNECTIONS=0, APP_DATABASE__PORT=x and APP_VERBOSE=maybe:
+config error: settings do not match HARNESS-DEMOS-DOCUMENTS::APP-SETTINGS
+  verbose: expected BOOLEAN
+  database.port: expected (INTEGER 1 65535)
+  max_connections: expected (INTEGER 1)
+
+A Latin-1 file ("APP_NAME=caf\xe9"): CONFIG-PARSE-ERROR
+  config error at <tmp>/harness-demos-documents-latin1.env: .env file is not UTF-8: Encoding error: invalid UTF-8 at octet 12: truncated sequence (E9 0A)
+
+python-dotenv's view of the same files:
+  python-dotenv 1.1.1, dotenv_values("fixtures/app.env") equals read-dotenv: T
+  dotenv_values of the Latin-1 file: UnicodeDecodeError
+
+==============================================================================
+== 5. Image editing operations (image-protocol#2)
+==============================================================================
+Inputs, made in code and written as PNG by image-backend-stb (lossless):
+output/input.png 64 x 48 :rgba (left half opaque, right half's alpha grows downwards),
+output/logo.png 20 x 12 :rgba (a translucent orange ellipse).
+Every operation returns a new image and leaves its input as it was.
+
+crop-image past the edge => IMAGE-INVALID-ARGUMENT: crop: bad region (60 40 10 10): outside the 64 × 48 image
+rotate-image 45 => IMAGE-INVALID-ARGUMENT: rotate: bad degrees 45: a multiple of 90 (other angles are not supported)
+
+Wrote output/resize-160x120-bicubic.png, thumbnail-32x32.png and composite.png.
+
+operation                                    size      format     sha256 of pixels Pillow 11.3.0
+input                                        64 x 48   :RGBA      53074d72d7646530 same pixels
+logo                                         20 x 12   :RGBA      3c58a6d73e00a523 same pixels
+crop 10 8 40 24                              40 x 24   :RGBA      ce9093bf07095ccb same pixels
+rotate 90                                    48 x 64   :RGBA      432dbaffc9b28768 same pixels
+rotate 180                                   64 x 48   :RGBA      706621af2371af20 same pixels
+rotate 270                                   48 x 64   :RGBA      02f09b13dc33c2ff same pixels
+rotate -90                                   48 x 64   :RGBA      02f09b13dc33c2ff same pixels
+flip :horizontal                             64 x 48   :RGBA      fcd1b554080bc0a3 same pixels
+flip :vertical                               64 x 48   :RGBA      cd852e1090a38c74 same pixels
+resize 37x23 :nearest                        37 x 23   :RGBA      1a01a440c541b21a same pixels
+resize 37x23 :box                            37 x 23   :RGBA      23445de5a97054e6 same pixels
+resize 37x23 :bilinear                       37 x 23   :RGBA      1276283d16ef339d same pixels
+resize 37x23 :bicubic                        37 x 23   :RGBA      d589abd77ab34a1b same pixels
+resize 37x23 :lanczos3                       37 x 23   :RGBA      9e466e11297982b0 same pixels
+resize 160x120 :bicubic                      160 x 120 :RGBA      56c3b7891201ed81 same pixels
+rgb resize 21x16 :lanczos3 :reducing-gap 2   21 x 16   :RGB       cb9b064e1a14d0fa same pixels
+thumbnail 32x32 :bicubic                     32 x 24   :RGBA      e6819fb3c74f4de5 same pixels
+composite logo at 12,6                       64 x 48   :RGBA      c9f223ea1eb04d46 same pixels
+
+==============================================================================
+== Summary
+==============================================================================
+113 results checked against their expected values: 0 mismatched.
+Every section ran to the end.

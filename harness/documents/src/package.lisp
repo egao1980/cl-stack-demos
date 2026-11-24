@@ -1,0 +1,12 @@
+(defpackage #:harness-demos-documents
+  (:use #:cl)
+  (:local-nicknames (#:dx #:doc-extract-protocol)
+                    (#:pdf #:doc-extract-backend-pdf)
+                    (#:zip #:compression-protocol)
+                    (#:yaml #:yaml-protocol)
+                    (#:cfg #:cl-stack-config)
+                    (#:schema #:schema-protocol)
+                    (#:img #:image-protocol)
+                    (#:crypto #:crypto-protocol)
+                    (#:proc #:process-protocol))
+  (:export #:run-demos))
