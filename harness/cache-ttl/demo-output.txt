@@ -1,0 +1,123 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (6 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+cache-protocol 0.2.0 (SBCL 2.6.9, Darwin): the in-memory TTL cache
+
+==============================================================================
+== 1. The default clock: sub-second, never early (#1)
+==============================================================================
+  The default clock is MONOTONIC-SECONDS (0.1.0 used GET-UNIVERSAL-TIME, whole
+  seconds). It steps by +monotonic-tick+ = 1/1000000000 s here.
+
+  issue #1's repro: :ttl 1 put just after a whole second
+    read at once        -> "alice"
+    read 1.1 s later    -> NIL   (0.1.0 still returned "alice")
+  :ttl 0.3 (sub-second)
+    read at once        -> "t-1"
+    read 0.35 s later   -> NIL
+  :ttl 1/200 (5 ms), 200 puts: gone before 5 ms had elapsed in 0 of them
+  :ttl 1/50 (20 ms), 20 puts polled without sleeping: lifetime 20.000 ms .. 20.002 ms
+
+==============================================================================
+== 2. An injected clock is exact
+==============================================================================
+  :clock is any function returning seconds as a real. Its readings are taken as
+  exact: an entry expires once clock >= put time + TTL (cachetools: timer >= expires).
+
+  put "page" :ttl 600 at t=1000
+    t=1599  get -> "<html>"
+    t=1600  get -> NIL
+    t=1600  delete of the expired key -> NIL (Redis DEL answers 0)
+  put "f" :ttl 1/2 and "g" :ttl 0.1 at t=1000 (a float TTL is RATIONALIZEd: 0.1 -> 1/10)
+    t=1000.09  f -> "half"  g -> "float"
+    t=1000.10  f -> "half"  g -> NIL
+    t=1000.49  f -> "half"  g -> NIL
+    t=1000.50  f -> NIL  g -> NIL
+
+==============================================================================
+== 3. TTL values: fractions, 0, negative, infinities, NaN
+==============================================================================
+  Each value put at t=0 and read at t=0 and at t=10^9 (cachetools semantics for
+  the infinities):
+    :ttl             t=0      t=10^9
+    nil (no TTL)     kept     kept
+    1/3              kept     gone
+    0                gone     gone
+    -5               gone     gone
+    +inf (double)    kept     kept
+    +inf (single)    kept     kept
+    -inf             gone     gone
+  :ttl NaN -> cache-error: cache error ("k"): TTL is not a number: #<DOUBLE-FLOAT quiet NaN>
+
+==============================================================================
+== 4. cache-incr and cache-cas are atomic across threads (#1)
+==============================================================================
+  8 threads x 20000 cache-incr          -> 160000 (0.1.0: 30609 .. 56113 of 160000)
+  4 threads :delta 3 and 4 threads :delta -2, 10000 each -> 40000
+  8 threads racing cas N -> N+1, 5000 tries each: 27613 wins, value 27613
+    (equal: one winner per value; 0.1.0 had 33983 wins for value 31100)
+  8 threads: cas "lock" nil -> "worker-i" (create if absent): 1 winner, held by "worker-0"
+
+==============================================================================
+== 5. cache-incr keeps the TTL: a rate-limit window (#2)
+==============================================================================
+  A rate limit of 3 requests per 60 s window, on an injected clock: the first
+  request creates the counter with cas nil -> 1 :ttl 60, later ones cache-incr it.
+  cache-incr keeps the entry's TTL, as Redis INCR does (0.1.0 dropped it, so the
+  window never ended).
+
+    t=1000  hits 1 -> allowed
+    t=1010  hits 2 -> allowed
+    t=1030  hits 3 -> allowed
+    t=1059  hits 4 -> 429 Too Many Requests
+    t=1060  hits 1 -> allowed
+    t=1061  hits 2 -> allowed
+
+==============================================================================
+== 6. cache-incr follows Redis INCR: text rules and int64 range (#4)
+==============================================================================
+  The value's text must be what Redis's string2ll accepts, and the value and
+  result must fit in a signed 64-bit integer:
+
+    "41"                     :delta  1 -> 42
+    "-1"                     :delta  1 -> 0
+    "0"                      :delta  1 -> 1
+    41                       :delta  1 -> 42
+    "007"                    :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "007"
+    "-0"                     :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "-0"
+    "00"                     :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "00"
+    " 1"                     :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: " 1"
+    "+1"                     :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "+1"
+    "1-2"                    :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "1-2"
+    ""                       :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: ""
+    "abc"                    :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "abc"
+    1.5                      :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: 1.5
+    :KEYWORD                 :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: :KEYWORD
+    "9223372036854775806"    :delta  1 -> 9223372036854775807
+    "9223372036854775807"    :delta  1 -> cache-error: cache error ("x"): increment or decrement would overflow: 9223372036854775807 + 1
+    "-9223372036854775807"   :delta -1 -> -9223372036854775808
+    "-9223372036854775808"   :delta -1 -> cache-error: cache error ("x"): increment or decrement would overflow: -9223372036854775808 + -1
+    "99999999999999999999"   :delta  1 -> cache-error: cache error ("x"): value is not an integer or out of range: "99999999999999999999"
+  after a refused incr the value is unchanged: "007"
+
+==============================================================================
+== 7. cache-cas-mismatch and its USE-VALUE restart
+==============================================================================
+  cas "config" "v1" -> "v3" while it holds "v2":
+    cache-cas-mismatch: cache CAS mismatch for "config" (expected "v1", actual "v2")
+    expected "v1", actual "v2"
+  the same cas under handler-bind with the USE-VALUE restart -> :STALE-OK; value still "v2"
+
+==============================================================================
+== Summary
+==============================================================================
+48 results checked against their expected values: 0 mismatched.
+Every section ran to the end.
