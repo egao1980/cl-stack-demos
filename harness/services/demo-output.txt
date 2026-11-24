@@ -1,0 +1,79 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; cl-repo: dependencies from cl-repo.lock (26 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+
+========================================================================
+== 1. cache-protocol 0.2.0: in-memory TTL cache (sub-second, atomic)
+========================================================================
+  put :ttl 0.3, read at once   -> "alice"
+  read 0.35 s later            -> NIL
+  rate-limit counter: incr at t+0, t+59 -> 3 (TTL kept by incr)
+  at t+60 the window is over      -> NIL
+  8 threads x 5000 cache-incr  -> 40000 (none lost)
+  8 threads racing cas N -> N+1: 11527 wins, value 11527 (equal: no double winner)
+  cache-incr on "1-2" -> cache-error: cache error ("x"): value is not an integer or out of range: "1-2"
+
+========================================================================
+== 2. cache-backend-redis 0.2.0: connect by URL, AUTH, SELECT, TLS
+========================================================================
+  backend: #<REDIS-CACHE-BACKEND redis://127.0.0.1:36390/3 {8009244243}>
+  put :ttl 1.5 (sent as PX 1500), get -> "hello", connected T
+  cas nil -> "owner-1" (create if absent) -> "owner-1"
+  second create-if-absent -> cache-cas-mismatch, actual "owner-1"
+  incr of "abc" -> cache-error: ERR value is not an integer or out of range
+  close -> T, connected NIL
+  wrong password -> CACHE-ERROR: cache error: HELLO: WRONGPASS invalid username-password pair or user is disabled.
+  refused 127.0.0.1:1 -> CACHE-CONNECTION-ERROR, cause INVALID-ARGUMENT-ERROR
+  rediss://:s3cret@127.0.0.1:36391/2: get -> "over TLS"
+
+== 3. mail-protocol 0.3.0: left out until it is on GHCR (src/mail.lisp)
+
+========================================================================
+== 4. mq-backend-amqp 0.2.0: handshake, heartbeats, Basic.Get, broker Close
+========================================================================
+  connected to RabbitMQ 3.13.7: heartbeat 10s, frame-max 131072, channel-max 2047
+  queue.declare-ok: amq.gen-0mKNufolwYnFoO7RpLnmvA
+  poll-messages (Basic.Get) -> "order-1", "order-2" (tags 1, 2)
+  after nack :requeue t -> "order-2" redelivered T
+  Basic.Get on a missing queue -> AMQP-CHANNEL-CLOSED 404 "NOT_FOUND - no queue 'no-such-queue' in vhost '/'"
+  the channel reopens: declare -> amq.gen-V9L7-P1izbCBaWSjwATFgA
+  wrong password -> AMQP-CONNECTION-CLOSED 403 AMQP connection closed by the broker: 403 ACCESS_REFUSED - Login was refused using authentication mechanism PLAIN. For details see the broker logfile.
+  refused 127.0.0.1:1 -> AMQP-TRANSPORT-ERROR, cause INVALID-ARGUMENT-ERROR
+  amqps://guest:guest@127.0.0.1:35674/%2f: round trip -> "over TLS"
+
+========================================================================
+== 5. mq-backend-kafka 0.2.1: librdkafka overlay, consumer groups, ack commits
+========================================================================
+  librdkafka 2.16.0 loaded at ASDF load
+  produced m1, m2 to demo-orders-4004513877; flush -> T
+  member 1 (group demo-workers-4004513877) gets "m1" key "customer-7" headers (("source" . "demo")) -> ack
+  member 2 (group demo-workers-4004513877) gets "m2" key "customer-7" headers (("source" . "demo"))
+  member 3 (group demo-workers-4004513877) gets "m2" key "customer-7" headers (("source" . "demo"))
+  new group: "m1", nack :requeue t -> "m1" redelivered T
+
+========================================================================
+== 6. Review fixes: the cases the adversarial rounds broke, now passing
+========================================================================
+  cache: +monotonic-tick+ 1/1000000000 s; :ttl 1/200 cut short in 0 of 200 puts
+  cache: :ttl NaN -> cache-error: cache error ("k"): TTL is not a number: #<DOUBLE-FLOAT quiet NaN>
+  redis: cache error: malformed URL: redis://:***@cache.internal:6379/0 (escape % / ? # @ in the user or password as %25 %2F %3F %23 %40)
+  redis: escaped -> :password "s3cret/x+y=="
+  mime: Subject "Hi\r\nBcc: x@evil" -> mime-header-error: MIME header error in "Subject": the value holds U+000D (CR) at 2; a line break ends the field, so the rest would be read as further fields or the body (header injection)
+  mime: RFC 2047 Subject "Café report" -> =?utf-8?b?Q2Fmw6k=?= report
+  amqp: consumer on C; poll B -> ("for-b")
+  amqp: A deleted; handler-case around poll B -> "amqp-consumer-cancelled amq.ctag-axOSlWODIh51cyMF5gztCQ"
+  amqp: next poll B -> ("for-b-2"), poll C -> ("for-c")
+  kafka: member 1 gets ("a1" "a2"), acks a2 then a1
+  kafka: member 2 resumes at ("a3")
+  kafka: publish while another thread polls (:timeout 20) -> 0 ms
+  kafka: that poll gets ("l1" "l2")
+
+Done in 14.7 s.
