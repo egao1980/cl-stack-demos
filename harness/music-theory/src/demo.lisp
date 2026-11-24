@@ -1,14 +1,17 @@
 (in-package #:harness-demos-music-theory)
 
-;;;; A short tour of music-theory 0.5.0. Sections 1-6 cover slice MT0 (spelled
+;;;; A short tour of music-theory 0.5.1. Sections 1-6 cover slice MT0 (spelled
 ;;;; pitches, the line of fifths and intervals), sections 7-11 slice MT1 (meters,
 ;;;; the metric hierarchy, dots and tuplets, tie splitting, tempo), sections 12-16
 ;;;; slice MT2 (keys and scales, scale degrees, Roman numerals, mixture, a
 ;;;; progression), sections 17-22 slice MT3 (chord symbols: a chart, dialects,
 ;;;; Unicode and slash chords, essential tones, transposition, errors), sections
 ;;;; 23-25 slice MT4 (spelling MIDI numbers, key detection, transposition to a key
-;;;; and enharmonic keys). Every result with a known answer is also checked:
-;;;; RUN-DEMOS returns NIL when one differs or a section stops on an error.
+;;;; and enharmonic keys), and section 26 the MusicXML <kind> functions of 0.5.1.
+;;;; The other 0.5.1 fixes are shown where they apply: chromatic lines at the end
+;;;; of section 23 (music-theory#14), octaves in text in sections 1 and 6 (#15).
+;;;; Every result with a known answer is also checked: RUN-DEMOS returns NIL when
+;;;; one differs or a section stops on an error.
 
 ;;; Output and checks ---------------------------------------------------------
 
@@ -188,6 +191,26 @@ mismatch if it returns instead."
     (format t "~%Round trip, 35 spellings x octaves -1..9: ~d of ~d names parse back to the same~%~
                pitch and print the same, in ASCII and in Unicode.~%~%" ok total)
     (check ok total "round trips"))
+  (para "MIDI 0..127 is octaves -1..9, but the octave is any integer, and since 0.5.1 in"
+        "text too (egao1980/music-theory#15). The library builds such values: MIDI 0 in"
+        "C# major is B#-2, and G9 up an octave is G10. 0.5.0 printed them but PARSE-PITCH"
+        "rejected the text as \"octave out of range\":")
+  (show (parse-pitch "C10") (make-spelled-pitch :letter 0 :alter 0 :octave 10))
+  (show (pitch-name (spell-midi 0 :key (parse-key "C# major"))) "B#-2")
+  (show (pitch-name (transpose-pitch (parse-pitch "G9") (parse-interval "P8"))) "G10")
+  (show (equalp (parse-pitch "B#-2") (spell-midi 0 :key (parse-key "C# major"))) t)
+  (show (pitch-midi (parse-pitch "G-12")) -125)
+  (let* ((count 10000)
+         (*random-state* #+sbcl (sb-ext:seed-random-state 15) #-sbcl (make-random-state t))
+         (ok (loop repeat count
+                   for p = (make-spelled-pitch :letter (random 7) :alter (- (random 5) 2)
+                                               :octave (- (random 21) 5))
+                   count (and (equalp p (parse-pitch (pitch-name p)))
+                              (equalp p (parse-pitch (pitch-name p :accidentals :unicode)))))))
+    (format t "~%Property: ~:d random pitches (any letter, bb to ##, octaves -5..15) round-trip~%~
+               through PITCH-NAME and PARSE-PITCH in ASCII and Unicode: ~:d of ~:d.~%~%"
+            count ok count)
+    (check ok count "random round trips, octaves -5..15"))
   (let* ((p (parse-pitch "Bbb3"))
          (text (with-standard-io-syntax (prin1-to-string p)))
          (back (let ((*read-eval* nil)) (read-from-string text))))
@@ -468,7 +491,7 @@ mismatch if it returns instead."
   (para "Bad text signals INVALID-PITCH or INVALID-INTERVAL (both MUSIC-THEORY-ERROR) with"
         "the text and a short reason, inside a USE-VALUE restart whose value the parse"
         "function returns. Here HANDLER-BIND answers NIL for every input it cannot read:")
-  (let* ((inputs '("C4" "H4" "Eb" "G#10" "Bb3" "F#4x" "" "Cbbb4" "C♯♭4" "C♯4"))
+  (let* ((inputs '("C4" "H4" "Eb" "G#10" "C-" "Bb3" "F#4x" "" "Cbbb4" "C♯♭4" "C♯4"))
          (parsed (handler-bind ((invalid-pitch
                                   (lambda (c)
                                     (format t "  ~8s ~a~%" (music-theory-error-text c)
@@ -477,7 +500,10 @@ mismatch if it returns instead."
                    (mapcar #'parse-pitch inputs))))
     (format t "  => ~{~a~^ ~}~%~%" (mapcar (lambda (p) (if p (pitch-name p) "nil")) parsed))
     (check (mapcar (lambda (p) (and p (pitch-name p))) parsed)
-           '("C4" nil nil nil "Bb3" nil nil nil nil "C#4") "parsed with use-value"))
+           '("C4" nil nil "G#10" nil "Bb3" nil nil nil nil "C#4") "parsed with use-value"))
+  (para "\"G#10\" reads as G#10 since 0.5.1, which takes any integer octave (section 1,"
+        "egao1980/music-theory#15); 0.5.0 gave the reason \"octave out of range\". A sign"
+        "alone, \"C-\", is still no octave.")
   (para "\"Cbbb4\" has an octave; its fault is the third flat. Since 0.3.0 the reason says"
         "so, for three accidentals and for a mix of sharps and flats alike (it used to be"
         "\"missing octave\", egao1980/music-theory#4). PARSE-PITCH-CLASS and PARSE-KEY"
@@ -1789,13 +1815,12 @@ between bar lines, split at spaces."
     "(b9,omit5)" "(#11,omit3)" "(#5,add9)" "(add9,omit5)" "/E" "/F#" "(b9)/Ab")
   "What follows the quality word in the round-trip sweep.")
 
-(defun round-trip-sweep ()
-  "Parse root + word + ending for every entry of the sweep tables in each dialect,
-then print every distinct value in each dialect and style and read it back. Returns
-(values texts rejected distinct trips held failed): FAILED is the sorted list of the
-printed texts that did not read back."
+(defun sweep-chords ()
+  "Parse root + word + ending for every entry of the sweep tables in each dialect.
+Returns (values chords texts rejected): CHORDS holds one value for each distinct set
+of slots (all but TEXT and DIALECT), in the order first read."
   (let ((values (make-hash-table :test 'equalp))
-        (texts 0) (rejected 0) (trips 0) (held 0) (failed '()))
+        (chords '()) (texts 0) (rejected 0))
     (dolist (root *sweep-roots*)
       (dolist (word *sweep-words*)
         (dolist (ending *sweep-endings*)
@@ -1803,9 +1828,25 @@ printed texts that did not read back."
             (let ((text (concatenate 'string root word ending)))
               (incf texts)
               (handler-case (let ((c (parse-chord-symbol text :dialect dialect)))
-                              (setf (gethash (chord-slots c) values) c))
+                              (unless (gethash (chord-slots c) values)
+                                (setf (gethash (chord-slots c) values) c)
+                                (push c chords)))
                 ((or chord-symbol-parse-error unknown-chord-quality) () (incf rejected))))))))
-    (loop for c being the hash-values of values
+    (values (nreverse chords) texts rejected)))
+
+(defun round-trip-sweep ()
+  "Parse root + word + ending for every entry of the sweep tables in each dialect,
+then print every distinct value in each dialect and style and read it back. Returns
+(values texts rejected distinct trips held failed): FAILED is the sorted list of the
+printed texts that did not read back."
+  (multiple-value-bind (chords texts rejected) (sweep-chords)
+    (round-trip-chords chords texts rejected)))
+
+(defun round-trip-chords (chords texts rejected)
+  "Print each of CHORDS in each dialect and style and read it back: the values of
+ROUND-TRIP-SWEEP."
+  (let ((trips 0) (held 0) (failed '()))
+    (loop for c in chords
           do (dolist (dialect *dialects*)
                (dolist (style '(:ascii :unicode))
                  (incf trips)
@@ -1817,7 +1858,7 @@ printed texts that did not read back."
                                                                          :accidentals style)))
                           (incf held))
                          (t (push printed failed)))))))
-    (values texts rejected (hash-table-count values) trips held (sort failed #'string<))))
+    (values texts rejected (length chords) trips held (sort failed #'string<))))
 
 (defun demo-dialects ()
   (para "PARSE-CHORD-SYMBOL takes :DIALECT :CLASSICAL, :POP (the default) or :JAZZ. All"
@@ -2278,6 +2319,42 @@ major, as MIDI numbers: what a keyboard or a MIDI file gives.")
     (-1 "down a semitone" "B major" "Cb major")
     (6 "up a tritone" "F# major" "Gb major")))
 
+(defparameter *issue-14-rows*
+  ;; (key midis spelled-by-0.5.0 notated): the table of egao1980/music-theory#14.
+  ;; The 0.5.0 column is the output the issue records; it is not computed here.
+  '(("G minor" (55 54 53 52 51 50) "G3 F#3 F3 Fb3 Eb3 D3" "G3 F#3 F3 E3 Eb3 D3")
+    ("D minor" (62 61 60 59 58 57) "D4 C#4 C4 Cb4 Bb3 A3" "D4 C#4 C4 B3 Bb3 A3")
+    ("D minor" (57 58 59 60 61 62) "A3 Bb3 B3 B#3 C#4 D4" "A3 Bb3 B3 C4 C#4 D4")
+    ("E minor" (59 60 61 62 63 64) "B3 C4 C#4 C##4 D#4 E4" "B3 C4 C#4 D4 D#4 E4")
+    ("E minor" (64 63 62 61 60 59) "E4 D#4 D4 Db4 C4 B3" "E4 D#4 D4 C#4 C4 B3")
+    ("D major" (62 61 60) "D4 C#4 B#3" "D4 C#4 C4")
+    ("F major" (69 70 71) "A4 Bb4 Cb5" "A4 Bb4 B4")))
+
+(defun spelled-text (pitches)
+  (format nil "~{~a~^ ~}" (names pitches)))
+
+(defun spelling (midi &rest args)
+  "SPELL-MIDI's two values as a list: the pitch name and the ambiguity."
+  (multiple-value-bind (pitch ambiguity) (apply #'spell-midi midi args)
+    (list (pitch-name pitch) ambiguity)))
+
+(defun corpus-score (rows &key use-key)
+  "ROWS are lists (key names midis). Returns (lines notes right exact): the notes
+SPELL-SEQUENCE spells as NAMES, with the key when USE-KEY and without one otherwise,
+and the lines it spells entirely so."
+  (let ((notes 0) (right 0) (exact 0))
+    (loop for (key texts midis) in rows
+          for n = (spelled-as (spell-sequence midis :key (and use-key (parse-key key))) texts)
+          do (incf notes (length midis))
+             (incf right n)
+             (when (= n (length midis)) (incf exact)))
+    (list (length rows) notes right exact)))
+
+(defun marked-differences (spelled texts)
+  "The names SPELLED, with a * after each one that differs from TEXTS."
+  (mapcar (lambda (name text) (if (string= name text) name (concatenate 'string name "*")))
+          spelled texts))
+
 (defvar *spelling-log* '() "MIDI numbers that LOG-AND-TAKE-FLATTER was asked about.")
 
 (defun log-and-take-flatter (condition)
@@ -2324,11 +2401,12 @@ or NIL when the package has none by that name."
         "and of the last WINDOW notes spelled (8 by default). Rules S0-S7 decide, the"
         "first that applies:")
   (dolist (line '("S0  SPELL-MIDI's :PREVIOUS with the same MIDI number: its spelling"
-                  "S1  a spelling in the key (a minor key's raised 7th included)"
+                  "S1  a spelling among the key's notes (in minor: natural, harmonic, melodic)"
                   "S2  only one spelling within two accidentals on one side of the center"
                   "S3  the accidental of the same pitch class earlier in the window"
                   "S4  a semitone step to the next note is diatonic: D# up to E, Eb down to D"
-                  "S5  no augmented or diminished interval with the note before"
+                  "S5  at ambiguity 3/4 or more, no augmented or diminished interval with"
+                  "    the note before"
                   "S6  the spelling nearer the center"
                   "S7  a tie: the sharper one, after signalling AMBIGUOUS-SPELLING"))
     (format t "  ~a~%" line))
@@ -2471,45 +2549,114 @@ or NIL when the package has none by that name."
     (show (names (spell-sequence '(68 60 68 67) :key (parse-key "C major")))
           '("G#4" "C4" "G#4" "G4") "no handler"))
   (terpri)
+  (para "Fixed in 0.5.1: egao1980/music-theory#14, found with this demo. In 0.5.0 a"
+        "chromatic step could take a spelling far from the key. S4 made a semitone step"
+        "diatonic, S5 avoided the augmented unison (C# to C), and a minor key's notes were"
+        "its harmonic form only, so S1 could not keep the natural 7th or the raised 6th."
+        "0.5.1 changes two rules: S1 keeps every note of the natural, harmonic and"
+        "melodic forms of a minor key, and S5 decides only a note whose ambiguity is 3/4"
+        "or more (below that, the center decides, S6). The rows of the issue: the 0.5.0"
+        "column is the output recorded in the issue, the 0.5.1 column is computed now, and"
+        "the last column is the spelling as notated:")
+  (format t "  ~9a~19a~23a~23a~a~%" "key" "midi" "0.5.0" "0.5.1" "notated")
+  (let ((rows (loop for (key midis) in *issue-14-rows*
+                    collect (spelled-text (spell-sequence midis :key (parse-key key))))))
+    (loop for (key midis old notated) in *issue-14-rows*
+          for new in rows
+          do (out "  ~9a~19a~23a~23a~a~%" key (format nil "~{~a~^ ~}" midis) old new notated))
+    (check rows (mapcar #'fourth *issue-14-rows*) "issue 14 rows, as notated"))
+  (terpri)
+  (para "The first row is the ground bass of Purcell's lament When I am laid in earth"
+        "(1689): the E is E again, not Fb. The two rules one note at a time. SPELLING"
+        "is this demo's helper: SPELL-MIDI's two values, the name and the ambiguity:")
+  (show (spelling 64 :key (parse-key "G minor")) '("E4" 1/2) "S1: the raised 6th of G minor")
+  (show (spelling 65 :key (parse-key "G minor")) '("F4" 1/3) "S1: the natural 7th")
+  (show (spelling 60 :key (parse-key "D major") :previous (parse-pitch "C#4")) '("C4" 35/48)
+        "below 3/4: S6, not B#3")
+  (show (spelling 66 :key (parse-key "C major") :previous (parse-pitch "Eb4")) '("Gb4" 37/48)
+        "3/4 or more: S5, Eb-Gb a m3")
+  (terpri)
   (let ((melodies (fixture "mt4-melodies.sexp"))
-        (transposed (fixture "mt4-transposed.sexp")))
-    (if (not (and melodies transposed))
-        (para "(The package has no MT4 test fixtures here; the corpus figures are skipped.)")
-        (let ((notes 0) (with-key 0) (without 0)
-              (moved 0) (moved-with-key 0) (moved-without 0))
-          (dolist (row melodies)
-            (destructuring-bind (id key texts durations midis) row
-              (declare (ignore id durations))
-              (incf notes (length midis))
-              (incf with-key (spelled-as (spell-sequence midis :key (parse-key key)) texts))
-              (incf without (spelled-as (spell-sequence midis) texts))))
-          (dolist (row transposed)
-            (destructuring-bind (id from to interval texts midis) row
-              (declare (ignore id from interval))
-              (incf moved (length midis))
-              (incf moved-with-key (spelled-as (spell-sequence midis :key (parse-key to)) texts))
-              (incf moved-without (spelled-as (spell-sequence midis) texts))))
+        (transposed (fixture "mt4-transposed.sexp"))
+        (chromatic (fixture "mt51-chromatic.sexp")))
+    (if (not (and melodies transposed chromatic))
+        (para "(The package has no MT4 or 0.5.1 test fixtures here; the corpus figures are"
+              "skipped.)")
+        (let* ((melody-rows (loop for (nil key texts nil midis) in melodies
+                                  collect (list key texts midis)))
+               (transposed-rows (loop for (nil nil to nil texts midis) in transposed
+                                      collect (list to texts midis)))
+               (chromatic-rows (loop for (nil key nil texts midis) in chromatic
+                                     collect (list key texts midis)))
+               (corpora (list (list "50 melodies" melody-rows)
+                              (list "100 transposed copies" transposed-rows)
+                              (list "57 chromatic lines" chromatic-rows)))
+               (scores (loop for (nil rows) in corpora
+                             collect (append (corpus-score rows :use-key t)
+                                             (last (corpus-score rows :use-key nil) 2)))))
           (para "The package's tests hold the rules to 50 public-domain melodies re-encoded"
                 "for it (folk tunes, hymns, carols, themes by Bach, Mozart, Beethoven and"
-                "others), and to 100 copies moved five fifths up and down into every key. The"
-                "fixtures ship with the package, so the demo counts again:")
-          (format t "  ~d melodies, ~d notes: ~d spelled as notated with the key, ~d without~%"
-                  (length melodies) notes with-key without)
-          (format t "  ~d transposed copies, ~d notes: ~d with the key, ~d without (~,2f%)~%~%"
-                  (length transposed) moved moved-with-key moved-without
-                  (* 100 (/ moved-without moved)))
-          (check (list notes with-key without) '(1699 1699 1699) "corpus spelling")
-          (check (list moved moved-with-key moved-without) '(3398 3398 3072)
-                 "transposed corpus spelling")
-          (para "Without a key the transposed copies lose 9.6%: for F# or Gb major, C# or Db"
-                "major and the like, detection returns one of the two keys, and a copy"
-                "written in the other is spelled in the wrong one."))))
-  (para "Open issue egao1980/music-theory#14, found with this demo: a chromatic step can"
-        "take a spelling far from the key, because S4 makes a semitone step diatonic and"
-        "S5 avoids the augmented unison (C# to C). The ground bass of Purcell's lament"
-        "When I am laid in earth (1689) is G F# F E Eb D in G minor; the E comes out Fb:")
-  (show (names (spell-sequence '(55 54 53 52 51 50) :key (parse-key "G minor"))))
-  (show (names (spell-sequence '(62 61 60) :key (parse-key "D major")))))
+                "others) and to 100 copies moved five fifths up and down into every key. 0.5.1"
+                "adds a third corpus, 57 chromatic lines from public-domain works with their"
+                "notated spelling: lament grounds (Purcell, Bach's Crucifixus, Beethoven's"
+                "WoO 80), Bach's royal theme, the Habanera, the opening of the Tristan Prelude"
+                "and chromatic passages of Bach chorales, 8 of them also copied into remote"
+                "keys. The fixtures ship with the package, so the demo counts again, notes"
+                "spelled as notated and lines spelled entirely as notated (exact):")
+          (format t "  ~22a~6@a~7@a  ~17@a~7@a  ~17@a~7@a~%"
+                  "corpus" "lines" "notes" "with the key" "exact" "without a key" "exact")
+          (loop for (label) in corpora
+                for (lines notes right exact right-without exact-without) in scores
+                do (format t "  ~22a~6d~7d  ~8d ~7,2f%~7d  ~8d ~7,2f%~7d~%"
+                           label lines notes right (* 100 (/ right notes)) exact
+                           right-without (* 100 (/ right-without notes)) exact-without))
+          (terpri)
+          (check (mapcar (lambda (score) (subseq score 0 3)) scores)
+                 '((50 1699 1699) (100 3398 3398) (57 501 494)) "corpus spelling with the key")
+          (check (mapcar (lambda (score) (nth 4 score)) scores) '(1699 3072 468)
+                 "corpus spelling without a key")
+          (check (list (nth 3 (third scores)) (nth 5 (third scores))) '(52 36)
+                 "chromatic lines exact")
+          (para "0.5.0 spelled the chromatic lines 477/501 = 95.21% with the key (35 lines"
+                "exact) and 457/501 = 91.22% without (32 lines), by the package's"
+                "PROVENANCE.md. The 50 melodies and their copies come out the same in both"
+                "versions. Without a key the transposed copies lose 9.6%: for F# or Gb major,"
+                "C# or Db major and the like, detection returns one of the two keys, and a"
+                "copy written in the other is spelled in the wrong one.")
+          (para "The chromatic lines by kind, with the key:")
+          (format t "  ~20a~6@a~7@a~9@a~8@a~%" "kind" "lines" "notes" "right" "exact")
+          (let ((kinds (remove-duplicates (mapcar #'third chromatic) :test #'string=
+                                                                     :from-end t)))
+            (dolist (kind kinds)
+              (let ((rows (loop for (nil key category texts midis) in chromatic
+                                when (string= category kind)
+                                  collect (list key texts midis))))
+                (destructuring-bind (lines notes right exact) (corpus-score rows :use-key t)
+                  (format t "  ~20a~6d~7d~9d~8d~%" kind lines notes right exact)))))
+          (terpri)
+          (para "The lines still spelled otherwise with the key, notated against 0.5.1. In"
+                "four of them a chromatic note passes down between two notes a whole step"
+                "apart, and Bach writes it as the leading tone of the note before (F# under"
+                "G, G# under A, C# under D), where S4 makes the step to the next note a"
+                "diatonic semitone (Gb to F). In the second Tristan phrase S1 keeps G#, the"
+                "raised 7th of A minor, where Wagner writes Ab:")
+          (let ((missed '()))
+            (loop for (id key nil texts midis) in chromatic
+                  for spelled = (names (spell-sequence midis :key (parse-key key)))
+                  unless (equal spelled texts)
+                    do (push id missed)
+                       (out "  ~a, ~a~%" id key)
+                       (out "    notated  ~{~a~^ ~}~%" texts)
+                       (out "    0.5.1    ~{~a~^ ~}~%" (marked-differences spelled texts)))
+            (terpri)
+            (check (length missed) 5 "chromatic lines not exact")
+            (para "A * marks each note spelled otherwise: 7 notes. The package's"
+                  "PROVENANCE.md leaves them for a later change of S4, and"
+                  "egao1980/music-theory#18 (filed with this demo) tracks them. The usual"
+                  "rule spells a descending chromatic step with a flat (E Eb D in C major,"
+                  "above). Bach's F# reads as the leading tone of G, the dominant: a harmonic"
+                  "reading that the notes of the line alone do not show.")))))
+  (para "Every example of the 0.5.0 rules earlier in this section comes out as before."))
 
 ;;; 24. Key detection (MT4) ----------------------------------------------------------
 
@@ -2911,6 +3058,160 @@ bar line after each bar; a new pair of lines starts at each bar index in BREAKS.
     (check (equalp melody (spell-sequence (shifted *entertainer* 1))) t
            "transposed melody spelled from MIDI")))
 
+;;; 26. MusicXML <kind> (0.5.1) -------------------------------------------------------
+
+(defparameter *musicxml-kind-values*
+  '("major" "minor" "augmented" "diminished" "dominant" "major-seventh" "minor-seventh"
+    "diminished-seventh" "augmented-seventh" "half-diminished" "major-minor"
+    "major-sixth" "minor-sixth" "dominant-ninth" "major-ninth" "minor-ninth"
+    "dominant-11th" "major-11th" "minor-11th" "dominant-13th" "major-13th" "minor-13th"
+    "suspended-second" "suspended-fourth" "Neapolitan" "Italian" "French" "German"
+    "pedal" "power" "Tristan" "other" "none")
+  "The 33 values of the <kind> element in MusicXML 4.0.")
+
+(defparameter *musicxml-symbol-rows*
+  ;; (symbol kind degrees)
+  '(("C7#9" "dominant" ((:add 9 1)))
+    ("Cm7b5" "half-diminished" ())
+    ("Csus4" "suspended-fourth" ())
+    ("C7sus4" "dominant" ((:subtract 3 0) (:add 4 0)))
+    ("C(add4,omit3)" "major" ((:add 4 0) (:subtract 3 0)))
+    ("C6/9" "major-sixth" ((:add 9 0)))
+    ("C7alt" "dominant" ((:add 9 -1) (:add 9 1) (:add 11 1) (:add 13 -1) (:subtract 5 0)))
+    ("C9#11" "dominant-ninth" ((:add 11 1)))
+    ("C13#11" "dominant-13th" ((:alter 11 1)))
+    ("Cmaj7#5" "major-seventh" ((:alter 5 1)))
+    ("CmM9" "minor-ninth" ((:alter 7 1)))
+    ("Cdim7" "diminished-seventh" ())
+    ("Bbm7/Ab" "minor-seventh" ())
+    ("G7(b9)/B" "dominant" ((:add 9 -1)))
+    ("C5" "power" ())
+    ("N.C." "none" ()))
+  "Chord symbols written as a MusicXML kind and degrees, with the expected values.")
+
+(defparameter *functional-kind-rows*
+  ;; (kind root printed written-kind written-degrees)
+  '(("Neapolitan" "Db" "Db" "major" ())
+    ("Italian" "C" "C5(add#4,addb6,omit5)" "power" ((:add 4 1) (:add 6 -1) (:subtract 5 0)))
+    ("German" "C" "Cm(add#4,addb6,omit5)" "minor" ((:add 4 1) (:add 6 -1) (:subtract 5 0)))
+    ("pedal" "C" "C5(omit5)" "power" ((:subtract 5 0)))))
+
+(defparameter *musicxml-error-rows*
+  ;; (kind degrees): each signals MUSIC-THEORY-ERROR
+  '(("Dominant" ())
+    ("dominant" ((:alter 9 -1)))
+    ("dominant-ninth" ((:add 9 0)))
+    ("major" ((:alter 3 1)))
+    ("none" ((:add 9 0)))))
+
+(defun degrees-text (degrees)
+  (if degrees (code-text degrees) "()"))
+
+(defun demo-musicxml ()
+  (para "New in 0.5.1 (egao1980/music-theory#16). MusicXML writes a chord symbol as a"
+        "<harmony> element: a root, one of the 33 <kind> values of MusicXML 4.0, a list"
+        "of <degree> elements and an optional bass. CHORD-SYMBOL-MUSICXML-KIND returns"
+        "the kind and the degrees of a CHORD-SYMBOL, each degree a list (type value"
+        "alter): :ADD, :ALTER or :SUBTRACT, the degree, and the alteration in semitones."
+        "MUSICXML-KIND-CHORD-SYMBOL reads a kind, a root, the degrees and a bass back:")
+  (show-values (chord-symbol-musicxml-kind (parse-chord-symbol "C7#9"))
+               '("dominant" ((:add 9 1))))
+  (show (print-chord-symbol (musicxml-kind-chord-symbol "dominant" (parse-pitch-class "C")
+                                                        :degrees '((:add 9 1))))
+        "C7(#9)")
+  (terpri)
+  (para "Symbols read with PARSE-CHORD-SYMBOL, written as kind and degrees, read back with"
+        "MUSICXML-KIND-CHORD-SYMBOL (with the chord's root and bass) and printed. Same:"
+        "the value read back equals the first in every slot but TEXT and DIALECT. An"
+        "alteration of a tone the kind has (5, or an extension) is :ALTER; any other"
+        "tension is :ADD, relative to a dominant chord, as in MusicXML:")
+  (format t "  ~15a~20a~25a~6a~a~%" "symbol" "kind" "back" "same" "degrees")
+  (let ((rows (loop for (text) in *musicxml-symbol-rows*
+                    for chord = (parse-chord-symbol text)
+                    collect (multiple-value-bind (kind degrees) (chord-symbol-musicxml-kind chord)
+                              (let ((back (musicxml-kind-chord-symbol
+                                           kind (chord-symbol-root chord)
+                                           :bass (chord-symbol-bass chord) :degrees degrees)))
+                                (list text kind degrees (print-chord-symbol back)
+                                      (same-chord-p back chord)))))))
+    (loop for (text kind degrees back same) in rows
+          do (out "  ~15a~20a~25a~6a~a~%" text kind back (if same "yes" "no")
+                  (degrees-text degrees)))
+    (check (mapcar (lambda (row) (list (first row) (second row) (third row))) rows)
+           *musicxml-symbol-rows* "kinds and degrees")
+    (check (every #'fifth rows) t "symbols read back"))
+  (terpri)
+  (para "C7sus4 and C(add4,omit3) have the same tones but are different values, and the"
+        "order of the degrees keeps them apart: (:subtract 3 0) directly followed by"
+        "(:add 4 0) is the suspension. Cmaj7#5 and CmM9 have no kind of their own; they"
+        "are written as the nearest kind with the fifth or seventh altered.")
+  (para "The other direction. \"other\" is a harmony spelled by <degree> elements alone,"
+        "which a CHORD-SYMBOL cannot hold, so it reads as NIL; \"none\" is N.C.:")
+  (show (musicxml-kind-chord-symbol "other" (parse-pitch-class "C")) nil)
+  (show (musicxml-kind-chord-symbol "other" (parse-pitch-class "C")
+                                    :degrees '((:add 3 0) (:add 5 1)))
+        nil)
+  (show (print-chord-symbol (musicxml-kind-chord-symbol "none" (parse-pitch-class "C")))
+        "N.C.")
+  (terpri)
+  (para "The functional kinds are read but never written: their chords are written as"
+        "the plain kinds with degrees. The Neapolitan is the major triad on its own root;"
+        "the Italian and German sixths are built on the key's tonic, as in music21:")
+  (format t "  ~12a~6a~24a~a~%" "kind" "root" "read as" "written as")
+  (let ((rows (loop for (kind root) in *functional-kind-rows*
+                    for chord = (musicxml-kind-chord-symbol kind (parse-pitch-class root))
+                    collect (multiple-value-bind (written degrees) (chord-symbol-musicxml-kind chord)
+                              (list kind root (print-chord-symbol chord) written degrees)))))
+    (loop for (kind root printed written degrees) in rows
+          do (out "  ~12a~6a~24a~a ~a~%" kind root printed written (degrees-text degrees)))
+    (check rows *functional-kind-rows* "functional kinds"))
+  (terpri)
+  (para "A kind outside MusicXML 4.0 (the values are case-sensitive), or a degree the"
+        "kind cannot take, signals MUSIC-THEORY-ERROR:")
+  (let ((reasons
+          (loop for (kind degrees) in *musicxml-error-rows*
+                collect (handler-case
+                            (progn (musicxml-kind-chord-symbol kind (parse-pitch-class "C")
+                                                               :degrees degrees)
+                                   :returned)
+                          (music-theory-error (c)
+                            (out "  ~16s ~28a -> ~a~%" kind (degrees-text degrees)
+                                 (or (music-theory-error-reason c) c))
+                            :signalled)))))
+    (check reasons (make-list (length *musicxml-error-rows*) :initial-element :signalled)
+           "MusicXML kind errors"))
+  (terpri)
+  (let* ((roots (all-spellings))
+         (written (remove-if (lambda (kind)
+                               (member kind '("Neapolitan" "Italian" "French" "German"
+                                              "Tristan" "pedal" "other" "none")
+                                       :test #'string=))
+                             *musicxml-kind-values*))
+         (kind-trips 0)
+         (kind-held (loop for kind in written
+                          sum (loop for root in roots
+                                    do (incf kind-trips)
+                                    count (equal (multiple-value-list
+                                                  (chord-symbol-musicxml-kind
+                                                   (musicxml-kind-chord-symbol
+                                                    kind root)))
+                                                 (list kind nil))))))
+    (multiple-value-bind (chords) (sweep-chords)
+      (let ((held (count-if (lambda (chord)
+                              (multiple-value-bind (kind degrees) (chord-symbol-musicxml-kind chord)
+                                (same-chord-p chord (musicxml-kind-chord-symbol
+                                                     kind (chord-symbol-root chord)
+                                                     :bass (chord-symbol-bass chord)
+                                                     :degrees degrees))))
+                            chords)))
+        (format t "Properties:~%  ~d kinds x ~d roots: kind -> chord -> the same kind, no degrees: ~:d of ~:d~%~
+                   ~2@T~:d distinct values of the section 18 sweep: chord -> kind and degrees -> the~%~
+                   ~2@Tsame chord: ~:d of ~:d~%~%"
+                (length written) (length roots) kind-held kind-trips
+                (length chords) held (length chords))
+        (check (list (length written) kind-held kind-trips) '(25 875 875) "kind round trips")
+        (check (list held (length chords)) '(2388 2388) "sweep values through MusicXML")))))
+
 ;;; Entry point -----------------------------------------------------------------
 
 (defun run-demos ()
@@ -2921,7 +3222,7 @@ bar line after each bar; a new pair of lines starts at each bar index in BREAKS.
                degrees and Roman numerals (slice MT2, sections 12-16); chord symbols: the~%~
                grammar, dialects, realisation, essential tones, transposition (slice MT3,~%~
                sections 17-22); spelling MIDI notes, key detection, transposition to a key~%~
-               (slice MT4, sections 23-25)~%"
+               (slice MT4, sections 23-25); chord symbols as MusicXML kinds (0.5.1, section 26)~%"
             (asdf:component-version (asdf:find-system "music-theory")))
     (section "1. Spelled pitches: letter, accidental, octave" (demo-pitches))
     (section "2. MIDI numbers and the scientific octave" (demo-midi))
@@ -2948,6 +3249,7 @@ bar line after each bar; a new pair of lines starts at each bar index in BREAKS.
     (section "23. Spelling a MIDI melody" (demo-spelling))
     (section "24. Key detection: histograms and key profiles" (demo-key-detection))
     (section "25. Transposing to a key; enharmonic keys" (demo-transpose-to-key))
+    (section "26. Chord symbols as MusicXML kinds and degrees" (demo-musicxml))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"

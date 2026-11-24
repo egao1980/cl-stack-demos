@@ -8,12 +8,12 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-music-theory 0.5.0: spelled pitches, the line of fifths and intervals (slice MT0,
+music-theory 0.5.1: spelled pitches, the line of fifths and intervals (slice MT0,
 sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale
 degrees and Roman numerals (slice MT2, sections 12-16); chord symbols: the
 grammar, dialects, realisation, essential tones, transposition (slice MT3,
 sections 17-22); spelling MIDI notes, key detection, transposition to a key
-(slice MT4, sections 23-25)
+(slice MT4, sections 23-25); chord symbols as MusicXML kinds (0.5.1, section 26)
 
 ========================================================================
 == 1. Spelled pitches: letter, accidental, octave
@@ -45,6 +45,20 @@ surrounding blanks. "-" is never a flat: in "B-1" it starts octave -1.
 
 Round trip, 35 spellings x octaves -1..9: 385 of 385 names parse back to the same
 pitch and print the same, in ASCII and in Unicode.
+
+MIDI 0..127 is octaves -1..9, but the octave is any integer, and since 0.5.1 in
+text too (egao1980/music-theory#15). The library builds such values: MIDI 0 in
+C# major is B#-2, and G9 up an octave is G10. 0.5.0 printed them but PARSE-PITCH
+rejected the text as "octave out of range":
+
+  (parse-pitch "C10") => #S(spelled-pitch :letter 0 :alter 0 :octave 10)   ; C10
+  (pitch-name (spell-midi 0 :key (parse-key "C# major"))) => "B#-2"
+  (pitch-name (transpose-pitch (parse-pitch "G9") (parse-interval "P8"))) => "G10"
+  (equalp (parse-pitch "B#-2") (spell-midi 0 :key (parse-key "C# major"))) => t
+  (pitch-midi (parse-pitch "G-12")) => -125
+
+Property: 10,000 random pitches (any letter, bb to ##, octaves -5..15) round-trip
+through PITCH-NAME and PARSE-PITCH in ASCII and Unicode: 10,000 of 10,000.
 
 Values print readably, so they can be written out and read back (or used as keys
 in EQUALP hash tables):
@@ -252,12 +266,16 @@ function returns. Here HANDLER-BIND answers NIL for every input it cannot read:
 
   "H4"     unknown letter
   "Eb"     missing octave
-  "G#10"   octave out of range
+  "C-"     missing octave
   "F#4x"   trailing characters
   ""       empty
   "Cbbb4"  too many or mixed accidentals
   "C♯♭4"   too many or mixed accidentals
-  => C4 nil nil nil Bb3 nil nil nil nil C#4
+  => C4 nil nil G#10 nil Bb3 nil nil nil nil C#4
+
+"G#10" reads as G#10 since 0.5.1, which takes any integer octave (section 1,
+egao1980/music-theory#15); 0.5.0 gave the reason "octave out of range". A sign
+alone, "C-", is still no octave.
 
 "Cbbb4" has an octave; its fault is the third flat. Since 0.3.0 the reason says
 so, for three accidentals and for a mix of sharps and flats alike (it used to be
@@ -1431,11 +1449,12 @@ and of the last WINDOW notes spelled (8 by default). Rules S0-S7 decide, the
 first that applies:
 
   S0  SPELL-MIDI's :PREVIOUS with the same MIDI number: its spelling
-  S1  a spelling in the key (a minor key's raised 7th included)
+  S1  a spelling among the key's notes (in minor: natural, harmonic, melodic)
   S2  only one spelling within two accidentals on one side of the center
   S3  the accidental of the same pitch class earlier in the window
   S4  a semitone step to the next note is diatonic: D# up to E, Eb down to D
-  S5  no augmented or diminished interval with the note before
+  S5  at ambiguity 3/4 or more, no augmented or diminished interval with
+      the note before
   S6  the spelling nearer the center
   S7  a tie: the sharper one, after signalling AMBIGUOUS-SPELLING
 
@@ -1568,27 +1587,101 @@ by S3, which keeps the accidental of the first:
   (names (spell-sequence '(68 60 68 67) :key (parse-key "C major")))
     => ("G#4" "C4" "G#4" "G4")   ; no handler
 
+Fixed in 0.5.1: egao1980/music-theory#14, found with this demo. In 0.5.0 a
+chromatic step could take a spelling far from the key. S4 made a semitone step
+diatonic, S5 avoided the augmented unison (C# to C), and a minor key's notes were
+its harmonic form only, so S1 could not keep the natural 7th or the raised 6th.
+0.5.1 changes two rules: S1 keeps every note of the natural, harmonic and
+melodic forms of a minor key, and S5 decides only a note whose ambiguity is 3/4
+or more (below that, the center decides, S6). The rows of the issue: the 0.5.0
+column is the output recorded in the issue, the 0.5.1 column is computed now, and
+the last column is the spelling as notated:
+
+  key      midi               0.5.0                  0.5.1                  notated
+  G minor  55 54 53 52 51 50  G3 F#3 F3 Fb3 Eb3 D3   G3 F#3 F3 E3 Eb3 D3    G3 F#3 F3 E3 Eb3 D3
+  D minor  62 61 60 59 58 57  D4 C#4 C4 Cb4 Bb3 A3   D4 C#4 C4 B3 Bb3 A3    D4 C#4 C4 B3 Bb3 A3
+  D minor  57 58 59 60 61 62  A3 Bb3 B3 B#3 C#4 D4   A3 Bb3 B3 C4 C#4 D4    A3 Bb3 B3 C4 C#4 D4
+  E minor  59 60 61 62 63 64  B3 C4 C#4 C##4 D#4 E4  B3 C4 C#4 D4 D#4 E4    B3 C4 C#4 D4 D#4 E4
+  E minor  64 63 62 61 60 59  E4 D#4 D4 Db4 C4 B3    E4 D#4 D4 C#4 C4 B3    E4 D#4 D4 C#4 C4 B3
+  D major  62 61 60           D4 C#4 B#3             D4 C#4 C4              D4 C#4 C4
+  F major  69 70 71           A4 Bb4 Cb5             A4 Bb4 B4              A4 Bb4 B4
+
+The first row is the ground bass of Purcell's lament When I am laid in earth
+(1689): the E is E again, not Fb. The two rules one note at a time. SPELLING
+is this demo's helper: SPELL-MIDI's two values, the name and the ambiguity:
+
+  (spelling 64 :key (parse-key "G minor"))
+    => ("E4" 1/2)   ; S1: the raised 6th of G minor
+  (spelling 65 :key (parse-key "G minor")) => ("F4" 1/3)   ; S1: the natural 7th
+  (spelling 60 :key (parse-key "D major") :previous (parse-pitch "C#4"))
+    => ("C4" 35/48)   ; below 3/4: S6, not B#3
+  (spelling 66 :key (parse-key "C major") :previous (parse-pitch "Eb4"))
+    => ("Gb4" 37/48)   ; 3/4 or more: S5, Eb-Gb a m3
+
 The package's tests hold the rules to 50 public-domain melodies re-encoded
 for it (folk tunes, hymns, carols, themes by Bach, Mozart, Beethoven and
-others), and to 100 copies moved five fifths up and down into every key. The
-fixtures ship with the package, so the demo counts again:
+others) and to 100 copies moved five fifths up and down into every key. 0.5.1
+adds a third corpus, 57 chromatic lines from public-domain works with their
+notated spelling: lament grounds (Purcell, Bach's Crucifixus, Beethoven's
+WoO 80), Bach's royal theme, the Habanera, the opening of the Tristan Prelude
+and chromatic passages of Bach chorales, 8 of them also copied into remote
+keys. The fixtures ship with the package, so the demo counts again, notes
+spelled as notated and lines spelled entirely as notated (exact):
 
-  50 melodies, 1699 notes: 1699 spelled as notated with the key, 1699 without
-  100 transposed copies, 3398 notes: 3398 with the key, 3072 without (90.41%)
+  corpus                 lines  notes       with the key  exact      without a key  exact
+  50 melodies               50   1699      1699  100.00%     50      1699  100.00%     50
+  100 transposed copies    100   3398      3398  100.00%    100      3072   90.41%     90
+  57 chromatic lines        57    501       494   98.60%     52       468   93.41%     36
 
-Without a key the transposed copies lose 9.6%: for F# or Gb major, C# or Db
-major and the like, detection returns one of the two keys, and a copy
-written in the other is spelled in the wrong one.
+0.5.0 spelled the chromatic lines 477/501 = 95.21% with the key (35 lines
+exact) and 457/501 = 91.22% without (32 lines), by the package's
+PROVENANCE.md. The 50 melodies and their copies come out the same in both
+versions. Without a key the transposed copies lose 9.6%: for F# or Gb major,
+C# or Db major and the like, detection returns one of the two keys, and a
+copy written in the other is spelled in the wrong one.
 
-Open issue egao1980/music-theory#14, found with this demo: a chromatic step can
-take a spelling far from the key, because S4 makes a semitone step diatonic and
-S5 avoids the augmented unison (C# to C). The ground bass of Purcell's lament
-When I am laid in earth (1689) is G F# F E Eb D in G minor; the E comes out Fb:
+The chromatic lines by kind, with the key:
 
-  (names (spell-sequence '(55 54 53 52 51 50) :key (parse-key "G minor")))
-    => ("G3" "F#3" "F3" "Fb3" "Eb3" "D3")
-  (names (spell-sequence '(62 61 60) :key (parse-key "D major")))
-    => ("D4" "C#4" "B#3")
+  kind                 lines  notes    right   exact
+  lament                  15    134      132      13
+  minor-descending        14    125      120      11
+  minor-ascending          8     64       64       8
+  major-ascending          6     54       54       6
+  major-descending         8     81       81       8
+  neighbour                6     43       43       6
+
+The lines still spelled otherwise with the key, notated against 0.5.1. In
+four of them a chromatic note passes down between two notes a whole step
+apart, and Bach writes it as the leading tone of the note before (F# under
+G, G# under A, C# under D), where S4 makes the step to the next note a
+diatonic semitone (Gb to F). In the second Tristan phrase S1 keeps G#, the
+raised 7th of A minor, where Wagner writes Ab:
+
+  bach-royal-theme, C minor
+    notated  C4 Eb4 G4 Ab4 B3 G4 F#4 F4 E4 Eb4 D4
+    0.5.1    C4 Eb4 G4 Ab4 B3 G4 Gb4* F4 Fb4* Eb4 D4
+  wagner-tristan-cello-2, A minor
+    notated  C4 Ab4 G4 F#4
+    0.5.1    C4 G#4* G4 F#4
+  bwv289-bass-m5, E minor
+    notated  E2 E3 A2 A3 G#3 G3 F#3 E3 F#3 B2
+    0.5.1    E2 E3 A2 A3 Ab3* G3 F#3 E3 F#3 B2
+  bwv328-alto-m33, A minor
+    notated  E4 F4 E4 D4 C#4 C4 B3 C4 D4 E4
+    0.5.1    E4 F4 E4 D4 Db4* C4 B3 C4 D4 E4
+  bach-royal-theme-in-eb-minor, Eb minor
+    notated  Eb4 Gb4 Bb4 Cb5 D4 Bb4 A4 Ab4 G4 Gb4 F4
+    0.5.1    Eb4 Gb4 Bb4 Cb5 D4 Bb4 Bbb4* Ab4 Abb4* Gb4 F4
+
+A * marks each note spelled otherwise: 7 notes. The package's
+PROVENANCE.md leaves them for a later change of S4, and
+egao1980/music-theory#18 (filed with this demo) tracks them. The usual
+rule spells a descending chromatic step with a flat (E Eb D in C major,
+above). Bach's F# reads as the leading tone of G, the dominant: a harmonic
+reading that the notes of the line alone do not show.
+
+Every example of the 0.5.0 rules earlier in this section comes out as before.
+
 
 ========================================================================
 == 24. Key detection: histograms and key profiles
@@ -1803,7 +1896,85 @@ gave for the raised MIDI numbers with no key hint:
            Db6 F5 Db6 F5 Db6 Bb5 Ab5 G5 Bb5 Db6 F6 Eb6 Db6 Bb5 Eb6
 
 ========================================================================
+== 26. Chord symbols as MusicXML kinds and degrees
+========================================================================
+New in 0.5.1 (egao1980/music-theory#16). MusicXML writes a chord symbol as a
+<harmony> element: a root, one of the 33 <kind> values of MusicXML 4.0, a list
+of <degree> elements and an optional bass. CHORD-SYMBOL-MUSICXML-KIND returns
+the kind and the degrees of a CHORD-SYMBOL, each degree a list (type value
+alter): :ADD, :ALTER or :SUBTRACT, the degree, and the alteration in semitones.
+MUSICXML-KIND-CHORD-SYMBOL reads a kind, a root, the degrees and a bass back:
+
+  (chord-symbol-musicxml-kind (parse-chord-symbol "C7#9"))
+    => (values "dominant" ((:add 9 1)))
+  (print-chord-symbol (musicxml-kind-chord-symbol "dominant" (parse-pitch-class "C") :degrees '((:add 9 1))))
+    => "C7(#9)"
+
+Symbols read with PARSE-CHORD-SYMBOL, written as kind and degrees, read back with
+MUSICXML-KIND-CHORD-SYMBOL (with the chord's root and bass) and printed. Same:
+the value read back equals the first in every slot but TEXT and DIALECT. An
+alteration of a tone the kind has (5, or an extension) is :ALTER; any other
+tension is :ADD, relative to a dominant chord, as in MusicXML:
+
+  symbol         kind                back                     same  degrees
+  C7#9           dominant            C7(#9)                   yes   ((:add 9 1))
+  Cm7b5          half-diminished     Cm7(b5)                  yes   ()
+  Csus4          suspended-fourth    Csus4                    yes   ()
+  C7sus4         dominant            C7sus4                   yes   ((:subtract 3 0) (:add 4 0))
+  C(add4,omit3)  major               C(add4,omit3)            yes   ((:add 4 0) (:subtract 3 0))
+  C6/9           major-sixth         C6/9                     yes   ((:add 9 0))
+  C7alt          dominant            C7(b9,#9,#11,b13,omit5)  yes   ((:add 9 -1) (:add 9 1) (:add 11 1) (:add 13 -1) (:subtract 5 0))
+  C9#11          dominant-ninth      C9(#11)                  yes   ((:add 11 1))
+  C13#11         dominant-13th       C13(#11)                 yes   ((:alter 11 1))
+  Cmaj7#5        major-seventh       C+maj7                   yes   ((:alter 5 1))
+  CmM9           minor-ninth         Cmmaj9                   yes   ((:alter 7 1))
+  Cdim7          diminished-seventh  Cdim7                    yes   ()
+  Bbm7/Ab        minor-seventh       Bbm7/Ab                  yes   ()
+  G7(b9)/B       dominant            G7(b9)/B                 yes   ((:add 9 -1))
+  C5             power               C5                       yes   ()
+  N.C.           none                N.C.                     yes   ()
+
+C7sus4 and C(add4,omit3) have the same tones but are different values, and the
+order of the degrees keeps them apart: (:subtract 3 0) directly followed by
+(:add 4 0) is the suspension. Cmaj7#5 and CmM9 have no kind of their own; they
+are written as the nearest kind with the fifth or seventh altered.
+
+The other direction. "other" is a harmony spelled by <degree> elements alone,
+which a CHORD-SYMBOL cannot hold, so it reads as NIL; "none" is N.C.:
+
+  (musicxml-kind-chord-symbol "other" (parse-pitch-class "C")) => nil
+  (musicxml-kind-chord-symbol "other" (parse-pitch-class "C") :degrees '((:add 3 0) (:add 5 1)))
+    => nil
+  (print-chord-symbol (musicxml-kind-chord-symbol "none" (parse-pitch-class "C")))
+    => "N.C."
+
+The functional kinds are read but never written: their chords are written as
+the plain kinds with degrees. The Neapolitan is the major triad on its own root;
+the Italian and German sixths are built on the key's tonic, as in music21:
+
+  kind        root  read as                 written as
+  Neapolitan  Db    Db                      major ()
+  Italian     C     C5(add#4,addb6,omit5)   power ((:add 4 1) (:add 6 -1) (:subtract 5 0))
+  German      C     Cm(add#4,addb6,omit5)   minor ((:add 4 1) (:add 6 -1) (:subtract 5 0))
+  pedal       C     C5(omit5)               power ((:subtract 5 0))
+
+A kind outside MusicXML 4.0 (the values are case-sensitive), or a degree the
+kind cannot take, signals MUSIC-THEORY-ERROR:
+
+  "Dominant"       ()                           -> not a MusicXML 4.0 kind
+  "dominant"       ((:alter 9 -1))              -> (:alter 9 -1) is not an alteration, addition or omission on "dominant"
+  "dominant-ninth" ((:add 9 0))                 -> breaks rule R4: expected an added degree that is not already in the chord
+  "major"          ((:alter 3 1))               -> (:alter 3 1) is not an alteration, addition or omission on "major"
+  "none"           ((:add 9 0))                 -> N.C. has no degrees
+
+Properties:
+  25 kinds x 35 roots: kind -> chord -> the same kind, no degrees: 875 of 875
+  2,388 distinct values of the section 18 sweep: chord -> kind and degrees -> the
+  same chord: 2,388 of 2,388
+
+
+========================================================================
 == Summary
 ========================================================================
-530 results checked against their expected values: 0 mismatched.
+554 results checked against their expected values: 0 mismatched.
 Every section ran to the end.
