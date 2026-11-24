@@ -1,6 +1,6 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names
-; cl-repo: dependencies from cl-repo.lock (9 packages)
+; cl-repo: dependencies from cl-repo.lock (24 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -8,7 +8,15 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-mime-protocol 0.3.1 (SBCL 2.6.9, Darwin): nested multiparts, header names, browser form-data names
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable namesWARNING:
+   redefining LOAD-PROXY-SYSTEM-PLATFORM (#<STANDARD-CLASS HTTP-PROTOCOL:HTTP-PROXY-CONFIG>) in DEFMETHOD
+
+; compiling file "~/Projects/cl-workspace/.worktrees/hp56-demos/harness/mime-multipart/src/demo.lisp" (written 24 NOV 2026 05:36:58 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/.worktrees/hp56-demos/harness/mime-multipart/src/demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.048
+mime-protocol 0.3.1, http-protocol 0.4.4 (SBCL 2.6.9, Darwin): nested multiparts, header names, browser form-data names, form-data boundaries
 
 ==============================================================================
 == 1. The mail layout, printed
@@ -204,7 +212,68 @@ mime-protocol 0.3.1 (SBCL 2.6.9, Darwin): nested multiparts, header names, brows
   what mime-protocol 0.3.0 did.
 
 ==============================================================================
+== 8. http-protocol's form-data encoder: fresh boundaries, no collisions, octet content (http-protocol#56, #57)
+==============================================================================
+  http-protocol 0.4.4's form-data encoder, MAKE-MULTIPART-BODY: the one under
+  cl-stack-http's :files and rpc-backend-htmx's uploads.
+
+  0.4.3 drew boundaries from CL:*RANDOM-STATE*, which every fresh SBCL image
+  starts with the same. Its formula, (format nil "----cl-stack-~A" (random
+  (expt 36 10))), in two fresh sbcl processes:
+    ----cl-stack-487479369965302
+    ----cl-stack-487479369965302
+
+  0.4.4 in two fresh `cl-repo run -- sbcl` processes, the first boundary of each:
+    ----cl-stack-7866590d33960aae0c739703579790ea
+    ----cl-stack-15a8702d68e47bb7d6cbef61774b3069
+
+  Each process seeds its own state once with (make-random-state t), and the state
+  is cleared before an image is saved: 128 bits, 45 characters, all bchars.
+
+  An upload whose content holds a delimiter line for the boundary 0.4.3 used
+  first in every fresh image, then a forged "role" field:
+    | notes
+    | ------cl-stack-487479369965302
+    | Content-Disposition: form-data; name="role"
+    | 
+    | admin
+
+  make-multipart-body, given that boundary as if it had drawn it:
+    boundary given  ----cl-stack-487479369965302
+    boundary used   ----cl-stack-496effae4aa43b9ea991429e0631dc2b
+    Content-Type    multipart/form-data; boundary=----cl-stack-496effae4aa43b9ea991429e0631dc2b
+
+  mime-protocol reads the body back: two parts, the upload intact.
+    "role"                       "user"
+    "upload" / "notes.txt"       "notes\r\n------cl-stack-487479369965302\r\nContent-Disposition: form-data; name="role"\r\n\r\nadmin"
+
+  0.4.3 wrote the same bytes with that boundary. The same reader then sees three
+  parts, the last a "role" field the sender never set:
+    "role"                       "user"
+    "upload" / "notes.txt"       "notes"
+    "role"                       "admin"
+
+  Content that is not a stream, a string or octets is refused where the file or
+  part is made (#57), not later when the body is streamed. So is a :boundary
+  that RFC 2046 does not allow:
+    (make-http-file (vector 1 2))              http-protocol-error
+      HTTP-FILE content must be a stream, a string or a vector of (unsigned-byte 8), not (SIMPLE-VECTOR 2)
+    (make-http-file <(signed-byte 8) array>)   http-protocol-error
+      HTTP-FILE content must be a stream, a string or a vector of (unsigned-byte 8), not (SIMPLE-ARRAY (SIGNED-BYTE 8) (2))
+    :files (("f" :content #(1 2) ...))         http-protocol-error
+      files entry f content must be a stream, a string or a vector of (unsigned-byte 8), not (SIMPLE-VECTOR 2)
+    :form-data (("n" . #(1 2)))                http-protocol-error
+      multipart field n must be a stream, a string or a vector of (unsigned-byte 8), not (SIMPLE-VECTOR 2)
+    :boundary "semi;colon"                     http-protocol-error
+      multipart boundary "semi;colon" is not 1-70 RFC 2046 bchars ending in a non-space
+
+  Accepted, and sent as: octets as given, a string as UTF-8, a stream as read.
+    o / o.bin  01 02 FF
+    s / s.txt  C3 B1
+    t / t.bin  07
+
+==============================================================================
 == Summary
 ==============================================================================
-46 results checked against their expected values: 0 mismatched.
+63 results checked against their expected values: 0 mismatched.
 Every section ran to the end.

@@ -604,13 +604,183 @@ quoted-pair (as mime-protocol 0.3.0 did) and %0D %0A are kept.")
           (dolist (f (list body result))
             (when (probe-file f) (delete-file f)))))))
 
+(defparameter +old-boundary-form+
+  "(format t \"BOUNDARY ----cl-stack-~A~%\" (random (expt 36 10)))"
+  "The body of http-protocol 0.4.3's MAKE-MULTIPART-BOUNDARY, printed.")
+
+(defparameter +new-boundary-form+
+  "(format t \"BOUNDARY ~A~%\"
+           (nth-value 3 (http-protocol:make-multipart-body '((\"a\" . \"b\")) nil)))"
+  "The first boundary MAKE-MULTIPART-BODY draws in a process, printed.")
+
+(defun fresh-boundary (&key (via-cl-repo t))
+  "The boundary a fresh SBCL process prints. VIA-CL-REPO: started by `cl-repo
+run`, which loads this project's http-protocol from GHCR, it evaluates
++NEW-BOUNDARY-FORM+; otherwise a bare sbcl evaluates +OLD-BOUNDARY-FORM+."
+  (let ((command (append (when via-cl-repo (list "cl-repo" "run" "--"))
+                         (list "sbcl" "--noinform" "--non-interactive"
+                               "--no-sysinit" "--no-userinit")
+                         (when via-cl-repo
+                           (list "--eval" "(require \"asdf\")"
+                                 "--eval" "(let ((*standard-output* (make-broadcast-stream)))
+                                             (asdf:load-system \"http-protocol\"))"))
+                         (list "--eval" (if via-cl-repo +new-boundary-form+ +old-boundary-form+)))))
+    (multiple-value-bind (code stdout stderr)
+        (proc:run command :output :string :error-output :string :timeout 900)
+      (check code 0 (format nil "exit code of a fresh ~:[sbcl~;cl-repo run sbcl~]" via-cl-repo))
+      (let ((line (find-if (lambda (l) (eql 0 (search "BOUNDARY " l)))
+                           (uiop:split-string stdout :separator '(#\Newline)))))
+        (unless line
+          (out "  ~a~%" stderr)
+          (error "no BOUNDARY line from ~{~a~^ ~}" command))
+        (string-right-trim '(#\Return) (subseq line 9))))))
+
+(defun replace-all (string old new)
+  "STRING with every OLD replaced by NEW."
+  (with-output-to-string (o)
+    (loop with start = 0
+          for pos = (search old string :start2 start)
+          do (write-string string o :start start :end (or pos (length string)))
+          while pos
+          do (write-string new o)
+             (setf start (+ pos (length old))))))
+
+(defun read-form (content-type octets)
+  "mime-protocol's reading of the multipart/form-data body OCTETS sent under
+CONTENT-TYPE: ((name filename) content-as-text) per part."
+  (let ((entity (mime:parse-mime (concatenate '(vector (unsigned-byte 8))
+                                              (wire-octets "Content-Type: " content-type :crlf :crlf)
+                                              octets)
+                                 :decode nil)))
+    (mapcar (lambda (row part) (list row (utf8 (mime:mime-content part))))
+            (name-rows entity)
+            (mime:mime-parts entity))))
+
+(defun show-form (rows)
+  (dolist (row rows)
+    (destructuring-bind (pair text) row
+      (out "    ~28a ~a~%" (pair-string pair) (visible text)))))
+
+(defun demo-http-boundaries ()
+  (say "0.4.4 in two fresh `cl-repo run -- sbcl` processes, the first boundary of each:")
+  (let ((new1 (fresh-boundary))
+        (new2 (fresh-boundary)))
+    (out "    ~a~%    ~a~%" new1 new2)
+    (check (string= new1 new2) nil "0.4.4: two fresh processes, two boundaries")
+    (check (list (length new1) (subseq new1 0 13)
+                 (every (lambda (c) (digit-char-p c 16)) (subseq new1 13)))
+           (list 45 "----cl-stack-" t)
+           "----cl-stack- and 32 hex digits")
+    (say ""
+         "Each process seeds its own state once with (make-random-state t), and the state"
+         "is cleared before an image is saved: 128 bits, 45 characters, all bchars.")))
+
+(defun demo-http-collision (old1)
+  (let* ((evil (crlf "notes" (format nil "--~a" old1)
+                     "Content-Disposition: form-data; name=\"role\"" "" "admin"))
+         (files `(("upload" . (:content ,evil :filename "notes.txt"
+                               :content-type "text/plain")))))
+    (say "An upload whose content holds a delimiter line for the boundary 0.4.3 used"
+         "first in every fresh image, then a forged \"role\" field:")
+    (dolist (line (uiop:split-string evil :separator '(#\Newline)))
+      (out "    | ~a~%" (string-right-trim '(#\Return) line)))
+    (multiple-value-bind (stream ct clen boundary)
+        (hp:make-multipart-body '(("role" . "user")) files :boundary old1)
+      (let ((octets (hp:slurp-octets stream)))
+        (check (length octets) clen "Content-Length of the body")
+        (say ""
+             "make-multipart-body, given that boundary as if it had drawn it:")
+        (out "    boundary given  ~a~%    boundary used   ~a~%    Content-Type    ~a~%"
+             old1 boundary ct)
+        (check (string= boundary old1) nil "a boundary that occurs in a part is replaced")
+        (say "" "mime-protocol reads the body back: two parts, the upload intact.")
+        (let ((rows (read-form ct octets)))
+          (show-form rows)
+          (check rows (list (list '("role" nil) "user") (list '("upload" "notes.txt") evil))
+                 "0.4.4: the parts as sent"))
+        (let ((old-rows (read-form (format nil "multipart/form-data; boundary=~a" old1)
+                                   (encoding-protocol:encode
+                                    (replace-all (utf8 octets) boundary old1)))))
+          (say ""
+               "0.4.3 wrote the same bytes with that boundary. The same reader then sees three"
+               "parts, the last a \"role\" field the sender never set:")
+          (show-form old-rows)
+          (check old-rows (list (list '("role" nil) "user")
+                                (list '("upload" "notes.txt") "notes")
+                                (list '("role" nil) "admin"))
+                 "0.4.3: a forged role field"))))))
+
+(defun demo-http-content ()
+  (say "Content that is not a stream, a string or octets is refused where the file or"
+       "part is made (#57), not later when the body is streamed. So is a :boundary"
+       "that RFC 2046 does not allow:")
+  (flet ((try (label thunk)
+           ;; The message names the content's type: print it on one line.
+           (let ((*print-pretty* nil))
+             (handler-case (progn (funcall thunk)
+                             (out "    ~42a accepted~%" label)
+                             (check :accepted :refused label))
+               (hp:http-protocol-error (c)
+                 (out "    ~42a http-protocol-error~%      ~a~%" label c)
+                 (check :refused :refused label))))))
+    (try "(make-http-file (vector 1 2))"
+         (lambda () (hp:make-http-file (vector 1 2) :filename "a.bin")))
+    (try "(make-http-file <(signed-byte 8) array>)"
+         (lambda () (hp:make-http-file (make-array 2 :element-type '(signed-byte 8)
+                                                     :initial-element -1))))
+    (try ":files ((\"f\" :content #(1 2) ...))"
+         (lambda () (hp:make-multipart-body nil `(("f" . (:content ,(vector 1 2)
+                                                          :filename "a"))))))
+    (try ":form-data ((\"n\" . #(1 2)))"
+         (lambda () (hp:make-multipart-body `(("n" . ,(vector 1 2))) nil)))
+    (try ":boundary \"semi;colon\""
+         (lambda () (hp:make-multipart-body '(("a" . "b")) nil :boundary "semi;colon"))))
+  (say "" "Accepted, and sent as: octets as given, a string as UTF-8, a stream as read.")
+  (multiple-value-bind (stream ct)
+      (hp:make-multipart-body
+       nil `(("o" . ,(hp:make-http-file (octets '(1 2 255)) :filename "o.bin"))
+             ("s" . ,(hp:make-http-file "ñ" :filename "s.txt"))
+             ("t" . ,(hp:make-http-file (hp:make-octet-input-stream (octets '(7)))
+                                        :filename "t.bin"))))
+    (let* ((body (hp:slurp-octets stream))
+           (entity (mime:parse-mime (concatenate '(vector (unsigned-byte 8))
+                                                 (wire-octets "Content-Type: " ct :crlf :crlf)
+                                                 body)
+                                    :decode nil))
+           (contents (mapcar (lambda (p) (coerce (mime:mime-content p) 'list))
+                             (mime:mime-parts entity))))
+      (loop for (name filename) in (name-rows entity)
+            for content in contents
+            do (out "    ~a / ~a  ~{~2,'0X~^ ~}~%" name filename content))
+      (check contents '((1 2 255) (195 177) (7)) "part contents on the wire"))))
+
+(defun demo-http-multipart ()
+  (say (format nil "http-protocol ~a's form-data encoder, MAKE-MULTIPART-BODY: the one under"
+               (asdf:component-version (asdf:find-system "http-protocol")))
+       "cl-stack-http's :files and rpc-backend-htmx's uploads."
+       ""
+       "0.4.3 drew boundaries from CL:*RANDOM-STATE*, which every fresh SBCL image"
+       "starts with the same. Its formula, (format nil \"----cl-stack-~A\" (random"
+       "(expt 36 10))), in two fresh sbcl processes:")
+  (let ((old1 (fresh-boundary :via-cl-repo nil))
+        (old2 (fresh-boundary :via-cl-repo nil)))
+    (out "    ~a~%    ~a~%" old1 old2)
+    (check (string= old1 old2) t "0.4.3's formula: one string in every fresh image")
+    (say "")
+    (demo-http-boundaries)
+    (say "")
+    (demo-http-collision old1)
+    (say "")
+    (demo-http-content)))
+
 (defun run-demos ()
   "Print the tour. Returns T when every check matched and no section failed."
   (let ((*checks* 0) (*mismatches* 0) (*failed-sections* '())
         (*print-right-margin* 110)
         (*random-state* (make-random-state t)))
-    (format t "~&mime-protocol ~a (~a ~a, ~a): nested multiparts, header names, browser form-data names~%"
+    (format t "~&mime-protocol ~a, http-protocol ~a (~a ~a, ~a): nested multiparts, header names, browser form-data names, form-data boundaries~%"
             (asdf:component-version (asdf:find-system "mime-protocol"))
+            (asdf:component-version (asdf:find-system "http-protocol"))
             (lisp-implementation-type) (lisp-implementation-version) (software-type))
     (section "1. The mail layout, printed" (demo-print))
     (section "2. Parsed back: the same tree, the same text (#9)" (demo-round-trip))
@@ -620,6 +790,8 @@ quoted-pair (as mime-protocol 0.3.0 did) and %0D %0A are kept.")
     (section "6. A browser's form-data part headers: UTF-8 names, a literal backslash (#14)"
              (demo-browser))
     (section "7. The same form read by python-multipart and werkzeug" (demo-python-form))
+    (section "8. http-protocol's form-data encoder: fresh boundaries, no collisions, octet content (http-protocol#56, #57)"
+             (demo-http-multipart))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
