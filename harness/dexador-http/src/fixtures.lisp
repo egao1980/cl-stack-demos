@@ -155,3 +155,34 @@
           (send-text stream "."))
       (error () nil))
     :close))
+
+(defun read-body (lines stream)
+  "The body of the request whose head is LINES, by its Content-Length, as octets."
+  (let* ((length (header lines "content-length"))
+         (body (make-array (if length (parse-integer length) 0)
+                           :element-type '(unsigned-byte 8))))
+    (read-sequence body stream)
+    body))
+
+(defun request-path (lines)
+  "The target of the request line (\"POST /form HTTP/1.1\" → \"/form\")."
+  (let* ((line (first lines))
+         (start (1+ (position #\Space line))))
+    (subseq line start (position #\Space line :start start))))
+
+(defun router (box routes)
+  "A handler that reads each request's body and pushes (head-lines . body)
+   onto (CAR BOX), newest first, then answers from ROUTES, an alist
+   (path status reason header...); any other path gets 200 \"ok\". Each
+   connection carries one request."
+  (let ((lock (bt:make-lock "router")))
+    (lambda (lines stream)
+      (let ((body (read-body lines stream)))
+        (bt:with-lock-held (lock)
+          (push (cons lines body) (car box)))
+        (let ((route (assoc (request-path lines) routes :test #'string=)))
+          (if route
+              (destructuring-bind (status reason &rest headers) (cdr route)
+                (respond stream status "" :reason reason :headers headers :close t))
+              (respond stream 200 "ok" :close t))
+          :close)))))

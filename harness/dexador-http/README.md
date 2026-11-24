@@ -1,6 +1,6 @@
-# Dexador backend: proxies and timeouts demo
+# Dexador backend: proxies, timeouts, request bodies and redirects demo
 
-`harness-demos-dexador-http` shows **http-backend-dexador 0.2.0** on **dexador 0.9.16.1**, which is published from the egao1980/dexador fork through cl-stack-systems. These are the fixes for two gaps that the [Python to Common Lisp](https://egao1980.github.io/python-to-cl/) site found: http-backend-dexador#23 (proxies) and #24 (timeouts).
+`harness-demos-dexador-http` shows **http-backend-dexador 0.2.1** on **dexador 0.9.16.1**, which is published from the egao1980/dexador fork through cl-stack-systems. These are the fixes for gaps that the [Python to Common Lisp](https://egao1980.github.io/python-to-cl/) site found: http-backend-dexador#23 (proxies) and #24 (timeouts) in 0.2.0, and #32 (request bodies) and #33 (redirect history) in 0.2.1. Since cl-stack-http 0.2.0, `:auto` sends blocking calls through this backend off Windows, so #32 broke every form post on the default path.
 
 Every origin and proxy is a loopback listener ([`src/fixtures.lisp`](src/fixtures.lisp)). The HTTPS origins use the self-signed localhost certificate in [`certs/`](certs/), which is for this demo only; it is the one from the backend's tests. [`demo-output.txt`](demo-output.txt) is the last run, from the version line on. The cl-repo sync and compile output before it is cut.
 
@@ -31,6 +31,19 @@ cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
    - A streamed HTTPS body (`:want-stream t`) keeps the read timeout after `send` returns.
    - In 0.1.5 the HTTPS rows with `:read` returned the response after 6 s: TLS reads went through cl+ssl's socket BIO, which on SBCL never sees the fd-stream timeout.
 3. **Pools keyed by `:verify`.** A `:verify nil` client's idle connection to a self-signed origin is not handed to a `:verify t` client. The second client opens its own connection and fails certificate verification. The failure arrives as cl+ssl's `SSL-ERROR-SSL`, not as `http-tls-error` (filed as http-backend-dexador#31).
+
+4. **Request bodies (#32).** Each POST goes to a loopback origin that records the head and body it read. Dexador encodes a body again when its Content-Type is exactly `application/x-www-form-urlencoded` or starts with `multipart/`, and 0.2.0 handed it http-protocol's encoded octets.
+   - `:form-data` (alist or string) and an alist `:data` now arrive as `key1=value1`. 0.2.0 failed before sending anything: `The value of QURI.ENCODE::PARAMS-ALIST is #(107 101 …), which is not of type LIST`.
+   - `:files` posts arrive as http-protocol's multipart body. 0.2.0 refused them as stream bodies.
+   - A pre-encoded multipart `:content` arrives unchanged (0.2.0: a `TYPE-ERROR` in dexador's `multipart-content-length`). So does a gzip-coded form (0.2.0: refused as a stream body).
+   - Those last three go with a leading space in the Content-Type value. That is optional whitespace before a field value (RFC 9112 §5), which the origin strips, and it keeps dexador from encoding the body again.
+   - JSON worked before and still does.
+   - The #32 report itself, `(http:post url :form-data '(("key1" . "value1")))` through http-protocol's facade, returns 200.
+5. **Redirects (#33).** The backend now follows redirects itself, so `response-history` lists them, oldest first (`302 …/r/2, 301 …/r/1`). 0.2.0 left it empty.
+   - A POST answered by a 303 is followed by a GET with no body. Dexador's own redirect sent the POST body, its Content-Type and its Content-Length again.
+   - A 307 resends the POST and its body.
+   - More than `:max-redirects` signals `http-redirect-error`, as on http-backend-async. 0.2.0 returned the last 302.
+   - A redirect to another origin drops `Authorization`, and `Host` keeps the port. Dexador sent `Host: 127.0.0.1`.
 
 ## Notes
 
