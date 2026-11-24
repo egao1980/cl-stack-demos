@@ -2236,6 +2236,16 @@ holds no DRAFT-REF."
   "A DRAFT-REF as it prints, without its address."
   (strip-identities (code-text ref)))
 
+(defun use-value-offered-p (thunk)
+  "True when the first UNRESOLVED-REFERENCE that THUNK signals has a USE-VALUE
+restart, seen from inside a handler (a HANDLER-CASE clause runs after the
+unwind, when no restart of the signal is left)."
+  (block nil
+    (handler-bind ((unresolved-reference
+                     (lambda (c) (return (and (find-restart 'use-value c) t)))))
+      (funcall thunk)
+      :no-condition)))
+
 (defun shared-part-ref (builder)
   "BUILD-DUET with BUILDER's refs, except that both parts carry the ref of :PART."
   (build-duet (lambda (key) (builder-ref builder (if (keywordp key) :part key)))
@@ -2393,6 +2403,7 @@ notes through a builder, so MAKE-SCORE runs once."
                                                                :start (builder-ref b '(:melody 3 0))
                                                                :end (builder-ref b '(:melody 3 1))))))))
       (show-signal (slur-over-bar-3) unresolved-reference)
+      (show (use-value-offered-p #'slur-over-bar-3) t "USE-VALUE is there while a handler runs")
       (let ((score (handler-bind ((unresolved-reference
                                     (lambda (c)
                                       (push (unresolved-reference-key c) keys)
@@ -2410,9 +2421,8 @@ notes through a builder, so MAKE-SCORE runs once."
         "carrying the ref of the key :PART:")
   (let ((b (make-score-builder)))
     (show-signal (shared-part-ref b) unresolved-reference)
-    (show (handler-case (shared-part-ref b)
-            (unresolved-reference (c) (and (find-restart 'use-value c) t)))
-          nil "no USE-VALUE here")
+    (show (use-value-offered-p (lambda () (shared-part-ref b)))
+          nil "no USE-VALUE while a handler runs")
     (show (builder-id b '(:melody 8 0) :errorp nil) nil "nothing recorded, although that note was fine"))
   (format t "~%")
   (para "Refs are for building. An edit whose elements hold a ref is refused before its"

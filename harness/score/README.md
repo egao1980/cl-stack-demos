@@ -13,7 +13,7 @@ cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(harness-demos-score:run-demos)' > demo-output.txt 2>&1
 ```
 
-It needs SBCL and `cl-repo`, and nothing else. There is no network step once the packages are installed. A run takes about five seconds with `cl-repo run`, most of it start-up. The demo checks every printed result that has a known answer: 403 checks. `run-demos` returns `NIL` if any check fails or a section stops on an error, and CI then exits 1.
+It needs SBCL and `cl-repo`, and nothing else. There is no network step once the packages are installed. A run takes about five seconds with `cl-repo run`, most of it start-up. The demo checks every printed result that has a known answer: 404 checks. `run-demos` returns `NIL` if any check fails or a section stops on an error, and CI then exits 1.
 
 ## What each section shows
 
