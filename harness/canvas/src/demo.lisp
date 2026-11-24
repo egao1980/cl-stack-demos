@@ -10,6 +10,12 @@
 ;;; forms, COERCE-PARAM :file). rpc-backend-htmx 0.2.0 carries both to the
 ;;; browser: the grid editor's full page loads canvas-keys.js (:page-keys), and
 ;;; binary file parts reach the handler as mime-protocol entities.
+;;;
+;;; Section 8 covers rpc-backend-htmx 0.3.0, which also serves every section:
+;;; request names map to keywords with FIND-SYMBOL (a param a canvas does not
+;;; take is a 400, more than :max-params is a 413, nothing is interned), a
+;;; canvas with no parameters is called with none, and the canvas transport
+;;; sends the brief's CSP and gates the app behind a one-time token itself.
 
 ;;; ---- Image state -----------------------------------------------------------
 
@@ -30,11 +36,14 @@
 
 ;;; ---- Canvases: plain functions ---------------------------------------------
 
-(defun test-table (&key sort)
+(defun test-table (&key sort page)
+  "The header links carry sort= and page= (canvas-protocol TABLE, also unpaged:
+canvas-protocol#13), and rpc-backend-htmx 0.3.0 answers a param the canvas does not
+take with a 400, so the canvas takes both."
   (canvas:table *tests*
                 (list (canvas:column "System" :system :name "system" :sortable t)
                       (canvas:column "Assertions" :tests :name "tests" :sortable t :align :end))
-                :id "tests" :link (canvas:canvas-link 'test-table) :sort sort
+                :id "tests" :link (canvas:canvas-link 'test-table) :sort sort :page page
                 :caption "Assertions per system (click a header to sort)"))
 
 (defun test-chart (&key min)
@@ -56,7 +65,7 @@
                      (canvas:submit-button "Filter"))
                :link (canvas:canvas-link 'test-chart) :target "#chart" :swap :outer-html))
 
-(defun timing-chart (&key)
+(defun timing-chart ()
   (canvas:make-chart :line :title "unkernel: SBCL workloads, guest vs host"
     :x-axis (canvas:make-axis :label "workload" :ticks '(1 2 3))
     :y-axis (canvas:make-axis :label "ms" :scale :log)
@@ -69,7 +78,7 @@
     (rpc:rpc-send stream (canvas:fragment-event "row" (canvas:el :p nil (format nil "tick ~d: ~a ok" (1+ i) (getf (nth (mod i (length *tests*)) *tests*) :system)))))
     (sleep 0.1)))
 
-(defun dashboard (&key)              ; &key: handlers are called with :allow-other-keys t
+(defun dashboard ()
   (canvas:el :main nil (canvas:stack
    (list (canvas:el :h1 nil "Canvas demo: this session's test runs")
          (canvas:grid (list (canvas:card (test-table) :title "Test counts")
@@ -127,7 +136,7 @@
               (count-if-not #'null (make-array (array-total-size *cells*) :displaced-to *cells*))
               (array-total-size *cells*) key))))
 
-(defun grid-editor (&key)
+(defun grid-editor ()
   "The editor. Each bound chord posts to GRID-KEY with the parameter key=<chord>."
   (canvas:el :section (append '(:id "editor" :aria-label "Grid editor")
                               (canvas:hx-post (canvas:canvas-link 'grid-key) :target "#grid" :swap :outer-html
@@ -182,7 +191,7 @@
   (handler-bind ((canvas:unsafe-svg (lambda (c) (declare (ignore c)) (invoke-restart 'canvas:strip-violations))))
     (canvas:svg-fragment (engine-svg) :attrs '(:width nil :height nil :role "img" :aria-label "Pipeline: parse, plan, emit"))))
 
-(defun diagram (&key)
+(defun diagram ()
   (canvas:el :main nil
     (canvas:stack
      (list (canvas:el :h1 nil "Engine SVG, embedded")
@@ -201,7 +210,7 @@
 (defvar *last-images* nil
   "The IMAGES value UPLOAD-IMAGES was last called with, kept so the demo can print what arrived.")
 
-(defun upload-form (&key)
+(defun upload-form ()
   (canvas:form (list (canvas:file-input "images" :label "Images (PNG or SVG, at most 4 KiB each)"
                                                  :accept +image-accept+ :multiple t :required t)
                      (canvas:submit-button "Upload"))
@@ -223,9 +232,13 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
                                              (canvas:uploaded-file-media-type f) (canvas:uploaded-file-size f)
                                              (hex-head (canvas:uploaded-file-octets f)))))))
 
-;;; ---- Server: allowlist, token, CSP ------------------------------------------
+;;; ---- Server: allowlist, token gate, CSP -------------------------------------
+;;; Both are rpc-backend-htmx 0.3.0 options. The canvas transport sends the
+;;; brief's Content-Security-Policy on every response, SSE included (:csp
+;;; defaults to T there), and HTMX-APP :token gates every request: the one-time
+;;; URL is exchanged for a separate per-app session secret in an HttpOnly,
+;;; SameSite=Strict cookie, then a 303 to the clean URL.
 
-(defparameter +csp+ "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")
 (defparameter *handlers*
   (rh:make-htmx-handlers 'dashboard 'test-table 'test-chart 'threshold-form '(ticker :mode :call-stream)
                          'grid-editor 'grid-key 'diagram 'upload-form 'upload-images))
@@ -234,27 +247,46 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
 (defvar *plain-transport* (rhc:make-canvas-htmx-transport :page-title "canvas demo")
   "The same transport without :page-keys, for comparison in section 5.")
 
-(defun with-csp (response)              ; a (status headers body) list or a streaming function
-  (flet ((add (r) (list* (first r) (list* :content-security-policy +csp+ (second r)) (cddr r))))
-    (if (functionp response)
-        (lambda (responder) (funcall response (lambda (r) (funcall responder (add r)))))
-        (add response))))
+(defvar *secrets* '()
+  "This run's bootstrap token and every session secret the app handed out, so the run can
+check that none of them was printed.")
 
-(defun guarded-app (token)
-  "The canvas app behind a one-time ?token= URL that sets an HttpOnly cookie, and the CSP."
-  (let ((app (rh:htmx-app *transport* *handlers*)) (url-token token))
-    (lambda (env)
-      (let* ((headers (getf env :headers))
-             (cookie (or (gethash "cookie" headers) ""))
-             (query (quri:url-decode-params (or (getf env :query-string) ""))))
-        (with-csp
-            (cond ((search (format nil "canvas-token=~a" token) cookie) (funcall app env))
-                  ((and url-token (equal url-token (cdr (assoc "token" query :test #'string=))))
-                   (setf url-token nil)        ; one-time
-                   (list 303 (list :location (getf env :path-info)
-                                   :set-cookie (format nil "canvas-token=~a; HttpOnly; SameSite=Strict; Path=/" token))
-                         '("")))
-                  (t (list 403 '(:content-type "text/plain") '("forbidden: no canvas token")))))))))
+(defun gated-app (token)
+  "The canvas app behind the token gate. Each app has its own session secret and takes
+exactly one exchange of TOKEN."
+  (rh:htmx-app *transport* *handlers* :token token))
+
+(defun page-path (name &optional (query ""))
+  (format nil "~a~a~a" (rh:htmx-transport-prefix *transport*) (rh:htmx-method-name name) query))
+
+(defun first-value (v) (if (listp v) (first v) v))
+
+(defun cookie-pair (set-cookie)
+  "The name=value part of SET-COOKIE: what a browser sends back."
+  (subseq set-cookie 0 (position #\; set-cookie)))
+
+(defun cookie-shape (set-cookie)
+  "SET-COOKIE with its value replaced by the value's length, for printing."
+  (let* ((end (or (position #\; set-cookie) (length set-cookie)))
+         (eq (position #\= set-cookie :end end)))
+    (format nil "~a=<~d chars>~a" (subseq set-cookie 0 eq) (- end eq 1) (subseq set-cookie end))))
+
+(defun cookie-value (set-cookie)
+  (let ((pair (cookie-pair set-cookie))) (subseq pair (1+ (position #\= pair)))))
+
+(defun remember-secret (set-cookie)
+  "SET-COOKIE, after noting its value in *SECRETS*."
+  (push (cookie-value set-cookie) *secrets*)
+  set-cookie)
+
+(defun login (app token)
+  "Open APP's one-time URL in process, as a browser would. → (values client headers): an
+htmx-client on APP and the session cookie as a request header (never printed)."
+  (let* ((c (rh:make-htmx-client app :codec (rh:htmx-transport-codec *transport*)))
+         (r (rh:htmx-request-url c (rh:htmx-token-url (page-path 'dashboard) token) :hx-request nil))
+         (set-cookie (first-value (rh:htmx-reply-header r "set-cookie"))))
+    (assert (and (= 303 (rh:htmx-reply-status r)) set-cookie) () "the exchange answered ~d" (rh:htmx-reply-status r))
+    (values c `(("cookie" . ,(cookie-pair (remember-secret set-cookie)))))))
 
 ;;; ---- Driving it -------------------------------------------------------------
 
@@ -264,7 +296,7 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
   (let* ((s (format nil "~{~a~^, ~}" (if (listp s) s (list s)))) (i (search token s)))
     (if i (concatenate (quote string) (subseq s 0 i) "<token>" (subseq s (+ i (length token)))) s)))
 (defun text (body) (if (stringp body) body (stack-encoding:decode-octets body :encoding :utf-8)))
-(defun url (port name &optional (query "")) (format nil "http://127.0.0.1:~d/canvas/~a~a" port (rh:htmx-method-name name) query))
+(defun url (port name &optional (query "")) (format nil "http://127.0.0.1:~d~a" port (page-path name query)))
 
 (defun get* (url &rest headers)
   (let ((r (http:request :get url :headers headers :timeout 10 :max-redirects 0)))
@@ -272,10 +304,10 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
 
 (defun demo-in-process (token)
   (banner "1. In-process htmx client (no socket): fragments, the form, SSE, the allowlist")
-  (let ((c (rh:make-htmx-client (guarded-app token) :codec (rh:htmx-transport-codec *transport*)))
-        (cookie (format nil "canvas-token=~a" token)))
+  (multiple-value-bind (c cookie) (login (gated-app token) token)
+    (format t "(the app is gated: the client opened its one-time URL first and sends the session cookie; section 8 shows the exchange)~%")
     (flet ((call (name params &rest keys)
-             (let ((r (apply #'rh:htmx-request c (rh:htmx-method-name name) params :headers `(("cookie" . ,cookie)) keys)))
+             (let ((r (apply #'rh:htmx-request c (rh:htmx-method-name name) params :headers cookie keys)))
                (format t "~&~a ~s → ~d~%  ~a~%" name params (rh:htmx-reply-status r) (clip (text (rh:htmx-reply-body r)) 500))
                r)))
       (call 'test-table '(:sort "-tests"))
@@ -285,18 +317,18 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
       (format t "~&ticker (Accept: text/event-stream) → events ~s~%"
               (rh:htmx-reply-events (call 'ticker '(:n "3") :accept "text/event-stream")))
       (format t "~&not in the allowlist: CL-USER::SECRET → ~d~%"
-              (rh:htmx-reply-status (rh:htmx-request c "COMMON-LISP-USER::SECRET" nil :headers `(("cookie" . ,cookie))))))))
+              (rh:htmx-reply-status (rh:htmx-request c "COMMON-LISP-USER::SECRET" nil :headers cookie))))))
 
 (defun demo-http (port token)
   (banner "2. Real HTTP (http-backend-async on libuv) against Hunchentoot on 127.0.0.1")
   (format t "no token        → ~d~%" (get* (url port 'dashboard)))
-  (multiple-value-bind (status body r) (get* (url port 'dashboard (format nil "?token=~a" token)))
-    (declare (ignore body))
-    (format t "one-time URL    → ~d, Location ~a~%                  Set-Cookie ~a~%" status
-            (hp:response-header r "location") (redact (hp:response-header r "set-cookie") token)))
-  (let ((hp:*http-client* (hp:make-http-client hp:*http-backend*))) ; a client without the cookie
-    (format t "same URL again, another client → ~d (the URL token is spent)~%"
-            (get* (url port 'dashboard (format nil "?token=~a" token)))))
+  (let ((one-time (rh:htmx-token-url (url port 'dashboard) token)))
+    (multiple-value-bind (status body r) (get* one-time)
+      (declare (ignore body))
+      (format t "one-time URL    ~a~%                → ~d, Location ~a~%                  Set-Cookie ~a~%" (redact one-time token) status
+              (hp:response-header r "location") (cookie-shape (remember-secret (first-value (hp:response-header r "set-cookie"))))))
+    (let ((hp:*http-client* (hp:make-http-client hp:*http-backend*))) ; a client without the cookie
+      (format t "same URL again, another client → ~d (the URL token is spent)~%" (get* one-time))))
   (multiple-value-bind (status body r) (get* (url port 'dashboard))
     (format t "~&GET dashboard (no HX-Request: full page) → ~d ~a~%Content-Security-Policy: ~a~%~a~%"
             status (hp:response-header r "content-type") (hp:response-header r "content-security-policy") (clip body 900))
@@ -367,8 +399,9 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
     (format t "  ~22s → ~s~%" s (canvas:key-chord s)))
   (dolist (s '("Shift+/" "Ctrl++" "Hyper+x"))
     (format t "  ~22s → refused: ~a~%" s (handler-case (canvas:key-chord s) (canvas:canvas-error (c) c))))
-  (let* ((cookie `(("cookie" . ,(format nil "canvas-token=~a" token))))
-         (c (rh:make-htmx-client (guarded-app token) :codec (rh:htmx-transport-codec *transport*)))
+  (let* ((session (multiple-value-list (login (gated-app token) token)))
+         (c (first session))
+         (cookie (second session))
          (editor (app-resolved (lambda () (canvas:to-html (grid-editor))))))
     (format t "~&~%the editor as served: the <section> holds the bindings, the queue and the target~%  ~a~%" editor)
     (check :keys-bound (search "data-canvas-keys=\"ArrowUp ArrowDown ArrowLeft ArrowRight Backspace a b" editor))
@@ -423,7 +456,7 @@ signals a CANVAS-COERCION-ERROR for a bad file, which the transport answers with
   (let* ((page (app-resolved (lambda () (canvas:to-html (canvas:page (grid-editor) :keys t)))))
          (i (search "<meta name=\"htmx-config\"" page)))
     (format t "  why: htmx runs an event filter as JavaScript (the Function constructor), which needs 'unsafe-eval'.~%  The CSP has none: ~a~%  and every canvas page sets allowEval false, under which htmx 2.0.11 lets a filter match every event:~%    ~a~%  canvas-keys.js matches chords from 'self' and evaluates nothing.~%"
-            +csp+ (subseq page i (1+ (search ">" page :start2 i))))))
+            (rh:htmx-transport-csp *transport*) (subseq page i (1+ (search ">" page :start2 i))))))
 
 (defun demo-svg (dir)
   (banner "6. Engine-generated SVG through svg-fragment's allowlist (0.2.0)")
@@ -522,8 +555,9 @@ line break, any other octet as \\xNN."
     (format t "the form (a file input inside → enctype=\"multipart/form-data\", which htmx sends as FormData):~%  ~a~%" html)
     (check :multipart-enctype (search "enctype=\"multipart/form-data\"" html)))
   (let* ((codec (rh:htmx-transport-codec *transport*))
-         (c (rh:make-htmx-client (guarded-app token) :codec codec))
-         (cookie `(("cookie" . ,(format nil "canvas-token=~a" token))))
+         (session (multiple-value-list (login (gated-app token) token)))
+         (c (first session))
+         (cookie (second session))
          (svg-text (engine-svg))
          (svg (file-value "pipeline.svg" "image/svg+xml" svg-text)))
     (labels ((post (label images &key show-wire)
@@ -580,17 +614,154 @@ line break, any other octet as \\xNN."
                      (apply #'canvas:coerce-param gif :file field))))
             (format t "  use-value :skipped → ~s~%" v)))))))
 
+;;; ---- 0.3.0: hardening ---------------------------------------------------------
+;;; All through htmx-client on a fresh gated app, as a browser (or a hostile
+;;; script) would send it. Token and cookie values are never printed: their
+;;; lengths, or <token>.
+
+(defun keyword-count ()
+  "The number of symbols in the KEYWORD package."
+  (let ((n 0)) (do-symbols (s :keyword n) (declare (ignore s)) (incf n))))
+
+(defun random-names (n)
+  "N distinct random names of 10 lowercase letters and digits, none of which names a
+keyword. FIND-SYMBOL only: making them interns nothing."
+  (let ((names (make-hash-table :test #'equal))
+        (*random-state* (make-random-state t)))
+    (loop while (< (hash-table-count names) n)
+          do (let ((name (format nil "~(~36r~)" (+ (expt 36 9) (random (- (expt 36 10) (expt 36 9)))))))
+               (unless (find-symbol (string-upcase name) :keyword)
+                 (setf (gethash name names) t))))
+    (loop for name being the hash-keys of names collect name)))
+
+(defun query-of (names) (format nil "?~{~a=1~^&~}" names))
+
+(defun attribute-value (html attribute)
+  "The first ATTRIBUTE=\"…\" value in HTML, &amp; read back as &."
+  (let* ((key (format nil "~a=\"" attribute))
+         (start (+ (search key html) (length key)))
+         (value (subseq html start (position #\" html :start start))))
+    (loop for i = (search "&amp;" value) while i
+          do (setf value (concatenate 'string (subseq value 0 (1+ i)) (subseq value (+ i 5)))))
+    value))
+
+(defun csp-headers (reply)
+  "Every Content-Security-Policy value of REPLY, in order."
+  (loop for (name . value) in (rh:htmx-reply-headers reply)
+        when (string-equal name "content-security-policy") collect value))
+
+(defun demo-hardening (token)
+  (banner "8. Hardening (rpc-backend-htmx 0.3.0): the token gate, request keys, the param cap, CSP")
+  (let ((c (rh:make-htmx-client (gated-app token) :codec (rh:htmx-transport-codec *transport*)))
+        (replies '())
+        (cookie nil))
+    (labels ((send (label url &rest keys)
+               (let ((r (apply #'rh:htmx-request-url c url keys)))
+                 (push r replies)
+                 (format t "~&~a → ~d~%" label (rh:htmx-reply-status r))
+                 r))
+             (body (r) (text (rh:htmx-reply-body r)))
+             (status= (r status) (= status (rh:htmx-reply-status r))))
+      (format t "the app: (htmx-app *transport* *handlers* :token token); the token is ~d chars of (stack-secrets:token-urlsafe 32)~%~%"
+              (length token))
+      (let* ((clean (page-path 'test-table "?sort=-tests"))
+             (one-time (rh:htmx-token-url clean token))
+             (r (send (format nil "GET ~a, no cookie" clean) clean :hx-request nil)))
+        (format t "  ~a~%" (body r))
+        (check :no-cookie-403 (status= r 403))
+        (let* ((r (send (format nil "GET ~a (the one-time URL)" (redact one-time token)) one-time :hx-request nil))
+               (set-cookie (remember-secret (first-value (rh:htmx-reply-header r "set-cookie"))))
+               (location (rh:htmx-reply-header r "location")))
+          (format t "  Location ~a~%  Set-Cookie ~a~%  Cache-Control ~a~%  the cookie's value is the bootstrap token: ~s (a separate per-app session secret)~%"
+                  location (cookie-shape set-cookie) (rh:htmx-reply-header r "cache-control")
+                  (string= (cookie-value set-cookie) token))
+          (check :exchange-303 (and (status= r 303) (string= location clean) (string= "" (body r))))
+          (check :cookie-attributes (string= (subseq set-cookie (position #\; set-cookie)) "; Path=/; HttpOnly; SameSite=Strict"))
+          (check :session-not-token (string/= (cookie-value set-cookie) token))
+          (setf cookie `(("cookie" . ,(cookie-pair set-cookie)))))
+        (let ((r (send "GET the clean URL (Location) with that cookie" clean :hx-request nil :headers cookie)))
+          (format t "  ~a, a full page of ~d chars~%" (rh:htmx-reply-header r "content-type") (length (body r)))
+          (check :clean-url-200 (and (status= r 200) (search "<!DOCTYPE html>" (body r)))))
+        (check :reuse-403 (status= (send "GET the one-time URL again" one-time :hx-request nil) 403))
+        (check :reuse-403 (status= (send "GET the one-time URL again, with the cookie" one-time :hx-request nil :headers cookie) 403))
+        (check :no-cookie-403 (status= (send "GET the clean URL, no cookie" clean :hx-request nil) 403))
+        (check :token-as-cookie-403
+               (status= (send "GET the clean URL, the bootstrap token as the cookie" clean :hx-request nil
+                              :headers `(("cookie" . ,(format nil "~a=~a" rh:+default-token-name+ token))))
+                        403)))
+      (format t "~&~%request keys: each canvas takes the keys of its lambda list (htmx-handler-keys)~%")
+      (dolist (name '(dashboard test-table test-chart ticker grid-key upload-images))
+        (format t "  ~14a ~s~%" name (rh:htmx-handler-keys *handlers* (rh:htmx-method-name name))))
+      (let ((r (send "GET DASHBOARD (HX-Request), a canvas with no parameters: (defun dashboard () …)"
+                     (page-path 'dashboard) :headers cookie)))
+        (format t "  ~a~%" (clip (body r) 100))
+        (check :zero-arg-200 (and (status= r 200) (search "<main>" (body r)))))
+      (let* ((table (body (send "GET TEST-TABLE (HX-Request)" (page-path 'test-table) :headers cookie)))
+             (link (attribute-value table "hx-get")))
+        (check :header-click-200
+               (status= (send (format nil "its first header button, clicked: GET ~a" link) link :headers cookie) 200)))
+      (let ((r (send "GET TEST-TABLE?srot=tests (a typo: no keyword has that name)" (page-path 'test-table "?srot=tests")
+                     :headers cookie)))
+        (format t "  ~a~%" (body r))
+        (check :unknown-400 (and (status= r 400) (search "Unknown param srot" (body r)))))
+      (let ((r (send "GET DASHBOARD?sort=tests (:SORT exists, but DASHBOARD takes nothing)" (page-path 'dashboard "?sort=tests")
+                     :headers cookie)))
+        (format t "  ~a~%" (body r))
+        (check :unknown-400 (and (status= r 400) (search "Unknown param sort" (body r)))))
+      (let* ((cap (rh:htmx-codec-max-params (rh:htmx-transport-codec *transport*)))
+             (names (random-names 10000))
+             (before (keyword-count))
+             (sent 0))
+        (format t "~&~%the param cap and the KEYWORD package (max-params ~d, the default):~%KEYWORD package: ~d symbols~%" cap before)
+        (let ((r (send (format nil "GET DASHBOARD with ~d random names" cap) (page-path 'dashboard (query-of (subseq names 0 cap)))
+                       :headers cookie)))
+          (format t "  ~a~%" (body r))
+          (check :at-cap-400 (status= r 400)))
+        (let ((r (send (format nil "GET DASHBOARD with ~d random names" (1+ cap)) (page-path 'dashboard (query-of (subseq names 0 (1+ cap))))
+                       :headers cookie)))
+          (format t "  ~a~%" (body r))
+          (check :over-cap-413 (status= r 413)))
+        (incf sent (+ cap cap 1))
+        (let ((statuses (loop for i from 0 below (length names) by cap
+                              for batch = (subseq names i (min (length names) (+ i cap)))
+                              for r = (rh:htmx-request-url c (page-path 'dashboard (query-of batch)) :headers cookie)
+                              do (push r replies) (incf sent (length batch))
+                              collect (rh:htmx-reply-status r))))
+          (format t "~d GETs of ~d random names each (~d distinct names, none of them a keyword) → ~{~d~^ ~}~%"
+                  (length statuses) cap (length names) statuses)
+          (check :random-names-400 (every (lambda (s) (= s 400)) statuses))
+          (let ((after (keyword-count)))
+            (format t "KEYWORD package after those ~d requests (~d names): ~d symbols, unchanged: ~s~%"
+                    (+ 2 (length statuses)) sent after (check :keywords-unchanged (= before after))))))
+      (format t "~&~%Content-Security-Policy (the canvas transport sends +default-csp+ unless told otherwise):~%")
+      (let ((r (send "GET DASHBOARD, no HX-Request (a full page)" (page-path 'dashboard) :hx-request nil :headers cookie)))
+        (format t "  Content-Type ~a~%  Content-Security-Policy ~a~%" (rh:htmx-reply-header r "content-type")
+                (rh:htmx-reply-header r "content-security-policy"))
+        (check :csp-page (equal (csp-headers r) (list rh:+default-csp+))))
+      (let ((r (send "GET TICKER?n=2, Accept: text/event-stream" (page-path 'ticker "?n=2") :accept "text/event-stream"
+                     :headers cookie)))
+        (format t "  Content-Type ~a~%  Content-Security-Policy ~a~%  events ~s~%" (rh:htmx-reply-header r "content-type")
+                (rh:htmx-reply-header r "content-security-policy") (rh:htmx-reply-events r))
+        (check :csp-sse (and (equal (csp-headers r) (list rh:+default-csp+)) (= 2 (length (rh:htmx-reply-events r))))))
+      (format t "every reply of this section (~d, statuses ~{~d~^ ~}) has exactly one Content-Security-Policy, that one: ~s~%"
+              (length replies) (sort (remove-duplicates (mapcar #'rh:htmx-reply-status replies)) #'<)
+              (check :csp-every-reply (every (lambda (r) (equal (csp-headers r) (list rh:+default-csp+))) replies))))))
+
 (defun run-demos (&key (port 18467) (dir (uiop:getcwd)))
   (setf http-backend-async:*event-backend-maker* #'event-backend-libuv:make-libuv-backend
         canvas:*canvas-theme* :engels)
-  (let* ((token (format nil "~(~{~2,'0x~}~)" (coerce (stack-crypto:generate-key :nbytes 16) 'list)))
+  (let* ((token (stack-secrets:token-urlsafe 32)) ; the bootstrap token: 32 octets, base64url
+         (printed (make-string-output-stream))    ; a copy of everything printed, scanned for secrets at the end
+         (*standard-output* (make-broadcast-stream *standard-output* printed))
          (hp:*http-backend* (http-backend-async:make-async-backend))
          (hp:*http-client* (hp:make-http-client hp:*http-backend*)))
-    (format t "canvas-protocol ~a, theme ~s, chart backend ~s, htmx ~a + sse ~a~%token: ~d hex chars (printed as <token>)~%"
-            (asdf:component-version (asdf:find-system "canvas-protocol")) canvas:*canvas-theme*
+    (setf *secrets* (list token))
+    (format t "canvas-protocol ~a, rpc-backend-htmx ~a, theme ~s, chart backend ~s, htmx ~a + sse ~a~%token: ~d chars (printed as <token>)~%"
+            (asdf:component-version (asdf:find-system "canvas-protocol"))
+            (asdf:component-version (asdf:find-system "rpc-backend-htmx")) canvas:*canvas-theme*
             (type-of canvas:*chart-backend*) canvas:+htmx-version+ canvas:+htmx-sse-version+ (length token))
     (demo-in-process token)
-    (srv:with-server (s (guarded-app token) :port port)
+    (srv:with-server (s (gated-app token) :port port)
       (format t "~&serving on http://127.0.0.1:~d/canvas/ (Hunchentoot)~%" port)
       (demo-http port token)
       (demo-freeze dir)                 ; before the redefinition: the bar chart
@@ -600,12 +771,17 @@ line break, any other octet as \\xNN."
     (let ((*print-pretty* nil))        ; one line per printed list
       (demo-keys token)
       (demo-svg dir)
-      (demo-upload token))
+      (demo-upload token)
+      (demo-hardening token))
+    (let ((output (get-output-stream-string printed)))
+      (format t "~&~%secrets of this run: the token and ~d session cookies; any of them in the output above: ~s~%"
+              (1- (length *secrets*))
+              (not (check :secrets-unprinted (notany (lambda (s) (search s output)) *secrets*)))))
     (let ((checks '()))                 ; one entry per name, in first-seen order, AND of its values
       (loop for (k . v) in (reverse *checks*)
             for cell = (assoc k checks)
             do (if cell (setf (cdr cell) (and (cdr cell) v)) (push (cons k v) checks)))
       (setf checks (nreverse checks))
-      (format t "~&~%self-check (0.2.0): ~{~(~a~) ~s~^, ~}~%all ~d true: ~s~%"
+      (format t "~&~%self-check (sections 5-8): ~{~(~a~) ~s~^, ~}~%all ~d true: ~s~%"
               (loop for (k . v) in checks collect k collect v) (length checks) (every #'cdr checks)))
     t))
