@@ -1,5 +1,4 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable names
 ; cl-repo: dependencies from cl-repo.lock (8 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
@@ -8,7 +7,7 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-score-protocol 0.2.0 (slices SC0, the score model, and SC1, edits and views) on music-theory 0.5.0
+score-protocol 0.3.0 (slices SC0, the score model; SC1, edits and views; SC3, drafts and the score builder) on music-theory 0.5.2
 
 ========================================================================
 == 1. Building a score: a hymn tune in code
@@ -195,7 +194,7 @@ slurs got 170 to 175, although the tie sits inside a note of bar 7:
         (valid-id-p "m-3.p-4") (valid-id-p "e a"))
     => (t t nil nil nil)
   (make-note-event :id "1st" :pitch (parse-pitch "G4") :duration 1/4)
-    -> simple-type-error: The value of score-protocol::id is "1st", which is not NIL or an id string.
+    -> simple-type-error: The value of score-protocol::id is "1st", which is not NIL, an id string or a DRAFT-REF.
 
 Minting is deterministic: the same input gets the same ids, with no clock,
 randomness or global state.
@@ -360,9 +359,9 @@ INVALID-POSITION with the argument, inside a USE-VALUE restart. A position
 that isn't a cons, or a float offset, is a TYPE-ERROR:
 
   (absolute-offset *hymn* '(0 . 1/2))
-    -> invalid-position: invalid position (0 . 1/2): outside the score
+    -> invalid-position: invalid position (0 . 1/2): offset past the end of bar 0 (length 1/4)
   (absolute-offset *hymn* '(18 . 0))
-    -> invalid-position: invalid position (18 . 0): outside the score
+    -> invalid-position: invalid position (18 . 0): no such bar
   (offset-position *hymn* 14)
     -> invalid-position: invalid position 14: outside the score
   (offset-position *hymn* -1/8)
@@ -1457,7 +1456,252 @@ The hymn alone, with its repeat and two endings and no jump, unfolds to 33 bars:
     => ((0 16 1) (1 15 2) (17 17 1))   ; (first last pass)
 
 ========================================================================
+== 12. Drafts: the score builder and forward references (0.3.0)
+========================================================================
+score-protocol 0.3.0 adds drafts (slice SC3). Section 1 built the hymn in two
+steps, because a tie or a slur names its notes by id and MAKE-SCORE mints the
+ids. A reader of a file meets this in every score: a tie is written on a note
+before the note it ends on. A SCORE-BUILDER hands out DRAFT-REFs, placeholders
+for ids that are not minted yet. An element CARRIES a ref when the ref is its
+:ID (every constructor takes one), and a tie's END or a spanner's START and END
+REFER to it. MAKE-SCORE puts the minted ids in their place in the same call.
+
+BUILDER-REF makes a ref on first use of a key and returns the same one after:
+
+  (ref-text (builder-ref b '(:melody 8 0))) => "#<draft-ref (:melody 8 0)>"
+  (eq (builder-ref b '(:melody 8 0)) (builder-ref b (list :melody 8 0)))
+    => t   ; keys compare with EQUAL
+  (eq (builder-ref b :melody) (builder-ref other :melody))
+    => nil   ; another builder, another ref
+  (draft-ref-prefer (builder-ref b :melody :prefer "P1")) => "P1"
+  (draft-ref-prefer (builder-ref b :melody)) => "P1"   ; PREFER NIL keeps it
+  (builder-ref b :bass :prefer "1st")
+    -> simple-type-error: The value of score-protocol::prefer is "1st", which is not NIL or an id string.
+  (builder-id b :melody :errorp nil) => nil   ; no score has carried it yet
+  (builder-id b :melody)
+    -> unresolved-reference: unresolved draft reference :melody: not carried in a built score
+
+A score of two parts: the first line of NEW BRITAIN, the pickup and bars 1-8,
+with the melody and verse 1 in part "Melody" and the bass line in part
+"Bass". The line ends on the held D5 (the B4 that picks up the next line is
+a rest here). BUILD-DUET writes the draft in document order. The D5 of bar 7
+is tied forward to a note that does not exist yet, so its tie refers to a ref;
+the D5 of bar 8, built after it, carries that ref. Each slur refers to two
+refs, and the parts carry refs that prefer the ids P1 and P2, as a reader
+would take them from a file. The pieces of the draft:
+
+  (make-note-event :pitch (parse-pitch "D5") :duration 3/4 :tie
+                   (make-tie :end (builder-ref b '(:melody 8 0))) :lyrics
+                   (list (make-lyric :text "me!" :extender t)))
+
+  (make-note-event :id (builder-ref b '(:melody 8 0)) :pitch (parse-pitch "D5") :duration 1/2)
+
+  (make-spanner :kind :slur :start (builder-ref b '(:melody 1 1)) :end
+                (builder-ref b '(:melody 1 2)))
+
+and (MAKE-PART :ID (BUILDER-REF B :MELODY :PREFER "P1") ...) for the melody part.
+One call builds the score:
+
+  (setf *duet* (multiple-value-call #'build-duet (builder-functions b)))
+
+  bar  chords     melody (P1)         verse 1        bass (P2)
+    0  N.C.       D4:q[mp]            A-             r:q
+    1  G          G4:h B4:e( G4:e)    maz- ing_      G2:h.[mp]
+    2  G7/B@1/2   B4:h A4:q           grace! how     G2:h B2:q
+    3  C          G4:h E4:q           sweet the      C3:h.
+    4  G          D4:h D4:q           sound That     G2:h.
+    5             G4:h B4:e( G4:e)    saved a_       G2:h.
+    6  Em         B4:h A4:q           wretch like    E2:h.
+    7  D          D5:h.~              me!_           D2:h.
+    8  D7/F#      D5:h r:q                           F#2:h.
+
+  (check-score *duet*) => nil
+  (all-strings-p *duet*)
+    => t   ; every id, tie end and slur end is a string: no ref is left
+  (length (score-elements *duet*)) => 71
+
+Every id in document order. The carriers of P1 and P2 took their preferred
+ids. Every other element was minted, counting up in document order: unlike
+section 2, where the tie got serial 170, the tie here gets the serial of its
+place in bar 7.
+
+  measure map   m-1 tm-2 m-3 m-4 m-5 m-6 m-7 m-8 m-9 m-a
+  part Melody   P1 st-b v-c
+    bar 0       e-d dy-e ly-f
+    bar 1       e-g ly-h e-i ly-j e-k
+    bar 2       e-l ly-m e-n ly-o
+    bar 3       e-p ly-q e-r ly-s
+    bar 4       e-t ly-u e-v ly-w
+    bar 5       e-x ly-y e-z ly-10 e-11
+    bar 6       e-12 ly-13 e-14 ly-15
+    bar 7       e-16 ti-17 ly-18
+    bar 8       e-19 e-1a
+  part Bass     P2 st-1b v-1c
+    bass        e-1d e-1e dy-1f e-1g e-1h e-1i e-1j e-1k e-1l e-1m e-1n
+  chord symbols h-1o h-1p h-1q h-1r h-1s h-1t h-1u h-1v
+  slurs         sp-1w sp-1x
+
+  (remove-if (lambda (id) (find #\- id)) ids) => ("P1" "P2")   ; the preferred ids
+  (equal (mapcar #'id-serial minted)
+         (loop for i from 1 to 69
+               collect i))
+    => t   ; the 69 minted ids have serials 1 to 69, in document order
+  (score-id-counter *duet*)
+    => 69   ; P1 and P2 have no serial: the counter ignores them
+
+Each ref, its key, the id its carrier got (BUILDER-ID) and what refers to it.
+The tie (an element of bar 7) comes before the note it ends on:
+
+  key            id     carrier            referred to by
+  :melody        P1     part "Melody"      -
+  :bass          P2     part "Bass"        -
+  (:melody 1 1)  e-i    B4:e in bar 1      slur sp-1w (start)
+  (:melody 1 2)  e-k    G4:e in bar 1      slur sp-1w (end)
+  (:melody 5 1)  e-z    B4:e in bar 5      slur sp-1x (start)
+  (:melody 5 2)  e-11   G4:e in bar 5      slur sp-1x (end)
+  (:melody 8 0)  e-19   D5:h in bar 8      tie ti-17 in bar 7
+
+  (tie-end tie) => "e-19"
+  (< (id-serial (element-id tie)) (id-serial (tie-end tie)))
+    => t   ; the tie points forward in document order
+
+The builder file's promise: MAKE-SCORE of a draft gives the score a caller would
+get by building twice. The first build gives each carrier its preferred id (or
+NIL) and every reference the placeholder "zz", to read off the minted ids. The
+second build sets each reference to the id its note got in the first:
+
+  (tie-end (note-tie (duet-element placeholders '(:melody 7 0)))) => "zz"
+  (mapcar #'score-issue-kind (check-score placeholders))
+    => (:spanner-endpoint :spanner-endpoint :tie-target)   ; two slurs and a tie to nothing
+  (score-equal resolved *duet*) => t
+  (equal (mapcar #'element-id (score-elements resolved))
+         (mapcar #'element-id (score-elements *duet*)))
+    => t   ; the same ids in the same order
+
+Preferred ids. A given id always wins, the first carrier in document order wins
+a preferred id, and a preferred id that has a serial raises the counter as a
+given one does:
+
+  (part-ids given)
+    => ("p-b" "P1")   ; the bass is given P1, so the melody's part is minted
+  (part-ids both) => ("P1" "p-1b")   ; both prefer P1: the melody comes first
+  (part-ids high) => ("p-zz" "P2")
+  (element-id (first (score-elements high)))
+    => "m-100"   ; p-zz is serial 1295, so minting starts at 1296, even before the part
+  (score-id-counter high) => 1364
+
+Refs that can't be resolved signal UNRESOLVED-REFERENCE. A ref that no element
+carries is signalled once per ref, in document order, inside a USE-VALUE
+restart whose value, an id string, stands for it. Here COPY-SCORE adds a slur
+over bar 3 whose ends are refs nobody carries, and a handler answers with the
+ids of the notes:
+
+  (slur-over-bar-3)
+    -> unresolved-reference: unresolved draft reference (:melody 3 0): no element carries it
+  (reverse keys) => ((:melody 3 0) (:melody 3 1))   ; signalled in document order
+  (fset:size (score-spanners score)) => 3
+  (check-score score) => nil
+  (builder-id b '(:melody 3 0) :errorp nil)
+    => nil   ; no element carried that ref, so the builder has no id for it
+
+A ref carried by two elements is an error with no restart, and a build that
+signals records no ids. SHARED-PART-REF builds the duet with both parts
+carrying the ref of the key :PART:
+
+  (shared-part-ref b)
+    -> unresolved-reference: unresolved draft reference :part: carried by more than one element
+  (handler-case (shared-part-ref b)
+                (unresolved-reference (c) (and (find-restart 'use-value c) t)))
+    => nil   ; no USE-VALUE here
+  (builder-id b '(:melody 8 0) :errorp nil)
+    => nil   ; nothing recorded, although that note was fine
+
+Refs are for building. An edit whose elements hold a ref is refused before its
+other preconditions:
+
+  (apply-edit *duet*
+              (make-add-mark :target
+                             (element-id (duet-element *duet* '(:melody 8 0))) :mark
+                             (make-fermata :id (builder-ref b :fermata))))
+    -> invalid-edit: invalid edit #<add-mark>: draft reference
+
+An edit on the built score. ADD-MARK puts a fermata on the held D5 that ends
+the line (its id from BUILDER-ID would do as well). The change set names one
+element, and every subtree the edit does not touch is the old object (EQ):
+the whole bass part, the measure map, the chord symbols, the slurs, the
+melody's staff and its voice measures for bars 0-7. Only the path down to the
+note is rebuilt: part P1, its voice, bar 8's voice measure and the note.
+
+  (apply-edit *duet* (make-add-mark :target target :mark (make-fermata)))
+
+  bar 8  before  D5:h r:q
+         after   D5:h^ r:q
+
+  created   fe-1y (fermata)
+  removed   -
+  modified  e-19 (D5:h^ in bar 8)
+  EQ        68 of the 71 elements kept are the old objects
+  rebuilt   P1, v-c, e-19
+  counter   69 -> 70
+
+  subtree                                          EQ
+  part P2, the bass, and everything in it          T
+  the measure map (9 measures, 1 tempo mark)       T
+  the 8 chord symbols                              T
+  the 2 slurs                                      T
+  P1's staff                                       T
+  P1's voice measures for bars 0-7                 T
+  part P1                                          NIL
+  P1's voice                                       NIL
+  bar 8's voice measure                            NIL
+  the D5 itself                                    NIL
+
+  (list (change-set-created changes) (change-set-removed changes)
+        (change-set-modified changes))
+    => (("fe-1y") nil ("e-19"))
+  (score-id-counter after) => 70   ; the fermata took the next serial
+
+Section 1's hymn in one call. With a builder, the tie and the five slurs go
+into the draft, and MAKE-SCORE runs once (HYMN-IN-ONE-CALL):
+
+  (length ids) => 175
+  (equal (mapcar #'id-serial ids)
+         (loop for i from 1 to 175
+               collect i))
+    => t   ; serials 1 to 175 in document order
+  (element-id (note-tie (melody-at one 7 0)))
+    => "ti-1y"   ; serial 70, in its place in bar 7
+  (element-id (note-tie (melody-at *hymn* 7 0)))
+    => "ti-4q"   ; two steps: serial 170
+  (equal (mapcar #'type-of (score-elements one))
+         (mapcar #'type-of (score-elements *hymn*)))
+    => t   ; the same elements in the same order
+  (score-equal one *hymn*) => nil   ; only the ids differ
+  (check-score one) => nil
+
+Two smaller changes in 0.3.0. ABSOLUTE-OFFSET says what is wrong with a
+position (section 3 shows the first two; 0.2.0 said "outside the score" for
+all three):
+
+  (absolute-offset *hymn* '(0 . 1/2))
+    -> invalid-position: invalid position (0 . 1/2): offset past the end of bar 0 (length 1/4)
+  (absolute-offset *hymn* '(18 . 0))
+    -> invalid-position: invalid position (18 . 0): no such bar
+  (absolute-offset *hymn* '(3 . -1/4))
+    -> invalid-position: invalid position (3 . -1/4): negative offset
+
+LOSSY-CONVERSION has a direction, :TO when a score is written (the default)
+and :FROM when a file is read, and its report names it:
+
+  (princ-to-string (make-condition 'lossy-conversion :format :midi :what "ids"))
+    => "lossy conversion to midi: ids dropped"
+  (princ-to-string
+   (make-condition 'lossy-conversion :format :musicxml :direction :from :what
+                   "a trill"))
+    => "lossy conversion from musicxml: a trill dropped"
+
+========================================================================
 == Summary
 ========================================================================
-346 results checked against expected values: 0 mismatched.
+403 results checked against expected values: 0 mismatched.
 Every section ran to the end.
