@@ -1,4 +1,4 @@
-cl-stack-http 0.2.0, http-protocol 0.4.3, event-protocol 0.3.0, http-backend-dexador 0.2.0, http-backend-async 0.2.28, event-backend-libuv 0.2.3, dexador 0.9.16.1
+cl-stack-http 0.2.0, http-protocol 0.4.5, event-protocol 0.3.0, http-backend-dexador 0.2.2, http-backend-async 0.2.29, event-backend-libuv 0.2.3, dexador 0.9.16.1
 (a warm-up request on dexador loaded the optional content-encoding codecs)
 
 ========================================================================
@@ -32,7 +32,7 @@ Reading the QUICKSTART section 3 form with http = cl-stack-http:
 Running it against the loopback origin instead of httpbin.org:
   200 HTTP/1.1
 conn=1 path=/get?q=1
-    origin  conn 1    0.25 s  /get?q=1                User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+    origin  conn 1    0.20 s  /get?q=1                User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
 
 Conditions through the facade package:
   raise-for-status on a 404: HTTP-CLIENT-ERROR, http-status-error-status => 404
@@ -46,13 +46,13 @@ event-protocol:*event-backend* before any call: NIL
 (ensure-http-backend :auto) => dexador backend
 
 Blocking (http:get ...) under :auto: 200 in 0.00 s
-(http:get-async ...) under :auto, awaited with run-promise: 200 in 0.04 s
-    origin  conn 1    0.77 s  /blocking               User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
-    origin  conn 3    0.80 s  /get-async              User-Agent: -
+(http:get-async ...) under :auto, awaited with run-promise: 200 in 0.07 s
+    origin  conn 1    0.71 s  /blocking               User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+    origin  conn 3    0.77 s  /get-async              User-Agent: -
 
 (with-backend (:async) (http:get ...)), no event-loop setup by the caller:
   => 200 in 0.01 s (0.1.12: HTTP-ERROR "No event loop")
-    origin  conn 3    0.82 s  /with-backend-async     User-Agent: -
+    origin  conn 3    0.79 s  /with-backend-async     User-Agent: -
   http-backend-async:*event-backend-maker* now: set by cl-stack-http
 
 Blocking :auto calls from a pool of 4 threads, 5 GETs each:
@@ -64,9 +64,9 @@ A default session: blocking calls on dexador, -async calls on async:
   (session-backend s) => dexador
   session-get => 200
   two session-get-async, gathered => (200 200) in 0.00 s
-    origin  conn 7    0.82 s  /session-get            User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
-    origin  conn 3    0.82 s  /session-get-async/2    User-Agent: -
-    origin  conn 8    0.82 s  /session-get-async/1    User-Agent: -
+    origin  conn 7    0.80 s  /session-get            User-Agent: Dexador/0.9.16.1 (SBCL 2.6.9); Darwin; 25.6.0
+    origin  conn 3    0.80 s  /session-get-async/2    User-Agent: -
+    origin  conn 8    0.80 s  /session-get-async/1    User-Agent: -
 
 ========================================================================
 == Demo 3: run-promise, gather and await (event-protocol 0.3.0, #26)
@@ -76,12 +76,12 @@ asyncio.run(asyncio.gather(get(a), get(b), get(c))), each answer 1 s late:
   run-promise returned although the origin still has 9 idle keep-alive connections
   open from the clients' pools. await stops the loop once the promise settles;
   event-protocol 0.2.3's run waited 61.9 s for idle connections (http-backend-async#79).
-    origin  conn 8    0.83 s  /delay/1?n=c            User-Agent: -
-    origin  conn 3    0.83 s  /delay/1?n=b            User-Agent: -
-    origin  conn 9    0.83 s  /delay/1?n=a            User-Agent: -
+    origin  conn 8    0.80 s  /delay/1?n=c            User-Agent: -
+    origin  conn 3    0.80 s  /delay/1?n=b            User-Agent: -
+    origin  conn 9    0.80 s  /delay/1?n=a            User-Agent: -
 
 gather keeps argument order, whatever order the answers come in:
-  => 0.60 s: conn=8 path=/delay/0.6 | conn=3 path=/delay/0.1 | conn=9 path=/delay/0.3
+  => 0.60 s: conn=9 path=/delay/0.6 | conn=8 path=/delay/0.1 | conn=3 path=/delay/0.3
 
 await on a promise, not only on a (lambda (resolve reject)) starter:
   (run-promise (lambda () (defer-promise *event-loop* (lambda () 42)))) => 42 in 0.000 s
@@ -91,7 +91,56 @@ asyncio.wait_for: :timeout signals await-timeout:
   sleep-promise 5 s under :timeout 0.5 => AWAIT-TIMEOUT after 0.50 s, await-timeout-seconds 0.5
 
 A rejected promise is re-signalled by run-promise:
-  get-async to a closed port => HTTP-CONNECTION-ERROR after 0.00 s (typep http:http-error: T)
+  get-async to a closed port => HTTP-CONNECTION-ERROR after 0.01 s (typep http:http-error: T)
+
+========================================================================
+== Demo 4: https:// proxies are reached over TLS (http-protocol#53)
+========================================================================
+HTTPS_PROXY=https://user:secret@127.0.0.1:P (made-up credentials), read by a trust-env
+session. The proxy is a loopback TLS listener (tls-proxy.lisp). It logs the first octets
+off the socket and what it reads inside TLS; through CONNECT it is the origin as well.
+Before: http-protocol 0.4.4 classed the proxy :http and http-backend-async 0.2.28 sent
+the request line and Proxy-Authorization to it in plain TCP (http-backend-async#81).
+
+  async    http://origin.test/demo    => 200 "the proxy, over TLS" (0.01 s)
+      proxy, first octets off the socket: 16 03 01 06 2E 01  (TLS handshake record: a ClientHello)
+      inside TLS: GET http://origin.test/demo HTTP/1.1
+                  proxy-authorization: Basic dXNlcjpzZWNyZXQ=
+      credentials in the octets off the socket: no
+
+  async    https://origin.test/demo   => 200 "origin.test, through the TLS tunnel" (0.00 s)
+      proxy, first octets off the socket: 16 03 01 06 2E 01  (TLS handshake record: a ClientHello)
+      inside TLS: CONNECT origin.test:443 HTTP/1.1
+                  Proxy-Authorization: Basic dXNlcjpzZWNyZXQ=
+      tunnel, first octets: 16 03 01 06 33 01  (the origin's ClientHello: TLS inside TLS)
+      origin, inside the inner TLS: GET /demo HTTP/1.1 (Proxy-Authorization absent)
+      credentials in the octets off the socket: no
+
+  dexador  http://origin.test/demo    => PROXY-TLS-UNSUPPORTED: http-backend-dexador: cannot speak TLS to the https:// proxy https://127.0.0.1:49538... (0.00 s)
+      proxy: no connection, not one octet
+
+  dexador  https://origin.test/demo   => PROXY-TLS-UNSUPPORTED: http-backend-dexador: cannot speak TLS to the https:// proxy https://127.0.0.1:49540... (0.00 s)
+      proxy: no connection, not one octet
+
+dexador's refusal, in full: http-backend-dexador: cannot speak TLS to the https:// proxy https://127.0.0.1:49540; refusing to send the request and its proxy credentials in cleartext — dexador dials every proxy in plain TCP; use http-backend-async, which speaks TLS to the proxy
+  typep unsupported-operation: T, operation :HTTPS-PROXY
+  its USE-VALUE restart: Use another proxy URL (NIL: connect directly).
+
+The proxy hop uses the session's TLS settings (async, :verify t):
+
+  test CA trusted    https://origin.test/demo => 200 "origin.test, through the TLS tunnel" (0.00 s)
+      (the proxy's certificate checked against 127.0.0.1, the origin's against origin.test)
+      proxy, first octets off the socket: 16 03 01 06 2E 01  (TLS handshake record: a ClientHello)
+      inside TLS: CONNECT origin.test:443 HTTP/1.1
+                  Proxy-Authorization: Basic dXNlcjpzZWNyZXQ=
+      tunnel, first octets: 16 03 01 06 33 01  (the origin's ClientHello: TLS inside TLS)
+      origin, inside the inner TLS: GET /demo HTTP/1.1 (Proxy-Authorization absent)
+      credentials in the octets off the socket: no
+
+  CA not trusted     https://origin.test/demo => HTTP-TLS-ERROR: TLS verify failed for 127.0.0.1: SSL verify error: 20 X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_... (0.00 s)
+      proxy, first octets off the socket: 16 03 01 06 2E 01  (TLS handshake record: a ClientHello)
+      inside TLS: nothing (the client ended the handshake)
+      credentials in the octets off the socket: no
 
 ========================================================================
 == done
