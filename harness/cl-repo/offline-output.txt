@@ -1,0 +1,196 @@
+(harness-demos-cl-repo:run-offline-demos), driven by `cl-repo run` with the published 0.27.38
+(<clients>/0.27.38) in a fresh HOME. The driver's own install and compile lines are left out.
+macOS arm64; Roswell SBCL 2.4.11 for the clients, SBCL 2.6.9 for the demo image.
+
+==============================================================================
+== The clients
+==============================================================================
+  cl-repo 0.27.38: <clients>/0.27.38/cl-oci-0.27.38/
+  cl-repo 0.27.37: <clients>/0.27.37/cl-oci-0.27.37/
+  Each command runs the client's own launcher (roswell/cl-repo) in a fresh HOME, so every
+  dependency of dexador comes from the client's own tree. Offline is a proxy (HTTPS_PROXY) or a
+  registry (--registry) on http://127.0.0.1:9, where nothing listens, or a proxy on http://192.0.2.1:9,
+  which answers nothing. The machine's network is not touched. CL_REPO_TRACE_HTTP counts the
+  requests that went out. A run is stopped at a cap (600 s; 180 s for the 0.27.37 black hole).
+  cl-repo 0.27.37 compiled into the shared fasl cache: exit 0, 28.6 s
+  cl-repo 0.27.38 compiled into the shared fasl cache: exit 0, 25.8 s
+
+==============================================================================
+== #189: cl-repo --version
+==============================================================================
+
+-- cl-repo 0.27.37 (before) --
+  $ cl-repo --version
+    Unknown command: --version
+    cl-repo - OCI-based Common Lisp package manager
+    Usage: cl-repo <command> [options]
+    … 51 more lines
+    [exit 1]
+    1.0 s, 0 requests sent
+
+-- cl-repo 0.27.38 (after) --
+  $ cl-repo --version
+    cl-repo 0.27.38 (<clients>/0.27.38/cl-oci-0.27.38/)
+    [exit 0]
+    1.0 s, 0 requests sent
+  ok  `cl-repo --version` exits 0
+  ok  and prints the release and the client's directory: cl-repo 0.27.38 (<clients>/0.27.38/cl-oci-0.27.38/)
+
+==============================================================================
+== #179: offline, every dependency installed (proxy on a closed port)
+==============================================================================
+
+-- cl-repo 0.27.37 (before) --
+  $ cl-repo sync --no-lock
+    ; cl-repo: global-vars: lookup in https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: keeping installed versions: cl-repo: could not look up or pull global-vars (not a missing package):
+      pulling global-vars from https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list failed after 4 attempts: connect failed: errno 61
+    [exit 0]
+    218.9 s, 154 requests sent
+
+-- cl-repo 0.27.38 (after) --
+  $ cl-repo sync --no-lock
+    ; cl-repo: global-vars: lookup in https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61
+    ; cl-repo: keeping installed versions: cl-repo: could not look up or pull global-vars (not a missing package):
+      pulling global-vars from https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61
+    [exit 0]
+    1.2 s, 8 requests sent
+  ok  the sync succeeds
+  ok  in 1.2 s
+  ok  and keeps the installed versions
+  ok  saying that the registry is unreachable
+
+==============================================================================
+== #179: a dead registry beside GHCR (--registry on a closed port)
+==============================================================================
+
+-- cl-repo 0.27.37 (before) --
+  $ cl-repo sync --no-lock --registry http://127.0.0.1:9
+    ; cl-repo: global-vars: lookup in http://127.0.0.1:9 failed: Network failure: GET http://127.0.0.1:9/v2/egao1980/cl-systems/global-vars/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: bordeaux-threads: lookup in http://127.0.0.1:9 failed: Network failure: GET http://127.0.0.1:9/v2/egao1980/cl-systems/bordeaux-threads/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: cl+ssl: lookup in http://127.0.0.1:9 failed: Network failure: GET http://127.0.0.1:9/v2/egao1980/cl-systems/cl-plus-ssl/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: usocket: lookup in http://127.0.0.1:9 failed: Network failure: GET http://127.0.0.1:9/v2/egao1980/cl-systems/usocket/tags/list failed after 4 attempts: connect failed: errno 61
+    … 26 more lines
+    [exit 0]
+    424.1 s, 360 requests sent
+    lines that name the dead registry: 30
+
+-- cl-repo 0.27.38 (after) --
+  $ cl-repo sync --no-lock --registry http://127.0.0.1:9
+    ; cl-repo: global-vars: lookup in http://127.0.0.1:9 failed: Registry http://127.0.0.1:9 is unreachable: GET http://127.0.0.1:9/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61
+    [exit 0]
+    2.6 s, 94 requests sent
+    lines that name the dead registry: 1
+  ok  the sync succeeds
+  ok  in 2.6 s
+  ok  and names the dead registry once
+
+==============================================================================
+== #179: a black-holed network (proxy that never answers)
+==============================================================================
+
+-- cl-repo 0.27.37 (before) --
+  $ cl-repo sync --no-lock
+    [exit none: stopped]
+    180.1 s, 31 requests sent (stopped at the cap: it was still waiting)
+
+-- cl-repo 0.27.38 (after) --
+  $ cl-repo sync --no-lock
+    ; cl-repo: global-vars: lookup in https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect timed out after 10.0 s (ghcr.io)
+    ; cl-repo: keeping installed versions: cl-repo: could not look up or pull global-vars (not a missing package):
+      pulling global-vars from https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect timed out after 10.0 s (ghcr.io)
+    [exit 0]
+    11.3 s, 8 requests sent
+  ok  the sync succeeds
+  ok  in 11.3 s: one connect timeout (10 s), not one per attempt and package
+
+==============================================================================
+== #179: offline, and a package is not installed
+==============================================================================
+
+-- cl-repo 0.27.37 (before) --
+  $ cl-repo sync --no-lock
+    ; cl-repo: global-vars: lookup in https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: keeping installed versions: cl-repo: could not look up or pull global-vars (not a missing package):
+      pulling global-vars from https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: ensure deps for local demo179d → parse-number
+    ; cl-repo: parse-number: lookup in https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/tags/list failed after 4 attempts: connect failed: errno 61
+    ; cl-repo: SAT resolution unavailable for parse-number (cl-repo: could not look up or pull parse-number (not a missing package):
+      pulling parse-number from https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/tags/list failed after 4 attempts: connect failed: errno 61), trying direct
+    ; cl-repo: pulling parse-number from https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/tags/list failed after 4 attempts: connect failed: errno 61
+    Error: cl-repo: could not look up or pull parse-number (not a missing package):
+      pulling parse-number from https://ghcr.io failed: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/tags/list failed after 4 attempts: connect failed: errno 61
+    [exit 1]
+    240.1 s, 166 requests sent
+
+-- cl-repo 0.27.38 (after) --
+  $ cl-repo sync --no-lock
+    ; cl-repo: global-vars: lookup in https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61
+    ; cl-repo: keeping installed versions: cl-repo: could not look up or pull global-vars (not a missing package):
+      pulling global-vars from https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/global-vars/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61
+    ; cl-repo: ensure deps for local demo179d → parse-number
+    ; cl-repo: SAT resolution unavailable for parse-number (cl-repo: could not look up or pull parse-number (not a missing package):
+      pulling parse-number from https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61), trying direct
+    Error: cl-repo: could not look up or pull parse-number (not a missing package):
+      pulling parse-number from https://ghcr.io failed: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/tags/list was not sent, as an earlier request to it failed: connect failed: errno 61
+    [exit 1]
+    1.2 s, 8 requests sent
+  ok  the sync fails
+  ok  in 1.2 s
+  ok  naming parse-number
+  ok  and the unreachable registry
+
+==============================================================================
+== #179: offline with cl-repo.lock
+==============================================================================
+
+-- cl-repo 0.27.37 (before) --
+  Online first: the sync installs parse-number and writes cl-repo.lock.
+  $ cl-repo sync
+    ; cl-repo: ensure deps for local demo179e → parse-number
+    ; cl-repo: found parse-number:1.8 in https://ghcr.io (CL-REPO)
+    Installed parse-number 1.8 to <tmp>/home-35/.local/share/cl-repository/systems/parse-number/1.8/
+    … 1 more lines
+    [exit 0]
+    3.9 s, 97 requests sent
+  Offline, the lock current and its entries installed:
+  $ cl-repo sync
+    ; cl-repo: dependencies from cl-repo.lock (1 package)
+    [exit 0]
+    1.0 s, 0 requests sent
+  Offline, parse-number removed from the install tree:
+  $ cl-repo sync
+    ; cl-repo: installing parse-number 1.8 from cl-repo.lock
+    Error: Network failure: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/manifests/1.8 failed after 4 attempts: connect failed: errno 61
+    [exit 1]
+    8.1 s, 4 requests sent
+
+-- cl-repo 0.27.38 (after) --
+  Online first: the sync installs parse-number and writes cl-repo.lock.
+  $ cl-repo sync
+    ; cl-repo: ensure deps for local demo179e → parse-number
+    ; cl-repo: found parse-number:1.8 in https://ghcr.io (CL-REPO)
+    Installed parse-number 1.8 to <tmp>/home-40/.local/share/cl-repository/systems/parse-number/1.8/
+    … 1 more lines
+    [exit 0]
+    3.3 s, 95 requests sent
+  Offline, the lock current and its entries installed:
+  $ cl-repo sync
+    ; cl-repo: dependencies from cl-repo.lock (1 package)
+    [exit 0]
+    1.0 s, 0 requests sent
+  ok  the sync succeeds and sends no request
+  Offline, parse-number removed from the install tree:
+  $ cl-repo sync
+    ; cl-repo: installing parse-number 1.8 from cl-repo.lock
+    Error: cl-repo: parse-number 1.8 (cl-repo.lock) is not installed, and https://ghcr.io could not be asked for it: Registry https://ghcr.io is unreachable: GET https://ghcr.io/v2/egao1980/cl-systems/parse-number/manifests/1.8 failed: connect failed: errno 61
+    [exit 1]
+    1.1 s, 1 request sent
+  ok  the sync fails
+  ok  in 1.1 s
+  ok  naming the lock entry it cannot fetch
+
+==============================================================================
+== Summary
+==============================================================================
+  19 checks of cl-repo 0.27.38, 0 failed (1154 s)

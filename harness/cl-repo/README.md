@@ -1,4 +1,4 @@
-# cl-repo client demo: 0.27.35 against 0.27.34
+# cl-repo client demos: 0.27.35 against 0.27.34, 0.27.38 against 0.27.37
 
 `harness-demos-cl-repo` runs the published cl-repo client the way a user runs it, before and after the fixes of [cl-repository#174](https://github.com/egao1980/cl-repository/pull/174). Release 0.27.35 has the fixes; 0.27.34 is the release before. Each command runs a client's own launcher (`roswell/cl-repo`) from its OCI-published tree, in a fresh `HOME` and against GHCR. The fresh `HOME` holds no install tree, no lock and no cl-repo configuration. Roswell's home is kept (`ROSWELL_HOME`), so Roswell's SBCL runs the clients.
 
@@ -29,6 +29,37 @@ Not shown: #169. The fix removes a misleading "stays loaded from ~/.cl-repositor
 
 ## Issues found
 
-- [cl-repository#179](https://github.com/egao1980/cl-repository/issues/179): after #167, a sync over an all-installed closure lists every package's tags, so with no registry reachable it waits minutes before it keeps the installed versions. It is open and ships in 0.27.35.
+- [cl-repository#179](https://github.com/egao1980/cl-repository/issues/179): after #167, a sync over an all-installed closure lists every package's tags, so with no registry reachable it waits minutes before it keeps the installed versions. It ships in 0.27.35 and is fixed in 0.27.38: see [Offline sync and `--version`](#offline-sync-and---version-02738-against-02737) below.
 - [cl-repository#182](https://github.com/egao1980/cl-repository/issues/182): with #167, a project image can recompile a client-tree fasl against a newer dependency from the install tree. It is open.
 - [cl-repository#172](https://github.com/egao1980/cl-repository/issues/172) and [#173](https://github.com/egao1980/cl-repository/issues/173) are the remaining follow-ups: client-tree systems are not locked, and the fasl lock covers only SBCL off Windows.
+
+## Offline sync and `--version`: 0.27.38 against 0.27.37
+
+`run-offline-demos` ([`src/offline.lisp`](src/offline.lisp)) compares two published clients with the registry unreachable. 0.27.37 is the release before the fix of [cl-repository#179](https://github.com/egao1980/cl-repository/issues/179) and [#189](https://github.com/egao1980/cl-repository/issues/189). 0.27.38 has the fix ([cl-repository#191](https://github.com/egao1980/cl-repository/pull/191)). Both are the OCI-published clients, installed by `scripts/setup.sh 0.27.37 0.27.38` into `.clients/`, not clients built from a checkout. Each command runs a client's own launcher in a fresh `HOME`, as in the sections above, so every dependency of dexador comes from the client's own tree.
+
+Offline means one of three things, and none of them touches the machine's network:
+- `HTTPS_PROXY=http://127.0.0.1:9`, a loopback port where nothing listens, so every connection is refused;
+- `--registry http://127.0.0.1:9`, a dead registry configured before GHCR;
+- `HTTPS_PROXY=http://192.0.2.1:9`, a TEST-NET-1 address that answers nothing.
+
+`CL_REPO_TRACE_HTTP` counts the requests that went out. A run is stopped after 600 s; the 0.27.37 black-hole run is stopped after 180 s. The 0.27.38 results are checked. [`offline-output.txt`](offline-output.txt) is the last run, on macOS arm64. The demo was driven by `cl-repo run` with the published 0.27.38 from `.clients/` in a fresh `HOME`, and the driver's own install and compile lines are left out. It took 19 minutes, nearly all of it in the 0.27.37 runs. All 19 checks held.
+
+```bash
+cd harness/cl-repo
+./scripts/setup.sh 0.27.37 0.27.38
+cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
+  --eval '(asdf:load-system "harness-demos-cl-repo")' \
+  --eval '(harness-demos-cl-repo:run-offline-demos)' > offline-output.txt 2>&1
+```
+
+| Section | 0.27.37 | 0.27.38 |
+|---|---|---|
+| `cl-repo --version` | `Unknown command: --version`, the usage, exit 1 | `cl-repo 0.27.38 (<clients>/0.27.38/cl-oci-0.27.38/)` |
+| offline (refused), `demo179a` on dexador, `sync --no-lock` | 218.9 s, 154 requests | 1.2 s, 8 requests |
+| dead `--registry` beside GHCR | 424.1 s, 360 requests, 30 log lines for the dead registry | 2.6 s, 94 requests, 1 log line |
+| black-holed proxy | stopped after 180 s, still waiting | 11.3 s: one 10 s connect timeout |
+| offline, parse-number not installed (no lock) | 240.1 s, then `could not look up or pull parse-number` | 1.2 s, the same error, which says `Registry https://ghcr.io is unreachable` |
+| offline, current `cl-repo.lock`, all installed | 1.0 s, 0 requests | 1.0 s, 0 requests |
+| offline, current lock, parse-number not installed | 8.1 s, `Network failure: … failed after 4 attempts` | 1.1 s, `parse-number 1.8 (cl-repo.lock) is not installed, and https://ghcr.io could not be asked for it` |
+
+The 8 offline requests of 0.27.38 are the first wave of the tag-list batch (8 in flight), sent before the first failure comes back. The other 22 packages' requests are not sent: a registry that has not answered gets one attempt, and once that fails, requests to it fail at once for 60 s.
