@@ -1,4 +1,4 @@
-# Runs the harness demos (harness/{data,fs,agent,code,image,supervisor,isolation,css,music-theory,sat,logic,pdf-render,midi,score,musicxml,documents,cache-ttl,mime-multipart,image-ops}) against the published GHCR
+# Runs the harness demos (harness/{data,fs,agent,code,image,supervisor,isolation,css,music-theory,sat,logic,pdf-render,midi,score,musicxml,score-parity,documents,cache-ttl,mime-multipart,image-ops}) against the published GHCR
 # packages, so a dependency republish that breaks a demo shows up here.
 # Each demo exits non-zero when any of its steps raised an error.
 name: harness-demos
@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        demo: [data, fs, agent, code, image, supervisor, isolation, css, music-theory, sat, logic, pdf-render, midi, score, musicxml, documents, cache-ttl, mime-multipart, image-ops]
+        demo: [data, fs, agent, code, image, supervisor, isolation, css, music-theory, sat, logic, pdf-render, midi, score, musicxml, score-parity, documents, cache-ttl, mime-multipart, image-ops]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions:
