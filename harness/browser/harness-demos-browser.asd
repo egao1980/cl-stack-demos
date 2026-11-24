@@ -4,7 +4,7 @@
   :author "egao1980"
   :license "MIT"
   :depends-on ((:version "browser-protocol" "0.2.0") "browser-protocol/launch"
-               "process-protocol" "json-protocol")
+               "process-protocol" "json-protocol" "bordeaux-threads")
   :serial t
   :pathname "src"
   :components ((:file "package")

@@ -3,7 +3,7 @@
 ========================================================================
   llama-version                          1.0.0-dev
   libllamastack ABI                      4
-  model                                  ~/Projects/cl-workspace/.worktrees/native/scratch/llama/models/stories260K.gguf
+  model                                  <tmp>/stories260K.gguf
   complete "Once upon a time" (12)       ", there was a little girl named Lily. She"
   ok       some text: T
 
@@ -47,18 +47,24 @@ end-of-generation, so the text is a sentence of the grammar.
   ok       prefix of a sentence (8): T
 
 ========================================================================
-== 5. C++ exceptions become LLAMA-ERROR (#17)
+== 5. Dead ends and C++ exceptions become LLAMA-ERROR (#17)
 ========================================================================
-libllamastack 0.2.1 is C++ behind the C ABI: every exported function catches
-std::exception and returns LLAMA_STACK_RUNTIME with "C++ exception: ...".
-No token's piece starts with NUL, so this grammar rules out every candidate;
-greedy picks one anyway and llama.cpp's accept throws. 0.2.0 aborted here.
+No token's piece starts with NUL, so this grammar rules out every candidate.
+llama_sampler_sample picks one anyway (greedy keeps candidate 0) and llama.cpp's
+accept throws; 0.2.0 aborted here. The 0.2.1 shim applies the grammar itself,
+drops what it rules out, and sees that nothing is left: a grammar dead end.
 
-  complete :grammar "root ::= \"\\x00\"" llama-cpp error (RUNTIME): llama_stack_complete_ex: C++ exception: Unexpected empty grammar stack after accepting piece: <unk> (0)
+  complete :grammar "root ::= \"\\x00\"" llama-cpp error (RUNTIME): llama_stack_complete_ex: grammar dead end: the grammar allows no token after 0 generated token(s) "". llama.cpp masks end-of-generation tokens until the grammar is complete, so a grammar that names one (<|im_end|>, </s>) cannot finish; end the grammar where the text ends
   ok       a LLAMA-ERROR: :LLAMA-ERROR
-  ok       status RUNTIME, the exception's text: T
+  ok       status RUNTIME, "grammar dead end": T
   undefined rule                         llama-cpp error (INVALID): llama_stack_complete_ex: grammar parse failed
   ok       status INVALID: T
+libllamastack is C++ behind the C ABI: every exported function catches what
+llama.cpp throws and returns LLAMA_STACK_RUNTIME with the text.
+llama_stack_guard_selftest throws on purpose, inside that guard:
+
+  ok       std::runtime_error, std::bad_alloc, a non-std exception: ((:RUNTIME "C++ exception: guard selftest") (:RUNTIME "out of memory")
+ (:RUNTIME "unknown C++ exception"))
   ok       the image goes on: complete after the errors: "yes"
 
 ========================================================================
@@ -79,4 +85,22 @@ was never garbage (#20). 0.2.1 frees what is still live from sb-ext:*exit-hooks*
   ok       again: nothing left: 0
   ok       the handles read as freed: (T T)
 
-20 checks, 0 mismatched
+========================================================================
+== 7. A vocabulary whose token 0 is end-of-generation (#17, round 2)
+========================================================================
+SmolLM2's token 0 is <|endoftext|>. When the grammar rules out every token,
+the forced pick is token 0, an end-of-generation token, and llama.cpp's grammar
+accept calls GGML_ABORT (abort(), not an exception: no guard catches it).
+A grammar that names the end-of-turn token gets there after one word:
+llama.cpp masks EOG tokens until the grammar is complete, so <|im_end|> is never
+allowed. The 0.2.1 shim stops at the dead end before it picks.
+
+  model                                  <tmp>/SmolLM2-135M-Instruct-Q4_0.gguf
+  ok       yes/no grammar ends at EOG: (:OK "yes")
+  grammar root ::= ("yes" | "no") <|im_end|> llama-cpp error (RUNTIME): llama_stack_complete_ex: grammar dead end: the grammar allows no token after 3 generated token(s) "yes". llama.cpp masks end-of-generation tokens until the grammar is complete, so a grammar that names one (<|im_end|>, </s>) cannot finish; end the grammar where the text ends
+  ok       a grammar dead end, not SIGABRT: T
+  grammar root ::= "\x00"                llama-cpp error (RUNTIME): llama_stack_complete_ex: grammar dead end: the grammar allows no token after 0 generated token(s) "". llama.cpp masks end-of-generation tokens until the grammar is complete, so a grammar that names one (<|im_end|>, </s>) cannot finish; end the grammar where the text ends
+  ok       a grammar dead end, not SIGABRT: T
+  ok       the image goes on: :OK
+
+25 checks, 0 mismatched

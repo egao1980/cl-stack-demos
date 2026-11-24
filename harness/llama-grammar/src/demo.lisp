@@ -127,21 +127,69 @@
                  t))))))
 
 (defun demo-errors (engine)
-  (section "5. C++ exceptions become LLAMA-ERROR (#17)"
-    (para "libllamastack 0.2.1 is C++ behind the C ABI: every exported function catches"
-          "std::exception and returns LLAMA_STACK_RUNTIME with \"C++ exception: ...\"."
-          "No token's piece starts with NUL, so this grammar rules out every candidate;"
-          "greedy picks one anyway and llama.cpp's accept throws. 0.2.0 aborted here.")
-    (let ((got (complete* engine "The cat" :max-tokens 4 :grammar "root ::= \"\\x00\"")))
-      (show "complete :grammar \"root ::= \\\"\\\\x00\\\"\"" (second got))
-      (check "a LLAMA-ERROR" (first got) :llama-error)
-      (check "status RUNTIME, the exception's text"
-             (and (search "(RUNTIME)" (second got)) (search "C++ exception:" (second got)) t) t))
-    (let ((got (complete* engine "The cat" :max-tokens 4 :grammar "root ::= \"a\" | missing-rule")))
-      (show "undefined rule" (second got))
-      (check "status INVALID" (and (search "(INVALID)" (second got)) t) t))
-    (check "the image goes on: complete after the errors"
-           (second (complete* engine "The cat" :max-tokens 8 :grammar *yes-no*)) "yes")))
+  (section "5. Dead ends and C++ exceptions become LLAMA-ERROR (#17)"
+           (para "No token's piece starts with NUL, so this grammar rules out every candidate."
+                 "llama_sampler_sample picks one anyway (greedy keeps candidate 0) and llama.cpp's"
+                 "accept throws; 0.2.0 aborted here. The 0.2.1 shim applies the grammar itself,"
+                 "drops what it rules out, and sees that nothing is left: a grammar dead end.")
+           (let ((got (complete* engine "The cat" :max-tokens 4 :grammar "root ::= \"\\x00\"")))
+             (show "complete :grammar \"root ::= \\\"\\\\x00\\\"\"" (second got))
+             (check "a LLAMA-ERROR" (first got) :llama-error)
+             (check "status RUNTIME, \"grammar dead end\""
+                    (and (search "(RUNTIME)" (second got)) (search "grammar dead end" (second got)) t) t))
+           (let ((got (complete* engine "The cat" :max-tokens 4 :grammar "root ::= \"a\" | missing-rule")))
+             (show "undefined rule" (second got))
+             (check "status INVALID" (and (search "(INVALID)" (second got)) t) t))
+           (para "libllamastack is C++ behind the C ABI: every exported function catches what"
+                 "llama.cpp throws and returns LLAMA_STACK_RUNTIME with the text."
+                 "llama_stack_guard_selftest throws on purpose, inside that guard:")
+           (check "std::runtime_error, std::bad_alloc, a non-std exception"
+                  (loop for kind in '(1 2 3)
+                        collect (list (l::%guard-selftest kind) (l::%last-error)))
+                  '((:runtime "C++ exception: guard selftest")
+                    (:runtime "out of memory")
+                    (:runtime "unknown C++ exception")))
+           (check "the image goes on: complete after the errors"
+                  (second (complete* engine "The cat" :max-tokens 8 :grammar *yes-no*)) "yes")))
+
+(defun chat-model-path ()
+  (let ((p (uiop:getenv "HARNESS_LLAMA_CHAT_MODEL")))
+    (and p (plusp (length p)) (probe-file p) (namestring (probe-file p)))))
+
+(defun demo-chat-vocab ()
+  (section "7. A vocabulary whose token 0 is end-of-generation (#17, round 2)"
+           (para "SmolLM2's token 0 is <|endoftext|>. When the grammar rules out every token,"
+                 "the forced pick is token 0, an end-of-generation token, and llama.cpp's grammar"
+                 "accept calls GGML_ABORT (abort(), not an exception: no guard catches it)."
+                 "A grammar that names the end-of-turn token gets there after one word:"
+                 "llama.cpp masks EOG tokens until the grammar is complete, so <|im_end|> is never"
+                 "allowed. The 0.2.1 shim stops at the dead end before it picks.")
+           (if (null (chat-model-path))
+               (format t "~&  (set HARNESS_LLAMA_CHAT_MODEL to SmolLM2-135M-Instruct-Q4_0.gguf; see README)~%")
+               (let ((engine (l:load-engine :model-path (chat-model-path) :n-ctx 256)))
+                 (unwind-protect
+                     (progn
+                       (show "model" (chat-model-path))
+                       (check "yes/no grammar ends at EOG"
+                              (complete* engine "The cat" :max-tokens 8 :grammar *yes-no*)
+                              '(:ok "yes")
+                              :test (lambda (got want)
+                                      (declare (ignore want))
+                                      (and (eq (first got) :ok)
+                                           (member (second got) '("yes" "no") :test #'string=)
+                                           t)))
+                       (dolist (g '("root ::= (\"yes\" | \"no\") <|im_end|>" "root ::= \"\\x00\""))
+                         (let ((got (complete* engine "The cat" :max-tokens 8 :grammar g)))
+                           (show (format nil "grammar ~a" g) (second got))
+                           (check "a grammar dead end, not SIGABRT"
+                                  (and (eq (first got) :llama-error)
+                                       (search "grammar dead end" (second got))
+                                       t)
+                                  t)))
+                       (check "the image goes on"
+                              (first (complete* engine "The cat" :max-tokens 8 :grammar *yes-no*))
+                              :ok))
+                   (l:free-engine engine))))))
 
 (defun child-source-registry ()
   `(:source-registry
@@ -205,23 +253,24 @@
   "Run every section. → T when every check matched and no section failed."
   (setf *checks* 0 *mismatches* 0 *failed-sections* '())
   (cond
-    ((not (l:llama-available-p))
-     (format t "~&libllamastack is not loaded (LLAMA_CPP_NATIVE).~%")
-     (push "no libllamastack" *failed-sections*))
-    ((not (model-path))
-     (format t "~&Set HARNESS_LLAMA_MODEL to tinyllamas/stories260K.gguf (see README).~%")
-     (push "no model" *failed-sections*))
-    (t
-     (let ((engine (l:load-engine :model-path (model-path) :n-ctx 256)))
-       (unwind-protect
-            (progn
-              (demo-plain engine)
-              (demo-grammar engine)
-              (demo-parsed-and-streamed engine)
-              (demo-cut engine)
-              (demo-errors engine))
-         (l:free-engine engine)))
-     (demo-exit)))
+   ((not (l:llama-available-p))
+    (format t "~&libllamastack is not loaded (LLAMA_CPP_NATIVE).~%")
+    (push "no libllamastack" *failed-sections*))
+   ((not (model-path))
+    (format t "~&Set HARNESS_LLAMA_MODEL to tinyllamas/stories260K.gguf (see README).~%")
+    (push "no model" *failed-sections*))
+   (t
+    (let ((engine (l:load-engine :model-path (model-path) :n-ctx 256)))
+      (unwind-protect
+          (progn
+            (demo-plain engine)
+            (demo-grammar engine)
+            (demo-parsed-and-streamed engine)
+            (demo-cut engine)
+            (demo-errors engine))
+        (l:free-engine engine)))
+    (demo-exit)
+    (demo-chat-vocab)))
   (format t "~&~%~d checks, ~d mismatched~@[; failed sections: ~{~a~^, ~}~]~%"
           *checks* *mismatches* (reverse *failed-sections*))
   (and (zerop *mismatches*) (null *failed-sections*)))

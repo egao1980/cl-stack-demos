@@ -1,0 +1,92 @@
+========================================================================
+== 1. jose: JWT HS256 (PyJWT) — cl-stack-systems#75
+========================================================================
+jose 0.1.0 was on GHCR, but its jws.lisp and jwt.lisp import cl-json and
+assoc-utils, which were not, so `cl-repo sync` failed. #79 imports both.
+
+  token                                  eyJhbGciOiJIUzI1NiIs… (121 chars, 2 dots)
+  ok       decode with the key (claims as a set): (("sub" . "1234") ("hello" . "world"))
+  ok       decode with another key: JOSE/ERRORS:JWS-VERIFICATION-ERROR
+  ok       cl-json (jose's dependency): "{\"a\":1,\"b\":\"two\"}"
+  ok       assoc-utils (jose's dependency): 2
+
+========================================================================
+== 2. lparallel: a worker pool (multiprocessing / concurrent.futures)
+========================================================================
+  ok       pmap #'* over 1..8: (1 4 9 16 25 36 49 64)
+  ok       preduce #'+ over 1..1000: 500500
+  ok       three futures, forced: (45 190 435)
+
+========================================================================
+== 3. cl-csv: write and read CSV (csv module)
+========================================================================
+name,city
+Ada,"London, UK"
+Grace,"say ""hi"""
+  ok       read back: (("name" "city") ("Ada" "London, UK") ("Grace" "say \"hi\""))
+
+========================================================================
+== 4. 3bmd: Markdown to HTML (markdown / mistune)
+========================================================================
+Fenced code blocks need colorize and html-encode; #79 imports them too.
+
+  ok       heading: "<h1>Title</h1>
+"
+Scan was called 154 times.
+Warning: could not find hyperspec map file. Adjust the path at the top of clhs-lookup.lisp to get links to the HyperSpec.
+  ok       fenced lisp block is colorized: T
+  ok       table cells: (T 2)
+
+========================================================================
+== 5. cl-pdf / cl-typesetting / cl-pdf-parser (ReportLab / pypdf)
+========================================================================
+cl-pdf comes from the egao1980/cl-pdf fork (d8d9f77): upstream master calls
+EXTENDED-ASCII-P while writing any PDF name, but only cl-pdf-parser defines
+it, so no document could be written. The fork moves it into pdf.lisp.
+
+  ok       cl-pdf file starts with: "%PDF-"
+  size                                   1300 bytes
+  ok       cl-pdf-parser reads back pages: 2
+  ok       a non-ASCII name: "/Caf#E9"
+  ok       cl-typesetting file starts with: "%PDF-"
+
+========================================================================
+== 6. opticl: images (Pillow)
+========================================================================
+  ok       PNG signature: "PNG"
+  ok       read back: height width channels: (3 4 3)
+  ok       pixel (2, 3): (200 150 200)
+
+========================================================================
+== 7. function-cache: memoization (functools.lru_cache)
+========================================================================
+  ok       cached-square 12, three times: (144 144 144)
+  ok       body ran: 1
+
+========================================================================
+== 8. lquery / clss / plump: HTML queries (BeautifulSoup)
+========================================================================
+  ok       clss li.x: ("one" "three")
+  ok       lquery $ li text: ("one" "two" "three")
+
+========================================================================
+== 9. machine-state, check-it, parcom (psutil, hypothesis, parsec)
+========================================================================
+  ok       machine-cores is a positive integer: T
+  ok       check-it: generated values are integers: T
+  ok       check-it: x + 0 = x on random integers: T
+  ok       parcom: (char #\a) on "a": #\a
+
+========================================================================
+== 10. Loaded, not run here (they need a server, a workbook or a repo)
+========================================================================
+cl-smtp needs frugal-uuid/non-frugal: cl-stack-systems#84 publishes it under
+its primary name, since the client refuses a system name with a slash.
+
+  ok       package CL-SMTP: T
+  ok       package REDIS: T
+  ok       package CL-EXCEL: T
+  ok       package LEGIT: T
+  ok       package CL-PROGRESS-BAR: T
+
+31 checks, 0 mismatched

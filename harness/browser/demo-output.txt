@@ -25,9 +25,9 @@ page with a flattened session: one socket, page commands carry the sessionId.
 
   find-browser-executable                /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
   process alive-p                        T
-  profile                                <tmp>/browser-protocol-1U85JUP-BZD4VE/profile/
-  browser websocket                      ws://127.0.0.1:54145
-  session id (flatten)                   1C2B1A49… (32 chars)
+  profile                                <tmp>/browser-protocol-1U85RRK-QT4ECY/profile/
+  browser websocket                      ws://127.0.0.1:54847
+  session id (flatten)                   EBA10A65… (32 chars)
   user agent                             Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
   ok       connected: T
 
@@ -39,7 +39,7 @@ Target.targetCreated event per target before the reply. 0.1.0 took the first eve
 as the reply and every later EVAL-JS read the next event (NIL, NIL, NIL). 0.2.0
 reads until the reply with its id and keeps the events in a bounded buffer.
 
-  Target.targetCreated events buffered   3: page, browser_ui, service_worker
+  Target.targetCreated events buffered   3: page, service_worker, browser_ui
   ok       at least the page: T
   ok       eval-js 1+1, 2+2, 3+3: (2 4 6)
 
@@ -59,11 +59,29 @@ fires at once, load does not.
   :domcontentloaded returned after       0.0s
   ok       :domcontentloaded: readyState: "interactive"
   :load, :timeout 2 →                    BROWSER-TIMEOUT after 2.0s
-  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: no Page.loadEventFired within 2s
+  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: its document fired no load within 2s
   ok       browser-error-url: "data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>"
   ok       #fragment (same document, no load event): "#part"
   unresolvable host →                    BROWSER-ERROR
   ok       message names Chrome's errorText: T
+
+========================================================================
+== 4b. NAVIGATE waits for its own document (#2, round 3)
+========================================================================
+After a :commit or :domcontentloaded navigation, that page's load event is still
+unread when the next NAVIGATE starts. PR #4's round-2 build took it as the next
+page's load. NAVIGATE now follows the main frame's documents (Page.frameNavigated
+and its loaderId) and waits for the one its own navigation committed.
+
+  ok       navigate(one, :commit), then navigate(two): readyState and title: ("complete" "two")
+
+navigate(three, :domcontentloaded), 0.5 s, then navigate(slow, :timeout 2), whose
+image never arrives: three's load event must not end it.
+
+  navigate(slow) →                       BROWSER-TIMEOUT after 2.0s
+  message                                browser timeout (2s): data:text/html,<title>slow</title><img src='http://10.255.255.1/never.png'>: its document fired no load within 2s
+  ok       readyState of slow: "interactive"
+  ok       six navigations, :commit and :load in turn: title after each :load: ("t1" "t3" "t5")
 
 ========================================================================
 == 5. Events: ON-CDP-EVENT and WAIT-FOR-CDP-EVENT
@@ -90,7 +108,60 @@ previous command is not missed. :test narrows the wait.
   dom-snapshot                           <h1 style="color:white">browser-protocol 0.2.0</h1>
 
 ========================================================================
-== 7. CONNECT-CDP: a second client on a running browser
+== 7. page.route: commands from an event handler (#2, round 2)
+========================================================================
+Playwright's page.route("**/*", r => r.continue_()) is Fetch.enable plus a
+Fetch.requestPaused handler that sends Fetch.continueRequest. The handler runs
+inside the read of whatever command or wait read the event, and Chrome pauses a
+page's images in a burst, so the handlers nest. In PR #4's first build the
+innermost command dropped the other replies and buffered the load event after
+NAVIGATE had stopped looking: "1 of 6 requests continued", then BROWSER-TIMEOUT.
+Now whoever reads files what it reads: each reply goes to the command waiting
+for its id, each event to the buffer that waits look at again after every message.
+
+  ok       navigate to a page with six images, every request routed: "data:text/html,<title>route</title><img src='http://127.0.0.1:9/0.png'><img src='http://127.0.0.1:9/1.png'><img src='http://127.0.0.1:9/2.png'><img src='http://127.0.0.1:9/3.png'><img src='http://127.0.0.1:9/4.png'><img src='http://127.0.0.1:9/5.png'>"
+  navigate took                          0.0s
+  requests the handler continued         6
+  ok       at least the six images: T
+  ok       readyState: "complete"
+
+========================================================================
+== 8. JavaScript values: page.evaluate (#1, round 2)
+========================================================================
+EVAL-JS maps the RemoteObject that Runtime.evaluate returns. In PR #4's first
+build a false value fell through to the RemoteObject itself, a hash-table, so
+(when (eval-js b "... !== null") ...) always ran. A JavaScript exception came
+back as a RemoteObject too, and CLICK on a missing selector returned T.
+
+  ok       eval-js "1 === 2": NIL
+  ok       eval-js "1 === 1": T
+  ok       eval-js "undefined": NIL
+  ok       eval-js "null": :NULL
+  ok       eval-js "'s'.length": 1
+  ok       eval-js "10n ** 20n": 100000000000000000000
+  ok       eval-js "0/0": :NAN
+  ok       eval-js "-1/0": :-INFINITY
+  ok       eval-js "[1, false, null, 'x']": #(1 NIL :NULL "x")
+  ok       eval-js "({a: 1}).a": 1
+  ok       (when (eval-js b "document.querySelector('#nope') !== null") :ran): NIL
+  eval-js "throw new Error('boom')"      browser error (Runtime.evaluate): JavaScript exception: Error: boom
+    at <anonymous>:1:7
+  ok       a BROWSER-ERROR with the exception's text: T
+  ok       click :selector "#missing": :BROWSER-ERROR
+  ok       click :selector "#go": T
+  ok       its onclick ran: "clicked"
+
+========================================================================
+== 9. Two threads on one browser (#2, round 2)
+========================================================================
+One thread reads the websocket at a time and files each reply for the command
+that waits for its id; the others wait until it files something. Two threads,
+25 EVAL-JS each, on one connection:
+
+  ok       right answers per thread: (25 25)
+
+========================================================================
+== 10. CONNECT-CDP: a second client on a running browser
 ========================================================================
 connect_over_cdp: CONNECT-CDP attaches its own session; its CLOSE-BROWSER detaches
 and leaves the browser running.
@@ -100,13 +171,13 @@ and leaves the browser running.
   ok       launched client still works: 2
 
 ========================================================================
-== 8. CLOSE-BROWSER
+== 11. CLOSE-BROWSER
 ========================================================================
   ok       process alive-p: NIL
   ok       temporary profile exists: NIL
 
 ========================================================================
-== 9. WITH-BROWSER and *BROWSER-BACKEND* (#3)
+== 12. WITH-BROWSER and *BROWSER-BACKEND* (#3)
 ========================================================================
 WITH-BROWSER binds the backend and *BROWSER-BACKEND*; the NIL-backend methods now
 use *BROWSER-BACKEND* (0.1.0 ignored it).
@@ -114,4 +185,4 @@ use *BROWSER-BACKEND* (0.1.0 ignored it).
   ok       (eval-js nil "document.title"): "with-browser"
   ok       closed on the way out: NIL
 
-28 checks, 0 mismatched
+50 checks, 0 mismatched
