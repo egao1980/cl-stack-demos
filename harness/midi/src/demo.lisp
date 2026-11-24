@@ -933,6 +933,15 @@ as a Lisp plist.")
     (section "6. Bad values: MIDI-ENCODE-ERROR" (demo-encode-errors))
     (section "7. Files and streams" (demo-files))
     (section "8. Cross-read with mido" (demo-mido))
+    (format t "~&~%Part 2: score-backend-midi ~a, scores to and from Standard MIDI Files (SC4)~%"
+            (asdf:component-version (asdf:find-system "score-backend-midi")))
+    (section "9. Export a four-part hymn: channels, meta events, velocities, tie, repeat"
+      (demo-score-export))
+    (section "10. A rehearsal set: one file per voice" (demo-rehearsal))
+    (section "11. Round trip: IMPORT-MIDI of the export" (demo-round-trip))
+    (section "12. Importing a performance: grid per beat, spelling, uncertainty"
+      (demo-performance))
+    (section "13. Cross-read of the exported hymn with mido" (demo-score-mido))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"

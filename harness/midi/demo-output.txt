@@ -1,6 +1,6 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names
-; cl-repo: dependencies from cl-repo.lock (7 packages)
+; cl-repo: dependencies from cl-repo.lock (17 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -8,10 +8,10 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-; compiling file "<tmp>/harness/midi/src/demo.lisp" (written 24 NOV 2026 01:22:54 AM):
+; compiling file "<tmp>/harness/midi/src/score.lisp" (written 24 NOV 2026 06:12:45 AM):
 
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<tmp>/harness/midi/src/demo-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.080
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<tmp>/harness/midi/src/score-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.102
 midi-protocol 0.1.0 (SBCL 2.6.9): MIDI 1.0 events and Standard MIDI Files,
 files only
 
@@ -420,8 +420,349 @@ mido counts every event, the end of track included, as a message, and it agrees
 on every count, name and syllable. Its length (playback time through the tempo
 map, in floats) matches TICKS-TO-SECONDS.
 
+Part 2: score-backend-midi 0.1.0, scores to and from Standard MIDI Files (SC4)
+
+==============================================================================
+== 9. Export a four-part hymn: channels, meta events, velocities, tie, repeat
+==============================================================================
+score-backend-midi turns a score-protocol score into a Standard MIDI File and back.
+The score here is a four-part OLD HUNDREDTH (melody by Louis Bourgeois, 1551; words
+by William Kethe, 1561), built in code like the hymn of harness/score: one part,
+"Choir", with four voices on two staves, G major, 4/4, quarter = 80, a half-note
+pickup and a half bar at the end. 32 chord symbols follow the harmony, line 3 is p
+and line 4 f, the alto holds its D4 across the barline into bar 3 (a tie), and a
+repeat sign at the end plays the hymn twice. Verses 1 and 2 are on the soprano.
+
+  Soprano  G4:h | G4 F#4 E4 D4 | G4 A4 B4:h | B4:h B4 B4 | A4 G4 C5 B4 | A4:h G4:h[p] | A4 B4 A4 G4 | E4 F#4 G4:h | D5:h[f] B4 G4 | A4 C5 B4 A4 | G4:h
+  Alto     D4:h | D4 D4 B3 B3 | D4 D4 D4:h~ | D4:h E4 D4 | D4 E4 E4 D4 | D4:h D4:h[p] | D4 D4 D4 E4 | C4 D4 D4:h | G4:h[f] G4 E4 | F#4 E4 D4 C4 | B3:h
+  Tenor    B3:h | B3 A3 G3 G3 | G3 F#3 G3:h | G3:h G3 F#3 | F#3 B3 G3 G3 | F#3:h B3:h[p] | A3 G3 F#3 B3 | G3 A3 B3:h | B3:h[f] B3 C4 | A3 A3 G3 F#3 | G3:h
+  Bass     G2:h | B2 D3 E3 G2 | B2 D3 G2:h | B2:h E3 B2 | D3 E3 C3 G2 | D3:h G2:h[p] | F#2 G2 D3 E3 | C3 D3 G2:h | G3:h[f] E3 C3 | D3 A2 D3 D3 | G2:h
+  (quarter notes unmarked, h a half, ~ a tie, [p] a dynamic)
+
+CHECK-SCORE finds 0 issues. 128 events, 64 lyrics, 11 bars (0 to 10), 10 whole notes.
+
+(score-to-smf hymn :unfold nil) plays every bar once, as written. It returns an
+SMF of format 1 at 480 ticks per quarter note, and warns LOSSY-CONVERSION ("ids")
+(ids, provenance and confidence have no place in a MIDI file). Track 0 is the
+conductor track, then one track and one channel per voice:
+
+  track  name                                 instrument  ch  program          CC7  CC10  notes  lyrics
+      0  "All people that on earth do dwell"  -             -  -                  -     -      0       0
+      1  "Soprano"                            Choir        0  52 Choir Aahs    100    64     32      32
+      2  "Alto"                               Choir        1  52 Choir Aahs    100    64     31       0
+      3  "Tenor"                              Choir        2  52 Choir Aahs    100    64     32       0
+      4  "Bass"                               Choir        3  52 Choir Aahs    100    64     32       0
+
+Voices get channels 0, 1, 2, ... (9, the GM percussion channel, is skipped), the
+program 52 (Choir Aahs, +DEFAULT-PROGRAM+) unless :PROGRAMS names another, CC7 100
+and CC10 64 unless :MIX does. The track name is the voice's, the instrument name
+its part's.
+
+The conductor track: title, copyright, then the time signature of each bar that
+changes it, the key, the tempo, and a "chord:" text event per chord symbol. Ticks
+are T(x) = 4 * 480 * x, x in whole notes; the position is bar:offset.
+
+  tick   position  event
+      0  0:0       track-name      "All people that on earth do dwell"
+      0  0:0       copyright       "Public domain"
+      0  0:0       time-signature  2/4, 24 clocks per click, 8 32nds per quarter
+      0  0:0       key-signature   1 sharps, major (G major)
+      0  0:0       tempo           750000 us per quarter (80 bpm)
+    960  1:0       time-signature  4/4, 24 clocks per click, 8 32nds per quarter
+  18240  10:0      time-signature  2/4, 24 clocks per click, 8 32nds per quarter
+  19200  10:1/2    end-of-track
+
+and 32 chord text events, the first six:
+      0  0:0       text            "chord:G"
+    960  1:0       text            "chord:G/B"
+   1440  1:1/4     text            "chord:D"
+   1920  1:1/2     text            "chord:Em"
+   2400  1:3/4     text            "chord:G"
+   2880  2:0       text            "chord:G/B"
+
+The pickup and the last bar are half bars, so they get 2/4: a bar's signature is
+its actual length. 80 quarters a minute is 750000 microseconds per quarter.
+
+The soprano track: a LYRIC-EVENT (FF 05) at each syllable's note, before its
+note-on, "-" after a syllable that continues its word. The first eight:
+
+  tick   position  lyric     note-on
+      0  0:0       "All"     G4 vel 80
+    960  1:0       "peo-"    G4 vel 80
+   1440  1:1/4     "ple"     F#4 vel 80
+   1920  1:1/2     "that"    E4 vel 80
+   2400  1:3/4     "on"      D4 vel 80
+   2880  2:0       "earth"   G4 vel 80
+   3360  2:1/4     "do"      A4 vel 80
+   3840  2:1/2     "dwell,"  B4 vel 80
+  ... 32 lyric events in all: :VERSE 1 is the default, so verse 2 is not written.
+
+Velocities come from the dynamics: mf (80, :DEFAULT-DYNAMIC) until the p of
+line 3 (49), then the f of line 4 (96), in every voice. Note-on velocities by line:
+
+  voice    line 1      line 2      line 3 (p)  line 4 (f)  
+  Soprano  80          80          49          96          
+  Alto     80          80          49          96          
+  Tenor    80          80          49          96          
+  Bass     80          80          49          96          
+
+The tie. In the score the alto has two half notes: D4:h~ at 2:1/2, whose TIE names
+"alto-held", and that note, D4:h at 3:0. The export sounds them as one note: a
+note-on at tick 3840 and one note-off at 5760, 1920 ticks (a whole note), with the
+first note's velocity 80. So the alto has 32 note events in the score and 31
+notes in its track.
+
+(score-to-smf hymn :verse :pass) uses the default :UNFOLD T: the bars are played
+in the order of score-protocol's UNFOLD view, 22 bars as (bar . pass),
+(0 . 1) ... (10 . 1), then (0 . 2) ... (10 . 2).
+:VERSE :PASS sings verse n on pass n. Warnings: ("ids").
+
+  as written: 19200 ticks, 32, 31, 32, 32 notes per voice track, 32 lyrics
+  unfolded:   38400 ticks, 64, 62, 64, 64 notes per voice track, 64 lyrics
+
+The conductor track now has these time signature and tempo events:
+
+      0  0:0       time-signature  2/4, 24 clocks per click, 8 32nds per quarter
+      0  0:0       tempo           750000 us per quarter (80 bpm)
+    960  1:0       time-signature  4/4, 24 clocks per click, 8 32nds per quarter
+  18240  10:0      time-signature  2/4, 24 clocks per click, 8 32nds per quarter
+  19200  11:0      tempo           750000 us per quarter (80 bpm)
+  20160  12:0      time-signature  4/4, 24 clocks per click, 8 32nds per quarter
+  37440  21:0      time-signature  2/4, 24 clocks per click, 8 32nds per quarter
+
+The half bar 10 and the pickup of pass 2 are both 2/4, so there is no event at
+19200 (view bar 11); 4/4 comes back with bar 1 of pass 2. Bar 0's tempo mark
+is played again on pass 2, as a second tempo event. Around the turn the soprano
+sings the end of verse 1, then verse 2:
+
+  tick   view bar  lyric
+  17280  9:1/2     "and"
+  17760  9:3/4     "re-"
+  18240  10:0      "joice."
+  19200  11:0      "The"
+  20160  12:0      "Lord,"
+  20640  12:1/4    "ye"
+  21120  12:1/2    "know,"
+  21600  12:3/4    "is"
+
+(write-smf smf path) wrote harness/midi/old-hundredth.mid: 3880 bytes, the hymn
+with both verses, for any MIDI player. It is byte-identical to the
+committed copy: T.
+
+==============================================================================
+== 10. A rehearsal set: one file per voice
+==============================================================================
+A rehearsal set is one file per voice with that voice brought forward: louder,
+centred, the others quieter and to one side. REHEARSAL-MIX gives the :MIX of
+SCORE-TO-SMF for one voice. For the alto (voice v-37):
+
+  ("v-g" :VELOCITY 0 :VOLUME 80 :PAN 16)
+  ("v-37" :VELOCITY 20 :VOLUME 127 :PAN 64)
+  ("v-46" :VELOCITY 0 :VOLUME 80 :PAN 16)
+  ("v-55" :VELOCITY 0 :VOLUME 80 :PAN 16)
+
+(rehearsal-set hymn :verse :pass) makes 4 SMFs, each with the score's other
+options (here the repeat played out and both verses). In each file, every voice
+track's note-on velocity on line 1 (mf), line 3 (p) and line 4 (f), its CC7 and
+its CC10:
+
+  file           Soprano               Alto                  Tenor                 Bass                  
+                 velocity   CC7 CC10   velocity   CC7 CC10   velocity   CC7 CC10   velocity   CC7 CC10   
+  Soprano file   100/69/116 127   64   80/49/96    80   16   80/49/96    80   16   80/49/96    80   16   
+  Alto file      80/49/96    80   16   100/69/116 127   64   80/49/96    80   16   80/49/96    80   16   
+  Tenor file     80/49/96    80   16   80/49/96    80   16   100/69/116 127   64   80/49/96    80   16   
+  Bass file      80/49/96    80   16   80/49/96    80   16   80/49/96    80   16   100/69/116 127   64   
+
+The voice brought forward plays 20 louder (+BOOST+ over 80, 49 and 96), at CC7
+127 and centred (64); the others keep their velocities at CC7 80, panned to 16.
+Only bytes in the mix differ, so each file has the size of the plain export.
+
+A voice id that isn't in the score signals UNKNOWN-ELEMENT inside a USE-VALUE
+restart. A handler that answers with the tenor's id:
+
+  UNKNOWN-ELEMENT: no element with id "tenor"
+  innermost restart: USE-VALUE, "Use another voice id (checked again)."
+  (rehearsal-mix hymn "tenor") then brings forward v-46: ("v-46" :VELOCITY 20 :VOLUME 127 :PAN 64)
+
+==============================================================================
+== 11. Round trip: IMPORT-MIDI of the export
+==============================================================================
+(import-midi bytes) reads the as-written export (2076 bytes) back into a score.
+Import warnings: NIL; LOW-CONFIDENCE-GUESS signals: 0.
+
+  metadata  (:TITLE "All people that on earth do dwell" :COPYRIGHT "Public domain")
+  bars      0 to 10, pickup T, 4/4, G major, 10 whole notes
+  tempo     quarter = 80 at 0
+  parts     1: "Choir" with voices "Soprano" "Alto" "Tenor" "Bass" on 4 staves (treble treble bass bass)
+
+The four voice tracks share the instrument name "Choir", so they come back as one
+part, each voice named by its track. Voice by voice, the sounding notes (onset,
+end and spelled pitch, tied pieces joined) and the lyrics (onset, text, syllabic),
+then the chord symbols, against the original:
+
+  compared        rows  differences
+  Soprano notes     32  0
+  Alto notes        31  0
+  Tenor notes       32  0
+  Bass notes        32  0
+  Soprano lyrics    32  0
+  chord symbols     32  0
+  differences in all: 0
+
+The imported alto, bars 2 and 3: the one note across the barline is cut there into
+two tied pieces again, as in the original (the ids are minted anew):
+  D4 D4 D4:h~ | D4:h E4 D4
+  e-2j at 2:1/2 has a TIE to e-2l
+
+All 214 imported elements have provenance :MIDI from "score-backend-midi", and (uncertain-elements
+score) is NIL: every position is on the grid and every pitch is in G major, so
+nothing was guessed.
+
+What a MIDI file can't carry stays behind: the ids, the dynamics (only their
+velocities are in the file), the subtitle, composer and lyricist, stems and the
+two-staff layout (the import gives each voice its own staff, its clef from the mean
+pitch), and the repeat sign, which this file plays once.
+
+==============================================================================
+== 12. Importing a performance: grid per beat, spelling, uncertainty
+==============================================================================
+A performance has no notation in it: the notes start wherever the player put them.
+Here the "Ode to Joy" melody (Beethoven, 1824; bars 1-4 and 9-12 of the theme, D
+major), played at quarter = 100 with every onset up to 20 ms early or late, each
+note held for 90% of its value, velocities 70 to 90 (a seeded generator). Bar 7 is
+varied: a triplet F#4 G4 G#4 runs up to A4 where the theme has the eighths F#4 G4.
+The SMF (format 0, 333 bytes) has a tempo, a program change and the notes; like a
+keyboard recording it has no time or key signature.
+
+  bar  written notes, then each note's jitter in ms
+    1  F#4 F#4 G4 A4                        +17 +5 -7 -17
+    2  A4 G4 F#4 E4                         -15 +19 +17 +10
+    3  D4 D4 E4 F#4                         +14 +6 +19 -20
+    4  F#4/3:8 E4/1:8 E4/2                  +3 +5 +16
+    5  E4 E4 F#4 D4                         +3 -13 -1 +3
+    6  E4 F#4/1:8 G4/1:8 F#4 D4             +8 +4 +17 -1 +4
+    7  E4 F#4/1:12 G4/1:12 G#4/1:12 A4 F#4  +7 -9 -5 +10 +2 +19
+    8  D4 E4 A3/2                           -10 +9 +4
+
+QUANTIZE-ONSETS chooses a subdivision per beat (1, 2, 3, 4, 6 or 8) by cost: onset
+deviation plus notation complexity, a triplet costing more than a straight grid.
+The choice is a selection problem, solved with SAT-PROTOCOL:MINIMIZE. With no
+default backend, each MINIMIZE call signals SAT-NO-BACKEND, and a handler gives it
+a CDCL backend through the USE-BACKEND restart, which also counts the calls:
+
+  beat   onsets (ms from the beat)    grid           snapped to (whole)  confidence
+  1.1    18                           1 (quarter)    0                   1.00
+  1.2    5 592                        1 (quarter)    0 1/4               1.00 1.00
+  1.3    582                          1 (quarter)    1/4                 1.00
+  1.4    585                          1 (quarter)    1/4                 1.00
+  2.2    19                           1 (quarter)    0                   1.00
+  2.3    18                           1 (quarter)    0                   1.00
+  2.4    10                           1 (quarter)    0                   1.00
+  3.1    14                           1 (quarter)    0                   1.00
+  3.2    6                            1 (quarter)    0                   1.00
+  3.3    19 580                       1 (quarter)    0 1/4               1.00 1.00
+  4.1    2                            1 (quarter)    0                   1.00
+  4.2    305                          2 (eighths)    1/8                 1.00
+  4.3    16                           1 (quarter)    0                   1.00
+  5.1    2 588                        1 (quarter)    0 1/4               1.00 1.00
+  5.2    599                          1 (quarter)    1/4                 1.00
+  5.4    2                            1 (quarter)    0                   1.00
+  6.1    8                            1 (quarter)    0                   1.00
+  6.2    4 318 599                    2 (eighths)    0 1/8 1/4           1.00 0.99 1.00
+  6.4    4                            1 (quarter)    0                   1.00
+  7.1    8 591                        1 (quarter)    0 1/4               1.00 1.00
+  7.2    195 410                      3 (triplet)    1/12 1/6            1.00 0.99
+  7.3    2                            1 (quarter)    0                   1.00
+  7.4    19 590                       1 (quarter)    0 1/4               1.00 1.00
+  8.2    9                            1 (quarter)    0                   1.00
+  8.3    4                            1 (quarter)    0                   1.00
+
+An onset that comes early lies in the beat before its own, near the end, and
+snaps to that beat's end, the next beat's start: in 1.2 the G4 played 7 ms early
+is at 592 ms. Every onset snaps to its written position: yes. Beat 4.2 (the eighth
+after the dotted quarter) and beat 6.2 (two eighths) choose 2, beat 7.2 chooses
+3, the triplet, and the rest stay on the quarter. The 25 beats with onsets took 20
+MINIMIZE calls: beats whose cost tables are equal share one answer, and the 7
+beats inside held notes need none.
+
+With straight grids only (:subdivisions '(1 2 4 8)), beat 7.2 takes 4 (16ths)
+and snaps the triplet's onsets to 1/16 3/16 of the beat (written 1/12 1/6), with
+confidences 0.32 0.32: the import would flag them.
+
+(import-midi bytes) does the same per voice, then spells the pitches, finds the
+bars and builds the score. It SIGNALs LOW-CONFIDENCE-GUESS for every element whose
+confidence is below +FLAG-BELOW+ (0.8). The signal is silent unless handled; here a
+HANDLER-BIND logs each one:
+
+  LOW-CONFIDENCE-GUESS low-confidence guess for "m-1" (meter): 1/2
+  LOW-CONFIDENCE-GUESS low-confidence guess for "e-14" (spelling): 14/45
+
+The imported melody:
+  F#4:q F#4:q G4:q A4:q | A4:q G4:q F#4:q E4:q | D4:q D4:q E4:q F#4:q | F#4:q. E4:e E4:h
+  E4:q E4:q F#4:q D4:q | E4:q F#4:e G4:e F#4:q D4:q | E4:q F#4:e3 G4:e3 G#4:e3 A4:q F#4:q | D4:q E4:q A3:h
+  (q a quarter, e an eighth, h a half, 3 a triplet note, ~ a tie)
+
+The meter: no time signature, so 4/4 was assumed, confidence 1/2 (+GUESS-CONFIDENCE+).
+The key: no key signature, so the import ranks the keys by correlation with the
+pitch-class histogram of the notes, music-theory's DETECT-KEY; the first four:
+  D major 0.593,  F# minor 0.546,  E minor 0.507,  A major 0.493.
+D major is the key, and its correlation would be the key's confidence; the first
+measure takes the lesser of the two, 1/2, and is reported as "meter".
+Spelling follows the key: MIDI 66 is F#4, not Gb4, in D major, and the chromatic
+68 of the triplet is G#4, the raised fourth rising to A4. It is not in the key,
+so its confidence is 1 - its ambiguity: 14/45 (0.311).
+
+The uncertainty report, (uncertain-elements score) in document order:
+
+  id      kind          position  confidence  what
+  m-1     measure-info  1:0            0.500  meter  4/4, D major
+  e-14    note-event    7:5/12         0.311  spelling  G#4:e3
+
+The HANDLER-BIND saw exactly these ids, in this order. No onset is in doubt: a
+20 ms slip is small against a 300 ms eighth or a 200 ms triplet eighth, and the
+least note confidence from quantisation is 0.99. CHECK-SCORE finds 0 issues.
+
+==============================================================================
+== 13. Cross-read of the exported hymn with mido
+==============================================================================
+uv run --no-project --with mido==1.3.3 python -I -c '<script>' old-hundredth.mid
+reads the exported hymn with mido (exit 0). Per track, what mido sees:
+
+  track 0 "All people that on earth do dwell"
+    texts            64
+    tempos           (750000 750000)
+    time-signatures  ("2/4" "4/4" "2/4" "4/4" "2/4")
+    keys             ("G")
+  track 1 "Soprano"
+    channels         (0)
+    programs         (52)
+    note-ons         64
+    velocities       (49 80 96)
+    lyrics           64
+    first-lyrics     ("All" "peo-" "ple" "that")
+  track 2 "Alto"
+    channels         (1)
+    programs         (52)
+    note-ons         62
+    velocities       (49 80 96)
+  track 3 "Tenor"
+    channels         (2)
+    programs         (52)
+    note-ons         64
+    velocities       (49 80 96)
+  track 4 "Bass"
+    channels         (3)
+    programs         (52)
+    note-ons         64
+    velocities       (49 80 96)
+
+  type 1, 480 ticks per beat, 60.000 s long (TICKS-TO-SECONDS: 60 = 60.000 s)
+
+mido agrees with midi-protocol on every track's name, channel, program, note and
+velocity counts, lyrics, chord text events, tempi, time and key signatures.
+
 ==============================================================================
 == Summary
 ==============================================================================
-103 results checked against their expected values: 0 mismatched.
+218 results checked against their expected values: 0 mismatched.
 Every section ran to the end.
