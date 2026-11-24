@@ -1598,6 +1598,8 @@ ids of the notes:
 
   (slur-over-bar-3)
     -> unresolved-reference: unresolved draft reference (:melody 3 0): no element carries it
+  (use-value-offered-p #'slur-over-bar-3)
+    => t   ; USE-VALUE is there while a handler runs
   (reverse keys) => ((:melody 3 0) (:melody 3 1))   ; signalled in document order
   (fset:size (score-spanners score)) => 3
   (check-score score) => nil
@@ -1610,9 +1612,8 @@ carrying the ref of the key :PART:
 
   (shared-part-ref b)
     -> unresolved-reference: unresolved draft reference :part: carried by more than one element
-  (handler-case (shared-part-ref b)
-                (unresolved-reference (c) (and (find-restart 'use-value c) t)))
-    => nil   ; no USE-VALUE here
+  (use-value-offered-p (lambda () (shared-part-ref b)))
+    => nil   ; no USE-VALUE while a handler runs
   (builder-id b '(:melody 8 0) :errorp nil)
     => nil   ; nothing recorded, although that note was fine
 
@@ -1703,5 +1704,5 @@ and :FROM when a file is read, and its report names it:
 ========================================================================
 == Summary
 ========================================================================
-403 results checked against expected values: 0 mismatched.
+404 results checked against expected values: 0 mismatched.
 Every section ran to the end.
