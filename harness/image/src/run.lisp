@@ -4,7 +4,8 @@
   '(demo-scanner demo-image demo-observe demo-agent-rules demo-agent-real
     demo-image-events demo-image-events-denied demo-image-job-events demo-image-events-observe
     demo-image-events-real
-    demo-reader-conditionals))
+    demo-reader-conditionals
+    demo-edit-layout))
 
 (defun run-demos (&key (demos *demos*))
   "Run each demo; an error or a false result is reported and the next demo
