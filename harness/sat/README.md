@@ -1,8 +1,10 @@
-# SAT demo: cardinality, optimisation strategies, anytime search, cores
+# SAT demo: cardinality, optimisation strategies, anytime search, cores, DPLL against CDCL
 
-`harness-demos-sat` is a tour of **sat-protocol 0.2.0** (Track L, slice L2b-1) on the **sat-backend-dpll 0.1.0** backend, both from GHCR. It covers cardinality and pseudo-Boolean constraints in every encoding, a weighted sequence-labelling chain minimised with each `minimize` strategy, budgets and timeouts with anytime results, hints, lexicographic objectives, and final-conflict and minimal cores.
+`harness-demos-sat` is a tour of **sat-protocol 0.2.0** (Track L, slice L2b-1) on the **sat-backend-dpll 0.1.0** backend, then a side-by-side comparison with **sat-backend-cdcl 0.1.0** (slice L2b-3), a pure-Lisp conflict-driven clause-learning backend. All three come from GHCR. Sections 1 to 8 cover cardinality and pseudo-Boolean constraints in every encoding, a weighted sequence-labelling chain minimised with each `minimize` strategy, budgets and timeouts with anytime results, hints, lexicographic objectives, and final-conflict and minimal cores. Sections 9 to 12 run the same instances on both backends: statuses, times and statistics, the chains under `:core-guided` and `:linear-totalizer`, final-conflict cores from conflict analysis, the CDCL parameters and determinism.
 
-Every number comes from the run. Each answer is checked independently: model counts against binomial sums, the knapsack against brute force over all subsets, N-queens against the known solution counts, and every chain optimum (plain, revised and lexicographic) against a dynamic-programming oracle in the demo. The summary line reports the mismatches. Everything is in [`src/demo.lisp`](src/demo.lisp), and [`demo-output.txt`](demo-output.txt) is the output of the last run.
+Every number comes from the run. Each answer is checked independently: model counts against binomial sums, the knapsack against brute force over all subsets, N-queens against the known solution counts, every chain optimum (plain, revised and lexicographic) against a dynamic-programming oracle in the demo, every SAT model against its clauses, and the statuses of the two backends against each other and against MiniSat's recorded statuses where they exist. The summary line reports the mismatches. Sections 1 to 8 are in [`src/demo.lisp`](src/demo.lisp), sections 9 to 12 and `run-demos` in [`src/cdcl.lisp`](src/cdcl.lisp), and [`demo-output.txt`](demo-output.txt) is the output of the last run.
+
+Every front-end call names its backend with `:backend`. `run-demos` binds `sat:*sat-backend*` to NIL, so a call without one would signal `sat-no-backend` instead of quietly using whichever backend loaded first. Loading sat-backend-cdcl alone would make a `cdcl-backend` the default.
 
 ## Run
 
@@ -13,7 +15,7 @@ cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
   --eval '(harness-demos-sat:run-demos)' > demo-output.txt 2>&1
 ```
 
-It needs SBCL and `cl-repo`, and has no model, network or git step. A run takes about two and a half minutes on an M-series Mac. Most of that is the default `:linear-bdd` row of section 3 (sat-protocol#6) and the timed-out runs of sections 5 and 6 (sat-protocol#7).
+It needs SBCL and `cl-repo`, and has no model, network or git step. A run takes about six minutes on an M-series Mac. Most of that is DPLL: the default `:linear-bdd` row of section 3 (sat-protocol#6), the timed-out runs of sections 5, 6 and 9b (sat-protocol#7), and the hidden-core instance of section 9, which DPLL doesn't finish in its 120 s. The CDCL runs of sections 9 to 12 take a few seconds together.
 
 ## What each section shows
 
@@ -29,10 +31,29 @@ It needs SBCL and `cl-repo`, and has no model, network or git step. A run takes 
    - `unsat-core` (minimal, by deletion) returns `x3=0 x5=2`. This is checked: the core is unsatisfiable, and dropping either pin makes it satisfiable.
    - With the two forbidden-pair rules given as `:named` soft formulas, the core names the rule that explains the conflict.
 8. **Conditions and restarts.** A non-literal operand of `sat-at-most-k` signals `sat-invalid-formula`, and `use-value` replaces it. Bare names count as positive literals. A bad `:encoding`, `:strategy`, empty `(:lex)` or negative `:budget` signals a `type-error`. An unsatisfiable `minimize` returns exactly two values.
+9. **DPLL against CDCL.** Fourteen CNFs go through `(sat:solve cnf :backend b)` on a fresh `dpll-backend` and a fresh `cdcl-backend`, both with default parameters, with at most 120 s each. `solve` has no timeout, so a `sat-budget-exceeded` handler adds one: it resumes the search with `store-value` until the clock runs out, then `use-value`s `:timeout`. The instances:
+   - random 3-SAT at ratio 4.26 with 100, 150 and 200 variables, four instances each, seed 4260. The n = 150 ones are the first four of sat-backend-cdcl's gate batch and match MiniSat's recorded statuses.
+   - PHP(8,7) and PHP(9,8).
+   - a hidden PHP(6,5) core under 200 variables of planted 3-SAT noise.
+
+   Each row gives the answer, seconds, decisions and conflicts, plus learnt clauses and restarts for CDCL. A summary gives the seconds per group:
+   - **Random 3-SAT:** CDCL is 20 to 50 times faster. At n = 200 the four instances take 0.54 s against 27 s, and the first needs 19,292 conflicts against DPLL's 750,680.
+   - **Pigeonhole:** DPLL wins, 0.08 s against 0.40 s on PHP(9,8). Its pure-literal rule refutes PHP(n+1,n) in (n-1)! decisions (40,319 here), while resolution needs exponentially many conflicts.
+   - **Hidden core:** DPLL doesn't finish in 120 s (22.5 million decisions). CDCL refutes it in 4 ms with 862 conflicts.
+
+   For CDCL, conflicts minus learnt clauses is checked: 1 on UNSAT (the final level-0 conflict) and 0 on SAT.
+
+   **9b. The chains on both backends.** The chains of sections 3, 5 and 6 run under `:core-guided` and `:linear-totalizer` with `:timeout 30`, on counting subclasses of both backends. CDCL proves all six optima, in 2 to 3 ms each. `:core-guided` takes 1 solve and 69 final-conflict calls on CDCL, against 537 and 536 on DPLL. DPLL doesn't finish two `:linear-totalizer` runs in 30 s (sat-protocol#7). They return their anytime incumbents with `optimal-p` NIL: cost 27 against the optimum 8, and (3 59) against (3 11). CDCL proves both, with 208 and 134 conflicts.
+10. **Final-conflict cores from conflict analysis.** First, `backend-final-conflict` on the six pins of section 7. DPLL returns all 6 (sat-protocol's default method). CDCL returns `x3=0 x5=2`, the minimal core, from one call and no deletion. Through `unsat-core`, `:minimal nil` on CDCL gives that core from one final-conflict call, and the minimal core by deletion takes 7 solves on either backend. Then 213 selector assumptions, each switching on one clause of 168 planted 3-SAT clauses and PHP(5,4). DPLL's final conflict has all 213. CDCL's is exactly the 45 pigeonhole selectors. PHP(5,4) is minimally unsatisfiable, so that is the only minimal core. Deletion (`backend-unsat-core`) gets the same 45 with 214 solves (sat-protocol#8).
+11. **CDCL parameters.** The first UNSAT 200-variable instance runs under eight settings: the defaults, `:restart-policy :glucose` and `nil`, `:luby-unit 32`, `:phase-saving nil`, `:reduce-base 500 :reduce-increment 100`, `:reduce-base nil` and `:clause-minimization nil`. Each row gives decisions, conflicts, learnt clauses, restarts, reductions, deleted clauses and time. Glucose restarts 9 times against Luby's 63 and needs 15,872 conflicts against 19,292. With no restarts, it needs 27,463. The restart and reduction counts are checked against the schedules in sat-backend-cdcl's `src/search.lisp`, recomputed here from the learnt-clause count.
+12. **Determinism.** Two instances each run three times on one backend and once on a fresh one, with a `:learnt-hook` recording every learnt clause. Answers, models, statistics and every learnt clause (19,291 and 861) are identical across the runs. Then `minimize :core-guided` runs on the chain three times, and gives the same model, call counts and summed statistics each time.
 
 ## Issues found
 
 - **egao1980/sat-protocol#6.** With nothing but the strategy given, `(minimize f o)` runs the frozen 0.1 descent (`%linear-bdd`), whose BDD bound clause `(-N l N(i+1,k))` propagates only in BDD order. Any 0.2 key (`:timeout`, `:budget`, `:phase`, ...) selects the 0.2 descent with the propagating bound. On the section 3 chain that is 108,552 decisions and 76 s against 694 decisions and 0.44 s for the same `:linear-bdd`. Section 3 prints both rows.
 - **egao1980/sat-protocol#7.** With `:phase` NIL, MINIMIZE passes its own (solution-guided) phases, and DPLL's DLIS also chooses freely among the bound's auxiliary variables. On two chain instances some `:linear-totalizer` refutations then take over a million decisions. The cold re-solve of section 5 took 1,727,932 decisions and 112 s unbounded, against 1,058 with `:phase :false` and 379 with `:order #'first`. The `:lex` objective of section 6 took 2,090,053 decisions and 270 s unbounded, against 612 with `:order #'first`; there `:phase :false` alone is not enough. Sections 5 and 6 run these under a timeout and print the comparison rows.
+- **egao1980/sat-protocol#8** (enhancement, from section 10). `backend-unsat-core`'s default method runs deletion over every assumption. It doesn't start from `backend-final-conflict`. On sat-backend-cdcl that is 214 solves for the 213 selectors of section 10, although the one-call final conflict is already the 45-element minimal core.
+
+sat-backend-cdcl 0.1.0 showed no bug here: every answer, model, core, schedule and determinism check of sections 9 to 12 matched.
 
 No step was dropped or worked around: the slow rows are printed as measured, and the extra rows only show the cause.
