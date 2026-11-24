@@ -1,0 +1,306 @@
+WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+;;; Computing Hangul syllable names
+; cl-repo: dependencies from cl-repo.lock (11 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+More information about SBCL is available at <http://www.sbcl.org/>.
+
+SBCL is free software, provided as is, with absolutely no warranty.
+It is mostly in the public domain; some portions are provided under
+BSD-style licenses.  See the CREDITS and COPYING files in the
+distribution for more information.
+WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+image-protocol 0.3.0: the BACKEND-RESIZE hook (rules R1-R8, sections 2-5);
+image-backend-stb 0.3.0: native resize on stb_image_resize2 (rules S1-S8, sections 6-8)
+
+==============================================================================
+== 1. The 0.2.0 operations, and the test card
+==============================================================================
+image-protocol 0.2.0's editing operations (crop-image, rotate-image, flip-image,
+resize-image with five filters, thumbnail, fit-image, composite-image) are toured in
+harness/documents, section 5, where all 16 results have the same pixels as Pillow
+11.3.0. This demo starts where 0.3.0 does. Its input is a test card made in code
+(no outside asset): a colour gradient on the left half and a black-and-white
+checkerboard of 64-pixel squares on the right half.
+
+  (size-of card) => (1024 768)
+  (pixel card 0 0) => (0 0 0)
+  (pixel card 511 0) => (127 0 72)
+  (pixel card 0 767) => (0 255 109)
+  (pixel card 511 767) => (127 255 182)
+  (pixel card 512 0) => (255 255 255)
+  (pixel card 576 0) => (0 0 0)
+
+One 0.2.0 operation, the one the timing table in section 8 runs: thumbnail fits the
+card into 256 × 256, keeping 4:3, with :lanczos3 and Pillow's reducing gap 2. No
+backend is named, so this is the pure-Lisp resampler, as in 0.2.0.
+
+  (size-of thumb) => (256 192)
+  (pixel thumb 0 0) => (0 0 0)
+  (pixel thumb 127 191) => (120 240 171)
+  (pixel thumb 200 100) => (255 255 255)
+
+==============================================================================
+== 2. What reaches BACKEND-RESIZE (R3, R4)
+==============================================================================
+A backend with a native resampler specialises BACKEND-RESIZE. REC below records each
+call and declines (answers NIL), so the pure-Lisp resampler still does the work. The
+caller's image itself arrives (EQ, not a copy), and the three keys are always passed
+(R4): the filter (:lanczos3 when none is given), the reducing gap the pure-Lisp
+resampler would apply, and LINEAR as T or NIL. card is a 96 × 72 :rgb test card,
+card-rgba the same in :rgba.
+
+  (resize-image card 24 18 :backend rec)
+    => an image, 24 × 18 :rgb
+    called (backend-resize rec card 24 18 :filter :lanczos3 :reducing-gap nil :linear nil)
+  (resize-image card 24 18 :filter :bicubic :reducing-gap 2 :linear :yes :backend rec)
+    => an image, 24 × 18 :rgb
+    called (backend-resize rec card 24 18 :filter :bicubic :reducing-gap 2 :linear t)
+  (resize-image card 24 18 :reducing-gap 1.7 :backend rec)
+    => an image, 24 × 18 :rgb
+    called (backend-resize rec card 24 18 :filter :lanczos3 :reducing-gap 1.7 :linear nil)
+  The gap goes to the backend as the caller gave it (EQL: 2 stays 2, 1.7 stays a
+  single float). An image with alpha gets no gap, as in Pillow, and neither does
+  :nearest:
+  (resize-image card-rgba 24 18 :filter :bicubic :reducing-gap 2 :backend rec)
+    => an image, 24 × 18 :rgba
+    called (backend-resize rec card-rgba 24 18 :filter :bicubic :reducing-gap nil :linear nil)
+  (resize-image card 24 18 :filter :nearest :reducing-gap 3 :backend rec)
+    => an image, 24 × 18 :rgb
+    called (backend-resize rec card 24 18 :filter :nearest :reducing-gap nil :linear nil)
+  thumbnail and fit-image pass :backend on to resize-image, with their own default
+  gap of 2. A backend listed twice is consulted twice:
+  (thumbnail card 32 32 :backend rec)
+    => an image, 32 × 24 :rgb
+    called (backend-resize rec card 32 24 :filter :lanczos3 :reducing-gap 2 :linear nil)
+  (fit-image card :max-width 192 :enlarge t :backend rec)
+    => an image, 192 × 144 :rgb
+    called (backend-resize rec card 192 144 :filter :lanczos3 :reducing-gap 2 :linear nil)
+  (resize-image card 24 18 :filter :box :backend (list rec rec))
+    => an image, 24 × 18 :rgb
+    called (backend-resize rec card 24 18 :filter :box :reducing-gap nil :linear nil)
+    called (backend-resize rec card 24 18 :filter :box :reducing-gap nil :linear nil)
+
+  Nothing to do, no call (R3): the input itself comes back.
+  (resize-image card 96 72 :backend rec)
+    => an image, 96 × 72 :rgb
+    no BACKEND-RESIZE call
+  (thumbnail card 200 200 :backend rec)
+    => an image, 96 × 72 :rgb
+    no BACKEND-RESIZE call
+  (fit-image card :max-width 96 :backend rec)
+    => an image, 96 × 72 :rgb
+    no BACKEND-RESIZE call
+
+When a backend answers, its pixels are the result (R5, R6). The result is a fresh
+COPY-IMAGE of the caller's image with the answer's pixel vector, so the caller's
+metadata stays and the answer object itself is not returned. marker answers with
+every sample 128; photo is card with orientation 6 and gamma 0.45455, as a decoder
+would return it.
+
+  (resize-image photo 24 18 :backend marker) => an image, 24 × 18 :rgb
+  (every (lambda (v) (= v 128)) (image-pixels result)) => t
+  (list (image-orientation result) (image-gamma result)) => (6 0.45455)
+  (list (image-orientation answer) (image-gamma answer)) => (nil nil)
+  (eq result answer) => nil
+  (eq (image-pixels result) (image-pixels answer)) => t
+  (equalp (image-pixels photo) before) => t
+
+==============================================================================
+== 3. Declining backends: the pure-Lisp result, byte for byte (R5)
+==============================================================================
+A backend declines by answering NIL, and the method on IMAGE-BACKEND always does.
+plain has no BACKEND-RESIZE method of its own; rec is the recorder of section 2.
+With :backend (list plain rec) both are consulted, in order, both decline, and the
+pure-Lisp resampler runs: the result is 0.2.0's, the same samples as :backend nil.
+Each cell: a 64 × 48 test card resized to 23 × 17 with :reducing-gap 2.
+
+  filter     :gray       :gray-alpha :rgb        :rgba
+  :nearest   same        same        same        same
+  :box       same        same        same        same
+  :bilinear  same        same        same        same
+  :bicubic   same        same        same        same
+  :lanczos3  same        same        same        same
+
+  same => 20
+  (length (calls rec)) => 20
+
+==============================================================================
+== 4. Bad answers and errors: IMAGE-CORRUPT and TRY-NEXT-BACKEND (R5, R7)
+==============================================================================
+Any answer other than NIL must be a fresh image of the requested size, in the
+input's format, depth 8, with the right number of octets and a pixel vector that is
+not the input's own (R5). Otherwise RESIZE-IMAGE signals IMAGE-CORRUPT, with the
+backend and a cause naming the broken rule. card is the 96 × 72 :rgb test card.
+
+  a vector, not an image, resize to 24 × 18
+    => IMAGE-CORRUPT
+    cause: BACKEND-RESIZE answer: (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (1296)), not NIL or an IMAGE
+    message: Could not decode nil with #<recording-backend a vector, not an image>: BACKEND-RESIZE answer: (SIMPLE-ARRAY (UNSIGNED-BYTE 8) (1296)), not NIL or an IMAGE
+  10 × 10 instead of 24 × 18, resize to 24 × 18
+    => IMAGE-CORRUPT
+    cause: BACKEND-RESIZE answer: width 10, expected 24
+    message: Could not decode nil with #<recording-backend 10 × 10 instead of 24 × 18>: BACKEND-RESIZE answer: width 10, expected 24
+  :gray for an :rgb input, resize to 24 × 18
+    => IMAGE-CORRUPT
+    cause: BACKEND-RESIZE answer: format :GRAY, expected :RGB
+    message: Could not decode nil with #<recording-backend :gray for an :rgb input>: BACKEND-RESIZE answer: format :GRAY, expected :RGB
+  depth 16, resize to 24 × 18
+    => IMAGE-CORRUPT
+    cause: BACKEND-RESIZE answer: depth 16, expected 8
+    message: Could not decode nil with #<recording-backend depth 16>: BACKEND-RESIZE answer: depth 16, expected 8
+  the input's own pixels as 72 × 96 (the same length as 96 × 72), resize to 72 × 96
+    => IMAGE-CORRUPT
+    cause: BACKEND-RESIZE answer: IMAGE's own pixel vector, not a fresh one
+    message: Could not decode nil with #<recording-backend the input's own pixels as 72 × 96 (the same length as 96 × 72)>: BACKEND-RESIZE answer: IMAGE's own pixel vector, not a fresh one
+
+The message reads "Could not decode nil with ...": IMAGE-CORRUPT keeps the report
+of IMAGE-DECODE-ERROR, and the answer check gives no :format. That is open as
+image-protocol#8; the condition type, the backend and the cause are right.
+
+RESIZE-IMAGE establishes the restart TRY-NEXT-BACKEND around each backend's call and
+the check of its answer (R7). It treats that backend as having declined, so the next
+one runs, or the pure-Lisp resampler after the last. Below, gray answers :gray for
+:rgb, and a handler-bind takes the restart:
+
+  restart report: Treat #<recording-backend gray> as declining: consult the next resize backend, or the pure-Lisp resampler.
+  :backend (list gray stb), restart taken => the same pixels as :backend stb: T
+  :backend gray, restart taken            => the same pixels as :backend nil: T
+
+A condition the backend signals itself reaches the caller unchanged: the protocol
+handles nothing (R7). failing signals IMAGE-NATIVE-UNAVAILABLE, as stb does when
+stbir_resize fails (S7); the same restart recovers from it.
+
+  unhandled => IMAGE-NATIVE-UNAVAILABLE: Native image library unavailable: the native call failed
+  with try-next-backend => the same pixels as :backend stb: T
+
+==============================================================================
+== 5. *RESIZE-BACKENDS* against :BACKEND (R1, R2, R8)
+==============================================================================
+A backend resizes only when the caller names it, through :backend or by binding
+*resize-backends*, the default of :backend in resize-image, thumbnail and fit-image.
+Registering a backend never changes the samples resize-image returns. Loading
+image-backend-stb registered an stb backend for decoding and encoding:
+
+  *resize-backends* => nil
+  (mapcar #'type-of (image-backends)) => (stb:stb-backend)
+  (same-pixels-p default (resize-image card 24 18 :filter :bicubic :backend nil)) => t
+  (same-pixels-p default (resize-image card 24 18 :filter :bicubic :backend stb)) => nil
+
+Binding *resize-backends* opts in; an explicit :backend wins over the binding, and
+nil there means the pure-Lisp resampler (counts are calls to rec and other):
+
+  (let ((*resize-backends* rec)) ...)
+    (resize-image card 24 18)                                      rec 1, other 0
+    (resize-image card 24 18 :backend nil)                         rec 0, other 0
+    (resize-image card 24 18 :backend other)                       rec 0, other 1
+    (fit-image card :max-width 48)                                 rec 1, other 0
+    (thumbnail card 32 32 :backend (list other rec))               rec 1, other 1
+  (eq *resize-backends* rec) => t
+  (let ((*resize-backends* (list rec other))) ...)
+    (thumbnail card 32 32)                                         rec 1, other 1
+    (thumbnail card 200 200)                                       rec 0, other 0
+  The operations change no special variable and register nothing (R8):
+  *resize-backends* => nil
+  (length (image-backends)) => 1
+
+A designator is NIL, one IMAGE-BACKEND or a proper list of them (R1). Anything else
+is IMAGE-INVALID-ARGUMENT with argument BACKEND and the designator itself as the
+value. It is checked after the 0.2.0 arguments and before anything else, so it is
+reported even when nothing would be resized (R2). listed is (list rec 42), dotted
+is (cons rec rec).
+
+  (resize-image card 24 18 :backend :stb)
+    => IMAGE-INVALID-ARGUMENT: resize: bad backend :STB: NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  (resize-image card 24 18 :backend 'stb-backend)
+    => IMAGE-INVALID-ARGUMENT: resize: bad backend IMAGE-BACKEND-STB:STB-BACKEND: NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  (resize-image card 24 18 :backend listed)
+    => IMAGE-INVALID-ARGUMENT: resize: bad backend (#<recording-backend rec> 42): NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  (resize-image card 24 18 :backend dotted)
+    => IMAGE-INVALID-ARGUMENT: resize: bad backend (#<recording-backend rec> . #<recording-backend rec>): NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  (resize-image card 96 72 :backend :protocol)
+    => IMAGE-INVALID-ARGUMENT: resize: bad backend :PROTOCOL: NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  (thumbnail card 200 200 :backend 7)
+    => IMAGE-INVALID-ARGUMENT: thumbnail: bad backend 7: NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  (let ((*resize-backends* :fast)) (fit-image card :max-width 48))
+    => IMAGE-INVALID-ARGUMENT: fit: bad backend :FAST: NIL, an IMAGE-BACKEND or a proper list of IMAGE-BACKENDs
+  The 0.2.0 checks come first: a bad width is reported before a bad designator.
+  (resize-image card 0 18 :backend :stb)
+    => IMAGE-INVALID-ARGUMENT: resize: bad width 0: a positive integer
+
+==============================================================================
+== 6. stb: :bilinear and :bicubic served, the rest declined (S1, S2)
+==============================================================================
+image-backend-stb 0.3.0 adds a BACKEND-RESIZE method on stb_image_resize2. It serves
+:bilinear (stb's triangle filter) and :bicubic (Catmull-Rom: Keys' cubic with
+a = -0.5, Pillow's BICUBIC) without :linear, in every pixel format, and declines the
+rest (S2): :lanczos3 (stb has no Lanczos-3 kernel), :box (stb's box is a trapezoid),
+:nearest (no gain) and :linear t (no Pillow reference). A declined call falls back to
+the pure-Lisp resampler, byte for byte. Below, a counting stb backend resizes a
+320 × 240 :rgb test card to 80 × 60; the difference is against :backend nil, in
+sample values.
+
+  filter     linear  stb         same as pure Lisp      max / mean difference
+  :nearest   nil     declined    same                     0.00 0.000
+  :box       nil     declined    same                     0.00 0.000
+  :bilinear  nil     answered    close, not equal         1.00 0.051
+  :bicubic   nil     answered    close, not equal         3.00 0.276
+  :lanczos3  nil     declined    same                     0.00 0.000
+  :bilinear  t       declined    same                     0.00 0.000
+  :bicubic   t       declined    same                     0.00 0.000
+
+  :bicubic in every format, 64 × 48 → 23 × 17 (S2, S6):
+  :gray        stb answered, result 23 × 17 :gray depth 8, input unchanged: T
+  :gray-alpha  stb answered, result 23 × 17 :gray-alpha depth 8, input unchanged: T
+  :rgb         stb answered, result 23 × 17 :rgb depth 8, input unchanged: T
+  :rgba        stb answered, result 23 × 17 :rgba depth 8, input unchanged: T
+
+==============================================================================
+== 7. Closeness: pure Lisp, stb and Pillow 11.3.0 (S8)
+==============================================================================
+stb resamples in floats with no rounding between its passes and clamps the kernel
+at the edges where Pillow renormalises it, so its samples are close to Pillow's, not
+equal (S8). Each row compares three results of the same test card: the pure-Lisp
+resampler (:backend nil), stb (:backend stb) and Pillow 11.3.0, run through
+`uv run --with pillow==11.3.0 python -I crosscheck/pillow_resize.py`. Differences are
+in sample values, the colour of alpha formats premultiplied, as S8 measures them.
+S8's bounds: max 43, mean 3.2. gap is :reducing-gap, which stb accepts and does
+not apply.
+
+                                             Lisp – Pillow  stb – Lisp     stb – Pillow
+  case                                       max   mean     max   mean     max   mean
+  :rgb 1024×768 → 256×192 :bicubic             0.00 0.000     3.00 0.050     3.00 0.050
+  :rgb 1024×768 → 256×192 :bilinear            0.00 0.000     1.00 0.025     1.00 0.025
+  :rgb 1024×768 → 333×250 :bicubic             0.00 0.000     9.00 0.015     9.00 0.015
+  :rgb 512×384 → 128×96 :bicubic gap 2         0.00 0.000     5.00 0.780     5.00 0.780
+  :gray 200×150 → 640×480 :bilinear            0.00 0.000     1.00 0.053     1.00 0.053
+  :gray-alpha 160×120 → 53×40 :bicubic         0.00 0.000    10.74 0.249    10.74 0.249
+  :rgba 320×240 → 80×60 :bicubic               0.00 0.000     3.97 0.242     3.97 0.242
+  :rgba 64×48 → 160×120 :bilinear              0.00 0.000     1.89 0.154     1.89 0.154
+
+  Pillow 11.3.0. Lisp – Pillow is 0 in every row: the pure-Lisp resampler gives Pillow's samples.
+
+==============================================================================
+== 8. Timing: pure Lisp against stb
+==============================================================================
+Wall-clock milliseconds per resize, the median of 11 runs after one warm-up run,
+pure Lisp (:backend nil) against stb (:backend stb). These numbers depend on the
+machine and are not checked. With gap 2 the pure-Lisp resampler first box-reduces
+by 2, as Pillow's reducing_gap does, and keeps Pillow's samples. Here that costs
+more than it saves (image-protocol#9). stb ignores the gap.
+This run: Darwin ARM64, SBCL 2.6.9.
+
+  case                                       pure Lisp ms stb ms     pure / stb
+  :rgb 1024×768 → 256×192 :bicubic                    9.0        0.7 13.5×
+  :rgb 1024×768 → 256×192 :bilinear                   4.7        0.4 12.7×
+  :rgb 2048×2048 → 512×512 :bicubic                  46.6        3.6 12.9×
+  :rgb 2048×2048 → 512×512 :bicubic gap 2            62.0        3.7 16.9×
+  :gray 2048×2048 → 512×512 :bicubic                 16.8        1.1 15.0×
+  :rgba 2048×2048 → 512×512 :bicubic                 80.1       10.1 7.9×
+  :rgb 4096×4096 → 256×256 :bicubic                 155.2       23.9 6.5×
+  :rgb 512×384 → 2048×1536 :bicubic                  39.1        3.1 12.4×
+
+==============================================================================
+== Summary
+==============================================================================
+123 results checked against expected values: 0 mismatched.
+Every section ran to the end.
