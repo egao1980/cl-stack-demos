@@ -1,0 +1,65 @@
+(harness-demos-cl-repo:run-stdout-demos), driven by `cl-repo run` with the published 0.27.39
+(<clients>/0.27.39) in a fresh HOME. The driver's own install and compile lines are left out.
+macOS arm64; Roswell SBCL 2.4.11 for the clients, SBCL 2.6.9 for the demo image.
+
+==============================================================================
+== The clients
+==============================================================================
+  cl-repo 0.27.39: <clients>/0.27.39/cl-oci-0.27.39/
+  cl-repo 0.27.38: <clients>/0.27.38/cl-oci-0.27.38/
+  Each command is a shell running V=$(cl-repo --version), the client's own launcher
+  (roswell/cl-repo), in a fresh HOME. Its stderr goes to a file; V is what the script gets.
+  An empty fasl root (XDG_CACHE_HOME) makes the client compile itself and its dependencies,
+  as on the first run after an upgrade or on a CI runner without a fasl cache.
+
+==============================================================================
+== #194: V=$(cl-repo --version) on an empty fasl root, then again
+==============================================================================
+
+-- cl-repo 0.27.38 (before) --
+  $ V=$(cl-repo --version)   # first run, empty fasl root
+    exit 0, 28.1 s. V holds 1 line:
+      cl-repo 0.27.38 (<clients>/0.27.38/cl-oci-0.27.38/)
+    stderr: 43944 lines; `; compiling file` 476, `;;; Computing Hangul` 3, `type predicate` 2
+  $ V=$(cl-repo --version)   # next run, same fasl root
+    exit 0, 1.0 s. V holds 1 line:
+      cl-repo 0.27.38 (<clients>/0.27.38/cl-oci-0.27.38/)
+    stderr: 2 lines; `; compiling file` 0, `;;; Computing Hangul` 1, `type predicate` 0
+      WARNING: System definition file #P"<clients>/0.27.38/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garba…
+      ;;; Computing Hangul syllable names
+
+-- cl-repo 0.27.39 (after) --
+  $ V=$(cl-repo --version)   # first run, empty fasl root
+    exit 0, 27.5 s. V holds 1 line:
+      cl-repo 0.27.39 (<clients>/0.27.39/cl-oci-0.27.39/)
+    stderr: 1 line; `; compiling file` 0, `;;; Computing Hangul` 0, `type predicate` 0
+      WARNING: System definition file #P"<clients>/0.27.39/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garba…
+  ok  the first run exits 0
+  ok  V holds the version line alone
+  ok  stderr gets no compiler output
+  ok  and no type-predicate warning (#193)
+  $ V=$(cl-repo --version)   # next run, same fasl root
+    exit 0, 1.4 s. V holds 1 line:
+      cl-repo 0.27.39 (<clients>/0.27.39/cl-oci-0.27.39/)
+    stderr: 1 line; `; compiling file` 0, `;;; Computing Hangul` 0, `type predicate` 0
+      WARNING: System definition file #P"<clients>/0.27.39/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garba…
+  ok  V holds the version line alone
+  ok  stderr gets no cl-unicode note
+
+==============================================================================
+== #194, #193: CL_REPO_VERBOSE=1 on an empty fasl root
+==============================================================================
+
+-- cl-repo 0.27.39 --
+  $ V=$(cl-repo --version)   # CL_REPO_VERBOSE=1, empty fasl root
+    exit 0, 27.2 s. V holds 1 line:
+      cl-repo 0.27.39 (<clients>/0.27.39/cl-oci-0.27.39/)
+    stderr: 43739 lines; `; compiling file` 472, `;;; Computing Hangul` 1, `type predicate` 0
+  ok  V still holds the version line alone
+  ok  stderr gets the compile
+  ok  with no structure predicate overwritten by a slot accessor (#193)
+
+==============================================================================
+== Summary
+==============================================================================
+  9 checks of cl-repo 0.27.39, 0 failed (86 s)

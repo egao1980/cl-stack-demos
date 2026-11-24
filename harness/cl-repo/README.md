@@ -1,4 +1,4 @@
-# cl-repo client demos: 0.27.35 against 0.27.34, 0.27.38 against 0.27.37
+# cl-repo client demos: 0.27.35 against 0.27.34, 0.27.38 against 0.27.37, 0.27.39 against 0.27.38
 
 `harness-demos-cl-repo` runs the published cl-repo client the way a user runs it, before and after the fixes of [cl-repository#174](https://github.com/egao1980/cl-repository/pull/174). Release 0.27.35 has the fixes; 0.27.34 is the release before. Each command runs a client's own launcher (`roswell/cl-repo`) from its OCI-published tree, in a fresh `HOME` and against GHCR. The fresh `HOME` holds no install tree, no lock and no cl-repo configuration. Roswell's home is kept (`ROSWELL_HOME`), so Roswell's SBCL runs the clients.
 
@@ -63,3 +63,25 @@ cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
 | offline, current lock, parse-number not installed | 8.1 s, `Network failure: … failed after 4 attempts` | 1.1 s, `parse-number 1.8 (cl-repo.lock) is not installed, and https://ghcr.io could not be asked for it` |
 
 The 8 offline requests of 0.27.38 are the first wave of the tag-list batch (8 in flight), sent before the first failure comes back. The other 22 packages' requests are not sent: a registry that has not answered gets one attempt, and once that fails, requests to it fail at once for 60 s.
+
+## `V=$(cl-repo --version)` on an empty fasl root: 0.27.39 against 0.27.38
+
+`run-stdout-demos` ([`src/stdout.lisp`](src/stdout.lisp)) runs what a script runs, `V=$(cl-repo --version)` in `/bin/sh`, with two published clients. 0.27.38 is the release before the fixes of [cl-repository#194](https://github.com/egao1980/cl-repository/issues/194) and [#193](https://github.com/egao1980/cl-repository/issues/193). 0.27.39 has them ([cl-repository#195](https://github.com/egao1980/cl-repository/pull/195)). Both are installed by `scripts/setup.sh 0.27.38 0.27.39` into `.clients/`. Each run gets a fresh `HOME`, and the shell sends the client's stderr to a file. An empty fasl root (`XDG_CACHE_HOME`) makes the client compile itself and its dependencies, as on the first run after an upgrade or on a CI runner without a fasl cache. Then the client runs again over the same root.
+
+The 0.27.39 results are checked. [`stdout-output.txt`](stdout-output.txt) is the last run, on macOS arm64. The demo was driven by `cl-repo run` with the published 0.27.39 from `.clients/` in a fresh `HOME`, and the driver's own install and compile lines are left out. All 9 checks held, in 86 s.
+
+```bash
+cd harness/cl-repo
+./scripts/setup.sh 0.27.38 0.27.39
+cl-repo run -- sbcl --non-interactive --no-userinit --eval '(require "asdf")' \
+  --eval '(asdf:load-system "harness-demos-cl-repo")' \
+  --eval '(harness-demos-cl-repo:run-stdout-demos)' > stdout-output.txt 2>&1
+```
+
+| `V=$(cl-repo --version)` | 0.27.38 | 0.27.39 |
+|---|---|---|
+| empty fasl root | V is the version line. stderr gets 43,944 lines: 476 `; compiling file`, 3 cl-unicode `;;; Computing Hangul` notes, 2 lines of the #193 warning ("overwrite the type predicate with the slot accessor"). 28.1 s | V is the version line. stderr gets 1 line, trivial-garbage's `.asd` warning. 27.5 s |
+| next run, same fasl root | V is the version line. stderr gets 2 lines: trivial-garbage and the Hangul note | V is the version line. stderr gets 1 line, trivial-garbage |
+| empty fasl root, `CL_REPO_VERBOSE=1` | (no such variable) | V is the version line. stderr gets the compile, 43,739 lines and 472 `; compiling file`, with no type-predicate warning |
+
+V was already clean in 0.27.38. Its launcher has sent the client's load output to stderr since 0.27.0, and the transcript in #194 came from a tool that shows stdout and stderr together. What 0.27.39 changes is stderr. The client's own build is kept back unless `CL_REPO_VERBOSE=1`, and a failed build shows it before the error. Two kinds of warning still go to stderr: cl-repo's own, and one a file signals while it loads. trivial-garbage's line is the second kind: ASDF warns that `trivial-garbage.asd` also defines `trivial-garbage-tests`.
