@@ -1,7 +1,6 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
 ;;; Computing Hangul syllable names
-; cl-repo: cl-repo.lock is not current (harness-demos-canvas.asd is newer); resolving
-; cl-repo: wrote cl-repo.lock (74 packages)
+; cl-repo: dependencies from cl-repo.lock (74 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -16,16 +15,7 @@ WARNING: redefining CONSUME-ITEM (#<BUILT-IN-CLASS COMMON-LISP:SYMBOL> #<SB-PCL:
 WARNING:
    cl+ssl was loaded before cl-stack-ssl; it keeps the OpenSSL it found, not ~/.local/share/cl-repository/systems/cl-stack-ssl/3.5.9.4/native/libssl.3.dylib
 WARNING: redefining IRONCLAD:BLOCK-LENGTH in DEFGENERIC
-
-; compiling file "<demo>/src/package.lisp" (written 24 NOV 2026 09:35:33 AM):
-
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<demo>/src/package-tmp5GEXGEG5.fasl
-; compilation finished in 0:00:00.000
-; compiling file "<demo>/src/demo.lisp" (written 24 NOV 2026 09:45:49 AM):
-
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64<demo>/src/demo-tmpAR3FSGEY.fasl
-; compilation finished in 0:00:00.186
-canvas-protocol 0.2.1, rpc-backend-htmx 0.3.0, theme :ENGELS, chart backend CANVAS-BACKEND-SVG:SVG-BACKEND, htmx 2.0.11 + sse 2.2.4
+canvas-protocol 0.2.2, rpc-backend-htmx 0.3.0, theme :ENGELS, chart backend CANVAS-BACKEND-SVG:SVG-BACKEND, htmx 2.0.11 + sse 2.2.4
 token: 43 chars (printed as <token>)
 
 ========================================================================
@@ -33,7 +23,7 @@ token: 43 chars (printed as <token>)
 ========================================================================
 (the app is gated: the client opened its one-time URL first and sends the session cookie; section 8 shows the exchange)
 TEST-TABLE (:SORT "-tests") → 200
-  <div id="tests"><table><caption>Assertions per system (click a header to sort)</caption><thead><tr><th scope="col"><button type="button" hx-get="/canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=system&amp;page=1" hx-target="#tests" hx-swap="outerHTML">System</button></th><th scope="col" data-align="end" aria-sort="descending"><button type="button" hx-get="/canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=tests&amp;page=1" hx-target="#tests" hx-swap="outerHTML">Assertions</button></th></tr></thead><tbod … [842 chars]
+  <div id="tests"><table><caption>Assertions per system (click a header to sort)</caption><thead><tr><th scope="col"><button type="button" hx-get="/canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=system" hx-target="#tests" hx-swap="outerHTML">System</button></th><th scope="col" data-align="end" aria-sort="descending"><button type="button" hx-get="/canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=tests" hx-target="#tests" hx-swap="outerHTML">Assertions</button></th></tr></thead><tbody><tr><td>canvas-backe … [820 chars]
 THRESHOLD-FORM (:MIN "400") → 200
   <form hx-post="/canvas/HARNESS-DEMOS-CANVAS::TEST-CHART" hx-target="#chart" hx-swap="outerHTML"><label>Minimum assertions<input type="number" name="min" value="400" min="0"></label><button type="submit">Filter</button></form>
 TEST-CHART (:MIN "400") → 200
@@ -70,7 +60,7 @@ one-time URL    http://127.0.0.1:18467/canvas/HARNESS-DEMOS-CANVAS::DASHBOARD?ca
 same URL again, another client → 403 (the URL token is spent)
 GET dashboard (no HX-Request: full page) → 200 text/html; charset=utf-8
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;historyCacheSize&quot;:0,&quot;includeIndicatorStyles&quot;:false,&quot;refreshOnHistoryMiss&quot;:true,&quot;selfRequestsOnly&quot;:true}"><title>canvas demo</title><link rel="stylesheet" href="/canvas-assets/canvas.css"><script src="/canvas-assets/htmx.min.js"></script><script src="/canvas-assets/htmx-ext-sse.min.js"></script></head><body><main><div data-layout="stack"><h1>Canvas demo: this session's test runs</h1><div data-layout="grid" data-columns="2"><article><header><h3>Test counts</h3></header><div id="tests"><table><caption>Assertions per system (click a header to sort)</caption><thead><tr><th scope="col"><button type="button" hx-get="/canvas/HARNESS-DE … [7431 chars]
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;historyCacheSize&quot;:0,&quot;includeIndicatorStyles&quot;:false,&quot;refreshOnHistoryMiss&quot;:true,&quot;selfRequestsOnly&quot;:true}"><title>canvas demo</title><link rel="stylesheet" href="/canvas-assets/canvas.css"><script src="/canvas-assets/htmx.min.js"></script><script src="/canvas-assets/htmx-ext-sse.min.js"></script></head><body><main><div data-layout="stack"><h1>Canvas demo: this session's test runs</h1><div data-layout="grid" data-columns="2"><article><header><h3>Test counts</h3></header><div id="tests"><table><caption>Assertions per system (click a header to sort)</caption><thead><tr><th scope="col"><button type="button" hx-get="/canvas/HARNESS-DE … [7409 chars]
 the live region in that page: <div id="ticks" hx-ext="sse" sse-connect="/canvas/HARNESS-DEMOS-CANVAS::TICKER?n=3" sse-swap="row" hx-swap="beforeend" aria-live="polite"><p>Ticks stream in here over SSE (the frozen file has none).</p></div>
 csp-violations of the served dashboard tree: NIL
 form submit: POST min=450 to TEST-CHART (HX-Request) → 200
@@ -294,16 +284,16 @@ the form (a file input inside → enctype="multipart/form-data", which htmx send
 
 the request htmx-client sends (:post :multipart; text fields first, then one raw part per file, no base64):
   POST /canvas/HARNESS-DEMOS-CANVAS::UPLOAD-IMAGES
-  Content-Type: multipart/form-data; boundary=----cl-stack-064c5d7017819e2162740f9bf3b652f4
+  Content-Type: multipart/form-data; boundary=----cl-stack-595aa41cfed89c615bface3e777f7433
   Content-Length: 2496
-    ------cl-stack-064c5d7017819e2162740f9bf3b652f4\r\n
+    ------cl-stack-595aa41cfed89c615bface3e777f7433\r\n
     Content-Disposition: form-data; name="images"; filename="../../chart.png"\r\n
     Content-Type: image/png\r\n
     \r\n
     \x89PNG\r\n
     \x1A\n
     \x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1F\x15\xC4\x89\x00\x00\x00\rIDATx\xDAcd`\xF8_\x0F\x00\x02\x87\x01\x80\xEBG\xBA\x92\x00\x00\x00\x00IEND\xAEB`\x82\r\n
-    ------cl-stack-064c5d7017819e2162740f9bf3b652f4\r\n
+    ------cl-stack-595aa41cfed89c615bface3e777f7433\r\n
     Content-Disposition: form-data; name="images"; filename="pipeline.svg"\r\n
     Content-Type: image/svg+xml\r\n
     \r\n
@@ -354,7 +344,7 @@ GET /canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=-tests&canvas-token=<token> (t
   Cache-Control no-store
   the cookie's value is the bootstrap token: NIL (a separate per-app session secret)
 GET the clean URL (Location) with that cookie → 200
-  text/html; charset=utf-8, a full page of 1429 chars
+  text/html; charset=utf-8, a full page of 1407 chars
 GET the one-time URL again → 403
 GET the one-time URL again, with the cookie → 403
 GET the clean URL, no cookie → 403
@@ -362,28 +352,28 @@ GET the clean URL, the bootstrap token as the cookie → 403
 
 request keys: each canvas takes the keys of its lambda list (htmx-handler-keys)
   DASHBOARD      NIL
-  TEST-TABLE     (:SORT :PAGE)
+  TEST-TABLE     (:SORT)
   TEST-CHART     (:MIN)
   TICKER         (:N)
   GRID-KEY       (:KEY)
   UPLOAD-IMAGES  (:IMAGES)
 GET DASHBOARD (HX-Request), a canvas with no parameters: (defun dashboard () …) → 200
-  <main><div data-layout="stack"><h1>Canvas demo: this session's test runs</h1><div data-layout="grid" … [6575 chars]
+  <main><div data-layout="stack"><h1>Canvas demo: this session's test runs</h1><div data-layout="grid" … [6553 chars]
 GET TEST-TABLE (HX-Request) → 200
-its first header button, clicked: GET /canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=system&page=1 → 200
+its first header button, clicked: GET /canvas/HARNESS-DEMOS-CANVAS::TEST-TABLE?sort=system → 200
 GET TEST-TABLE?srot=tests (a typo: no keyword has that name) → 400
   <p role="alert">htmx error 400: Unknown param srot</p>
 GET DASHBOARD?sort=tests (:SORT exists, but DASHBOARD takes nothing) → 400
   <p role="alert">htmx error 400: Unknown param sort</p>
 
 the param cap and the KEYWORD package (max-params 1000, the default):
-KEYWORD package: 4496 symbols
+KEYWORD package: 4495 symbols
 GET DASHBOARD with 1000 random names → 400
-  <p role="alert">htmx error 400: Unknown param jj10rmut2b</p>
+  <p role="alert">htmx error 400: Unknown param 7rkv1eqo3m</p>
 GET DASHBOARD with 1001 random names → 413
   <p role="alert">htmx error 413: Too many request params</p>
 10 GETs of 1000 random names each (10000 distinct names, none of them a keyword) → 400 400 400 400 400 400 400 400 400 400
-KEYWORD package after those 12 requests (12001 names): 4496 symbols, unchanged: T
+KEYWORD package after those 12 requests (12001 names): 4495 symbols, unchanged: T
 
 Content-Security-Policy (the canvas transport sends +default-csp+ unless told otherwise):
 GET DASHBOARD, no HX-Request (a full page) → 200
@@ -397,5 +387,5 @@ every reply of this section (26, statuses 200 303 400 403 413) has exactly one C
 
 secrets of this run: the token and 5 session cookies; any of them in the output above: NIL
 
-self-check (sections 5-8): keys-bound T, queue-all T, editor-csp-clean T, keys-script T, plain-page-unchanged T, unlisted-unchanged T, oob-panels T, cell-set T, unbound-422 T, filter-refused T, unsafe-svg T, ids-camel-kept T, stripped T, round-trip T, page-csp-clean T, freeze-deterministic T, multipart-enctype T, upload-ok T, several-a-list T, octets-intact T, too-large-422 T, empty-missing T, accept-422 T, too-large T, wrong-type T, no-cookie-403 T, exchange-303 T, cookie-attributes T, session-not-token T, clean-url-200 T, reuse-403 T, token-as-cookie-403 T, zero-arg-200 T, header-click-200 T, unknown-400 T, at-cap-400 T, over-cap-413 T, random-names-400 T, keywords-unchanged T, csp-page T, csp-sse T, csp-every-reply T, secrets-unprinted T
-all 43 true: T
+self-check (sections 5-8): keys-bound T, queue-all T, editor-csp-clean T, keys-script T, plain-page-unchanged T, unlisted-unchanged T, oob-panels T, cell-set T, unbound-422 T, filter-refused T, unsafe-svg T, ids-camel-kept T, stripped T, round-trip T, page-csp-clean T, freeze-deterministic T, multipart-enctype T, upload-ok T, several-a-list T, octets-intact T, too-large-422 T, empty-missing T, accept-422 T, too-large T, wrong-type T, no-cookie-403 T, exchange-303 T, cookie-attributes T, session-not-token T, clean-url-200 T, reuse-403 T, token-as-cookie-403 T, zero-arg-200 T, header-link-no-page T, header-click-200 T, unknown-400 T, at-cap-400 T, over-cap-413 T, random-names-400 T, keywords-unchanged T, csp-page T, csp-sse T, csp-every-reply T, secrets-unprinted T
+all 44 true: T
