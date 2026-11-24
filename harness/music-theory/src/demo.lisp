@@ -1,13 +1,14 @@
 (in-package #:harness-demos-music-theory)
 
-;;;; A short tour of music-theory 0.4.0. Sections 1-6 cover slice MT0 (spelled
+;;;; A short tour of music-theory 0.5.0. Sections 1-6 cover slice MT0 (spelled
 ;;;; pitches, the line of fifths and intervals), sections 7-11 slice MT1 (meters,
 ;;;; the metric hierarchy, dots and tuplets, tie splitting, tempo), sections 12-16
 ;;;; slice MT2 (keys and scales, scale degrees, Roman numerals, mixture, a
 ;;;; progression), sections 17-22 slice MT3 (chord symbols: a chart, dialects,
-;;;; Unicode and slash chords, essential tones, transposition, errors). Every
-;;;; result with a known answer is also checked: RUN-DEMOS returns NIL when one
-;;;; differs or a section stops on an error.
+;;;; Unicode and slash chords, essential tones, transposition, errors), sections
+;;;; 23-25 slice MT4 (spelling MIDI numbers, key detection, transposition to a key
+;;;; and enharmonic keys). Every result with a known answer is also checked:
+;;;; RUN-DEMOS returns NIL when one differs or a section stops on an error.
 
 ;;; Output and checks ---------------------------------------------------------
 
@@ -1788,20 +1789,13 @@ between bar lines, split at spaces."
     "(b9,omit5)" "(#11,omit3)" "(#5,add9)" "(add9,omit5)" "/E" "/F#" "(b9)/Ab")
   "What follows the quality word in the round-trip sweep.")
 
-(defun issue-10-p (chord printed)
-  "True for the shape of egao1980/music-theory#10: CHORD omits its 5, and PRINTED
-writes a b5 next to the omit5."
-  (and (member 5 (chord-symbol-omitted chord))
-       (or (search "b5" printed) (search "♭5" printed))
-       t))
-
 (defun round-trip-sweep ()
   "Parse root + word + ending for every entry of the sweep tables in each dialect,
 then print every distinct value in each dialect and style and read it back. Returns
-(values texts rejected distinct trips held known others): KNOWN and OTHERS are the
-printed texts that failed, of the shape of music-theory#10 or not."
+(values texts rejected distinct trips held failed): FAILED is the sorted list of the
+printed texts that did not read back."
   (let ((values (make-hash-table :test 'equalp))
-        (texts 0) (rejected 0) (trips 0) (held 0) (known '()) (others '()))
+        (texts 0) (rejected 0) (trips 0) (held 0) (failed '()))
     (dolist (root *sweep-roots*)
       (dolist (word *sweep-words*)
         (dolist (ending *sweep-endings*)
@@ -1822,10 +1816,8 @@ printed texts that failed, of the shape of music-theory#10 or not."
                                (string= printed (print-chord-symbol back :dialect dialect
                                                                          :accidentals style)))
                           (incf held))
-                         ((issue-10-p c printed) (push printed known))
-                         (t (push printed others)))))))
-    (values texts rejected (hash-table-count values) trips held
-            (sort known #'string<) (sort others #'string<))))
+                         (t (push printed failed)))))))
+    (values texts rejected (hash-table-count values) trips held (sort failed #'string<))))
 
 (defun demo-dialects ()
   (para "PARSE-CHORD-SYMBOL takes :DIALECT :CLASSICAL, :POP (the default) or :JAZZ. All"
@@ -1871,28 +1863,37 @@ printed texts that failed, of the shape of music-theory#10 or not."
   (print-wrapped "words" (mapcar #'quoted-empty *sweep-words*))
   (print-wrapped "endings" (mapcar #'quoted-empty *sweep-endings*))
   (terpri)
-  (multiple-value-bind (texts rejected distinct trips held known others) (round-trip-sweep)
+  (multiple-value-bind (texts rejected distinct trips held failed) (round-trip-sweep)
     (format t "  ~:d texts, ~:d of them rejected (outside the grammar, or against R1-R6)~%" texts rejected)
     (format t "  ~:d distinct values, ~:d round trips (3 dialects x 2 styles each):~%" distinct trips)
     (format t "    ~:d give the same value back, and the same text when printed again~%" held)
-    (format t "    ~:d fail, all of the shape of music-theory#10 (below)~%" (length known))
-    (format t "    ~:d fail in any other way~%~%" (length others))
-    (when others
-      (format t "  !! other failures: ~{~a~^ ~}~%" (subseq others 0 (min 10 (length others)))))
-    (check others '() "round trips not of the shape of #10")
-    (check (+ held (length known)) trips "round trips counted")
-    (para "Known issue, egao1980/music-theory#10 (open): a diminished triad or a"
-          "half-diminished seventh without its 5 prints in :POP (the triad in :JAZZ too)"
-          "as the minor chord with b5 and omit5, and rule R5 then rejects an omitted 5 that"
-          "is also altered. Half of the failures are ASCII texts and half the same texts"
-          "in Unicode. The ASCII ones with the root C, then the example from the issue:")
-    (let ((ascii (remove-duplicates (remove-if (lambda (s) (find #\♭ s)) known) :test #'string=)))
-      (format t "  ~d ASCII, ~d Unicode~%" (length ascii) (- (length known) (length ascii)))
-      (print-wrapped "root C" (remove-if-not (lambda (s) (member (char s 1) '(#\m #\-))) ascii))
-      (terpri)))
+    (format t "    ~:d fail~%~%" (length failed))
+    (when failed
+      (format t "  !! failures: ~{~a~^ ~}~%~%" (subseq failed 0 (min 10 (length failed)))))
+    (check (length failed) 0 "round trips that fail")
+    (check held trips "round trips that hold"))
+  (para "Up to 0.4.0, 90 of these round trips failed (egao1980/music-theory#10, fixed in"
+        "0.5.0). A diminished triad or a half-diminished seventh without its 5 prints in"
+        ":POP (the triad in :JAZZ too) as the minor chord with b5 and omit5, and rule R5"
+        "rejected an omitted 5 that is also altered. Since 0.5.0, R5 accepts a written b5"
+        "next to omit5 when the flat fifth names the quality, in either order, so the"
+        "printed text reads back as the same chord:")
   (show (print-chord-symbol (parse-chord-symbol "C°(omit5)" :dialect :classical) :dialect :pop)
         "Cm(b5,omit5)")
-  (show-signal (parse-chord-symbol "Cm(b5,omit5)") :checked nil))
+  (show (chord-symbol-quality (parse-chord-symbol "Cm(b5,omit5)")) :diminished)
+  (show (same-chord-p (parse-chord-symbol "Cm(b5,omit5)")
+                      (parse-chord-symbol "C°(omit5)" :dialect :classical))
+        t)
+  (show (same-chord-p (parse-chord-symbol "Cm(omit5,b5)") (parse-chord-symbol "Cm(b5,omit5)"))
+        t "either order")
+  (show (print-chord-symbol (parse-chord-symbol "Cm7(b5,omit5)") :dialect :jazz) "Cø7(omit5)")
+  (show (tone-names (chord-tones (parse-chord-symbol "Cm7(b5,omit5)"))) "C Eb Bb")
+  (terpri)
+  (para "Where the altered 5 does not name the quality, R5 stands: a dominant seventh's"
+        "fifth is perfect, so its b5 is an alteration, and a minor triad with #5 is no"
+        "named chord. Both still fail:")
+  (show-signal (parse-chord-symbol "C7(b5,omit5)"))
+  (show-signal (parse-chord-symbol "Cm(#5,omit5)")))
 
 ;;; 19. Unicode and ASCII, slash chords ---------------------------------------------
 
@@ -2246,6 +2247,670 @@ printed texts that failed, of the shape of music-theory#10 or not."
   (show-signal (chord-tones (parse-chord-symbol "E##")))
   (show-signal (transpose-chord-symbol (parse-chord-symbol "F##7") (parse-interval "A1"))))
 
+;;; 23. Spelling a MIDI melody (MT4) ------------------------------------------------
+
+(defparameter *entertainer*
+  '(74 75 76 84 76 84 76 84 84 86 87 88 84 86 88 83 86 84
+    74 75 76 84 76 84 76 84 81 79 78 81 84 88 86 84 81 86)
+  "The opening melody of The Entertainer (Scott Joplin, 1902, public domain) in C
+major, as MIDI numbers: what a keyboard or a MIDI file gives.")
+
+(defparameter *entertainer-names*
+  '("D5" "D#5" "E5" "C6" "E5" "C6" "E5" "C6" "C6" "D6" "D#6" "E6" "C6" "D6" "E6" "B5"
+    "D6" "C6" "D5" "D#5" "E5" "C6" "E5" "C6" "E5" "C6" "A5" "G5" "F#5" "A5" "C6" "E6"
+    "D6" "C6" "A5" "D6")
+  "The same notes as printed in C major.")
+
+(defparameter *spelling-rule-rows*
+  ;; (midis key spelled why)
+  '(((70) "F major" "Bb4" "S1: Bb is in F major")
+    ((70) "B major" "A#4" "S1: A# is in B major")
+    ((61 62) "D minor" "C#4 D4" "S1: the raised 7th of D minor")
+    ((62 63 64) "C major" "D4 D#4 E4" "S4: up a semitone to E")
+    ((64 63 62) "C major" "E4 Eb4 D4" "S4: down a semitone to D")
+    ((64 68 71) "C major" "E4 G#4 B4" "S5: E-G# a M3, not E-Ab a d4")
+    ((65 68 72) "C major" "F4 Ab4 C5" "S5: F-Ab a m3, not F-G# an A2")
+    ((66 65 61 65 64) "B minor" "F#4 E#4 C#4 E#4 E4" "S3: the second E# keeps its sharp")))
+
+(defparameter *remote-rows*
+  ;; (semitones label detected-key other-key)
+  '((1 "up a semitone" "Db major" "C# major")
+    (-1 "down a semitone" "B major" "Cb major")
+    (6 "up a tritone" "F# major" "Gb major")))
+
+(defvar *spelling-log* '() "MIDI numbers that LOG-AND-TAKE-FLATTER was asked about.")
+
+(defun log-and-take-flatter (condition)
+  "An AMBIGUOUS-SPELLING handler: log the MIDI number and choose the flatter candidate."
+  (push (ambiguous-spelling-midi condition) *spelling-log*)
+  (use-value (first (ambiguous-spelling-candidates condition)) condition))
+
+(defun shifted (midis semitones)
+  (mapcar (lambda (midi) (+ midi semitones)) midis))
+
+(defun fraction-texts (numbers)
+  (mapcar #'princ-to-string numbers))
+
+(defun print-note-blocks (midis pitches ambiguities &key (per-line 9))
+  "Print MIDIS, their spellings PITCHES and AMBIGUITIES as columns, PER-LINE notes to
+a block."
+  (loop for start from 0 below (length midis) by per-line
+        for end = (min (length midis) (+ start per-line))
+        do (out "  midi       ~{~7a~}~%" (subseq midis start end))
+           (out "  spelled    ~{~7a~}~%" (names (subseq pitches start end)))
+           (out "  ambiguity  ~{~7a~}~%~%" (fraction-texts (subseq ambiguities start end)))))
+
+(defun fixture (name)
+  "The form in NAME, one of the test fixtures that ship with the music-theory package,
+or NIL when the package has none by that name."
+  (let ((path (asdf:system-relative-pathname "music-theory"
+                                             (format nil "tests/fixtures/~a" name))))
+    (when (probe-file path)
+      (with-open-file (in path :external-format :utf-8)
+        (with-standard-io-syntax
+          (let ((*read-eval* nil))
+            (read in)))))))
+
+(defun spelled-as (pitches texts)
+  "How many of PITCHES are spelled as the pitch names TEXTS."
+  (count t (mapcar (lambda (p text) (string= (pitch-name p) text)) pitches texts)))
+
+(defun demo-spelling ()
+  (para "Sections 23-25 are slice MT4, new in 0.5.0. A MIDI number says which key of a"
+        "keyboard sounds, not how the note is written: 63 is D#4, Eb4 or Fbb4. SPELL-MIDI"
+        "and SPELL-SEQUENCE choose a spelling by distance on the line of fifths (section"
+        "3). The spellings of one MIDI number are 12 positions apart there, and the"
+        "library looks for the one nearest a center: the mean position of the key's notes"
+        "and of the last WINDOW notes spelled (8 by default). Rules S0-S7 decide, the"
+        "first that applies:")
+  (dolist (line '("S0  SPELL-MIDI's :PREVIOUS with the same MIDI number: its spelling"
+                  "S1  a spelling in the key (a minor key's raised 7th included)"
+                  "S2  only one spelling within two accidentals on one side of the center"
+                  "S3  the accidental of the same pitch class earlier in the window"
+                  "S4  a semitone step to the next note is diatonic: D# up to E, Eb down to D"
+                  "S5  no augmented or diminished interval with the note before"
+                  "S6  the spelling nearer the center"
+                  "S7  a tie: the sharper one, after signalling AMBIGUOUS-SPELLING"))
+    (format t "  ~a~%" line))
+  (terpri)
+  (para "Each note also gets an ambiguity, d/6 with d the distance from its center to the"
+        "nearest spelling: 0 on the center, 1 midway between two spellings. Rules S1-S5"
+        "can pick the farther spelling, so a high ambiguity does not mean a wrong one. One"
+        "note in C major, with no context (the center of C major alone is D):")
+  (let* ((midis (loop for midi from 60 to 71 collect midi))
+         (spelled (mapcar (lambda (midi) (multiple-value-list (spell-midi midi))) midis)))
+    (out "  midi       ~{~5a~}~%" midis)
+    (out "  spelled    ~{~5a~}~%" (names (mapcar #'first spelled)))
+    (out "  ambiguity  ~{~5a~}~%~%" (fraction-texts (mapcar #'second spelled)))
+    (check (names (mapcar #'first spelled))
+           '("C4" "C#4" "D4" "Eb4" "E4" "F4" "F#4" "G4" "G#4" "A4" "Bb4" "B4")
+           "one note in C major")
+    (check (mapcar #'second spelled) '(1/3 5/6 0 5/6 1/3 1/2 2/3 1/6 1 1/6 2/3 1/2)
+           "ambiguities in C major"))
+  (para "A key or the note before changes the choice:")
+  (show (pitch-name (spell-midi 61 :key (parse-key "Db major"))) "Db4")
+  (show (pitch-name (spell-midi 61 :key (parse-key "D minor"))) "C#4" "S1: the raised 7th")
+  (show (pitch-name (spell-midi 63 :previous (parse-pitch "E4"))) "D#4" "S5: E to D# is a m2")
+  (show (pitch-name (spell-midi 63 :previous (parse-pitch "D4"))) "Eb4" "S5: D to Eb is a m2")
+  (show (pitch-name (spell-midi 63 :previous (parse-pitch "D#4"))) "D#4" "S0")
+  (terpri)
+  (para "The rules at work on short phrases. The rule named is the one that decides the"
+        "chromatic note:")
+  (format t "  ~20a~10a~22a~a~%" "midi" "key" "spelled" "why")
+  (let ((rows (loop for (midis key) in *spelling-rule-rows*
+                    collect (format nil "~{~a~^ ~}"
+                                    (names (spell-sequence midis :key (parse-key key)))))))
+    (loop for (midis key nil why) in *spelling-rule-rows*
+          for spelled in rows
+          do (out "  ~20a~10a~22a~a~%" (format nil "~{~a~^ ~}" midis) key spelled why))
+    (check rows (mapcar #'third *spelling-rule-rows*) "rules at work"))
+  (terpri)
+  (para "A tune. The opening of The Entertainer (Scott Joplin, 1902) as a MIDI file would"
+        "give it, 36 MIDI numbers:")
+  (print-wrapped "midi" (mapcar #'princ-to-string *entertainer*))
+  (terpri)
+  (para "With no key hint, SPELL-SEQUENCE detects the key from the note counts (section 24)"
+        "and spells in it. Each note's spelling and ambiguity:")
+  (show (key-name (car (first (detect-key (pitch-class-histogram *entertainer* :weight :count)))))
+        "C major")
+  (terpri)
+  (let ((c-major (parse-key "C major")))
+    (multiple-value-bind (pitches ambiguities) (spell-sequence *entertainer*)
+      (print-note-blocks *entertainer* pitches ambiguities)
+      (check (names pitches) *entertainer-names* "The Entertainer, no key hint")
+      (para "Every note is spelled as printed. The D#5 has ambiguity 5/6: near the center,"
+            "about D, Eb is the nearer spelling (5 positions against 7), but S4 decides"
+            "first, because the next note is E, a semitone up. With the key hint :KEY C"
+            "major the result is the same, spellings and ambiguities alike, since C major is"
+            "the key detected:")
+      (show (equalp (spell-sequence *entertainer* :key (parse-key "C major"))
+                    (spell-sequence *entertainer*))
+            t)
+      (show (equal (nth-value 1 (spell-sequence *entertainer* :key (parse-key "C major")))
+                   (nth-value 1 (spell-sequence *entertainer*)))
+            t)
+      (terpri)
+      (para "A key hint matters in remote keys. Moved up a semitone, the tune is in C# major"
+            "(seven sharps) or Db major (five flats): the same MIDI numbers, two spellings."
+            "Without a hint, detection returns one of its 24 candidates, which are spelled"
+            "with the fewest accidentals, so Db major; :KEY C# major gives the sharps. The"
+            "first 12 notes of each, moved up and down a semitone and by a tritone:")
+      (dolist (row *remote-rows*)
+        (destructuring-bind (semitones label detected other) row
+          (let* ((midis (shifted *entertainer* semitones))
+                 (found (car (first (detect-key (pitch-class-histogram midis :weight :count)))))
+                 (other-key (parse-key other)))
+            (multiple-value-bind (plain plain-ambiguities) (spell-sequence midis)
+              (multiple-value-bind (hinted hinted-ambiguities) (spell-sequence midis :key other-key)
+                (out "  ~a~%" label)
+                (out "    ~19a~{~a~^ ~} ...~%" (format nil "no key (~a)" (key-name found))
+                     (names (subseq plain 0 12)))
+                (out "    ~19a~{~a~^ ~} ...~%" (format nil ":key ~a" other)
+                     (names (subseq hinted 0 12)))
+                (check (key-name found) detected (format nil "key detected ~@d" semitones))
+                ;; Both spell like the C major text moved by TRANSPOSE-TO-KEY (section
+                ;; 25): the same line-of-fifths positions; the octave can differ at the
+                ;; tritone, where the tonic moves the other way.
+                (check (list (mapcar #'pitch-fifths plain) (mapcar #'pitch-fifths hinted))
+                       (list (mapcar (lambda (p) (pitch-fifths (transpose-to-key p c-major found)))
+                                     pitches)
+                             (mapcar (lambda (p) (pitch-fifths (transpose-to-key p c-major other-key)))
+                                     pitches))
+                       (format nil "spelled as transposed ~@d" semitones))
+                (check (every (lambda (p midi) (= (pitch-midi p) midi)) hinted midis) t
+                       (format nil "MIDI kept ~@d" semitones))
+                (check (list plain-ambiguities hinted-ambiguities) (list ambiguities ambiguities)
+                       (format nil "ambiguities ~@d" semitones))))))))
+    (terpri)
+    (para "In each pair the spelling is the C major text moved to that key, and every note"
+          "keeps its ambiguity: the key moves the center along with the notes. Only the"
+          "choice of key differs, and only the caller can make it.")
+    (para "Rule S7 is the last resort: a note exactly midway between its two nearest"
+          "spellings when no other rule decides. The library then signals"
+          "AMBIGUOUS-SPELLING, a MUSIC-THEORY-WARNING, with SIGNAL rather than WARN, so"
+          "nothing is printed unless a handler is bound, and takes the sharper spelling."
+          "MIDI 68 alone in C major is such a note: G# and Ab are both six fifths from D:")
+    (show (handler-case (spell-midi 68) (ambiguous-spelling (c) (princ-to-string c)))
+          "ambiguous spelling of MIDI 68: Ab4 or G#4")
+    (block restarts
+      (handler-bind ((ambiguous-spelling
+                       (lambda (c)
+                         (let ((midi (ambiguous-spelling-midi c))
+                               (candidates (names (ambiguous-spelling-candidates c)))
+                               (restarts (mapcar #'restart-name (subseq (compute-restarts c) 0 2))))
+                           (format t "  ambiguous-spelling-midi ~d, ambiguous-spelling-candidates ~{~a~^ ~}~%"
+                                   midi candidates)
+                           (format t "  restarts: ~{~(~a~)~^, ~}~%" restarts)
+                           (check (list midi candidates restarts)
+                                  '(68 ("Ab4" "G#4") (use-value muffle-warning))
+                                  "AMBIGUOUS-SPELLING slots and restarts"))
+                         (return-from restarts))))
+        (spell-midi 68)))
+    (show (pitch-name (spell-midi 68)) "G#4" "no handler: silent, the sharper spelling")
+    (show (pitch-name (handler-bind ((ambiguous-spelling #'muffle-warning)) (spell-midi 68)))
+          "G#4")
+    (show (pitch-name (handler-bind ((ambiguous-spelling
+                                       (lambda (c) (use-value (parse-pitch "Ab4") c))))
+                        (spell-midi 68)))
+          "Ab4")
+    (show (handler-case (handler-bind ((ambiguous-spelling
+                                         (lambda (c) (use-value (parse-pitch "A4") c))))
+                          (spell-midi 68))
+            (type-error (e) (list (type-error-datum e) (type-error-expected-type e))))
+          '(69 (eql 68)) "USE-VALUE takes only a spelling of MIDI 68")
+    (terpri)
+    (para "In a sequence the spelling chosen enters the window like any other. The handler"
+          "LOG-AND-TAKE-FLATTER pushes the MIDI number onto *SPELLING-LOG* and answers"
+          "USE-VALUE with the flatter candidate. It runs once here: the second 68 is decided"
+          "by S3, which keeps the accidental of the first:")
+    (setf *spelling-log* '())
+    (show (handler-bind ((ambiguous-spelling #'log-and-take-flatter))
+            (names (spell-sequence '(68 60 68 67) :key (parse-key "C major"))))
+          '("Ab4" "C4" "Ab4" "G4"))
+    (show *spelling-log* '(68))
+    (show (names (spell-sequence '(68 60 68 67) :key (parse-key "C major")))
+          '("G#4" "C4" "G#4" "G4") "no handler"))
+  (terpri)
+  (let ((melodies (fixture "mt4-melodies.sexp"))
+        (transposed (fixture "mt4-transposed.sexp")))
+    (if (not (and melodies transposed))
+        (para "(The package has no MT4 test fixtures here; the corpus figures are skipped.)")
+        (let ((notes 0) (with-key 0) (without 0)
+              (moved 0) (moved-with-key 0) (moved-without 0))
+          (dolist (row melodies)
+            (destructuring-bind (id key texts durations midis) row
+              (declare (ignore id durations))
+              (incf notes (length midis))
+              (incf with-key (spelled-as (spell-sequence midis :key (parse-key key)) texts))
+              (incf without (spelled-as (spell-sequence midis) texts))))
+          (dolist (row transposed)
+            (destructuring-bind (id from to interval texts midis) row
+              (declare (ignore id from interval))
+              (incf moved (length midis))
+              (incf moved-with-key (spelled-as (spell-sequence midis :key (parse-key to)) texts))
+              (incf moved-without (spelled-as (spell-sequence midis) texts))))
+          (para "The package's tests hold the rules to 50 public-domain melodies re-encoded"
+                "for it (folk tunes, hymns, carols, themes by Bach, Mozart, Beethoven and"
+                "others), and to 100 copies moved five fifths up and down into every key. The"
+                "fixtures ship with the package, so the demo counts again:")
+          (format t "  ~d melodies, ~d notes: ~d spelled as notated with the key, ~d without~%"
+                  (length melodies) notes with-key without)
+          (format t "  ~d transposed copies, ~d notes: ~d with the key, ~d without (~,2f%)~%~%"
+                  (length transposed) moved moved-with-key moved-without
+                  (* 100 (/ moved-without moved)))
+          (check (list notes with-key without) '(1699 1699 1699) "corpus spelling")
+          (check (list moved moved-with-key moved-without) '(3398 3398 3072)
+                 "transposed corpus spelling")
+          (para "Without a key the transposed copies lose 9.6%: for F# or Gb major, C# or Db"
+                "major and the like, detection returns one of the two keys, and a copy"
+                "written in the other is spelled in the wrong one."))))
+  (para "Open issue egao1980/music-theory#14, found with this demo: a chromatic step can"
+        "take a spelling far from the key, because S4 makes a semitone step diatonic and"
+        "S5 avoids the augmented unison (C# to C). The ground bass of Purcell's lament"
+        "When I am laid in earth (1689) is G F# F E Eb D in G minor; the E comes out Fb:")
+  (show (names (spell-sequence '(55 54 53 52 51 50) :key (parse-key "G minor"))))
+  (show (names (spell-sequence '(62 61 60) :key (parse-key "D major")))))
+
+;;; 24. Key detection (MT4) ----------------------------------------------------------
+
+(defparameter *tunes*
+  ;; (name notated-key midis durations): public-domain melodies, durations in whole notes
+  '(("Twinkle, Twinkle" "C major"
+     (60 60 67 67 69 69 67 65 65 64 64 62 62 60 67 67 65 65 64 64 62 67 67 65 65 64
+      64 62 60 60 67 67 69 69 67 65 65 64 64 62 62 60)
+     (1/4 1/4 1/4 1/4 1/4 1/4 1/2 1/4 1/4 1/4 1/4 1/4 1/4 1/2 1/4 1/4 1/4 1/4 1/4
+      1/4 1/2 1/4 1/4 1/4 1/4 1/4 1/4 1/2 1/4 1/4 1/4 1/4 1/4 1/4 1/2 1/4 1/4 1/4
+      1/4 1/4 1/4 1/2))
+    ("Für Elise" "A minor"
+     (76 75 76 75 76 71 74 72 69 60 64 69 71 64 68 71 72 64 76 75 76 75 76 71 74 72
+      69 60 64 69 71 64 72 71 69)
+     (1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/8 1/16 1/16 1/16 1/8 1/16 1/16 1/16
+      1/8 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/8 1/16 1/16 1/16 1/8 1/16
+      1/16 1/16 1/4))
+    ("Greensleeves" "A minor"
+     (69 72 74 76 78 76 74 71 67 69 71 72 69 69 68 69 71 68 64 69 72 74 76 78 76 74
+      71 67 69 71 72 71 69 68 66 68 69 69 79 79 78 76 74 71 67 69 71 72 69 69 68 69
+      71 68 64 79 79 78 76 74 71 67 69 71 72 71 69 68 66 68 69 69)
+     (1/8 1/4 1/8 3/16 1/16 1/8 1/4 1/8 3/16 1/16 1/8 1/4 1/8 3/16 1/16 1/8 1/4 1/8
+      1/4 1/8 1/4 1/8 3/16 1/16 1/8 1/4 1/8 3/16 1/16 1/8 3/16 1/16 1/8 3/16 1/16
+      1/8 3/8 3/8 3/8 3/16 1/16 1/8 1/4 1/8 3/16 1/16 1/8 1/4 1/8 3/16 1/16 1/8 1/4
+      1/8 3/8 3/8 3/16 1/16 1/8 1/4 1/8 3/16 1/16 1/8 3/16 1/16 1/8 3/16 1/16 1/8
+      3/8 3/8))
+    ("Jingle Bells" "F major"
+     (69 69 69 69 69 69 69 72 65 67 69 70 70 70 70 70 69 69 69 69 69 67 67 69 67 72
+      69 69 69 69 69 69 69 72 65 67 69 70 70 70 70 70 69 69 69 69 72 72 70 67 65)
+     (1/4 1/4 1/2 1/4 1/4 1/2 1/4 1/4 3/8 1/8 1 1/4 1/4 3/8 1/8 1/4 1/4 1/4 1/8 1/8
+      1/4 1/4 1/4 1/4 1/2 1/2 1/4 1/4 1/2 1/4 1/4 1/2 1/4 1/4 3/8 1/8 1 1/4 1/4 1/4
+      1/4 1/4 1/4 1/4 1/8 1/8 1/4 1/4 1/4 1/4 1))
+    ("Drunken Sailor" "D minor"
+     (69 69 69 69 69 69 69 62 65 69 67 67 67 67 67 67 67 60 64 67 69 69 69 69 69 69
+      69 71 72 74 72 69 67 64 62 62)
+     (1/8 1/8 1/8 1/8 1/8 1/8 1/4 1/4 1/4 1/4 1/8 1/8 1/8 1/8 1/8 1/8 1/4 1/4 1/4
+      1/4 1/8 1/8 1/8 1/8 1/8 1/8 1/4 1/4 1/4 1/4 1/4 1/4 1/4 1/4 1/2 1/2))
+    ("The Entertainer" "C major"
+     (74 75 76 84 76 84 76 84 84 86 87 88 84 86 88 83 86 84 74 75 76 84 76 84 76 84
+      81 79 78 81 84 88 86 84 81 86)
+     (1/16 1/16 1/16 1/8 1/16 1/8 1/16 3/8 1/16 1/16 1/16 1/16 1/16 1/16 1/8 1/16
+      1/8 3/8 1/16 1/16 1/16 1/8 1/16 1/8 1/16 3/8 1/16 1/16 1/16 1/16 1/16 1/8
+      1/16 1/16 1/16 3/8))
+    ("Symphony No. 40" "G minor"
+     (75 74 74 75 74 74 75 74 74 82 82 81 79 79 77 75 75 74 72 72 74 72 72 74 72 72
+      74 72 72 81 81 79 78 78 75 74 74 72 70 70)
+     (1/8 1/8 1/4 1/8 1/8 1/4 1/8 1/8 1/4 1/4 1/8 1/8 1/4 1/8 1/8 1/4 1/8 1/8 1/4
+      1/4 1/8 1/8 1/4 1/8 1/8 1/4 1/8 1/8 1/4 1/4 1/8 1/8 1/4 1/8 1/8 1/4 1/8 1/8
+      1/4 1/4)))
+  "Seven public-domain melodies: a nursery tune, Beethoven (1810), a 16th-century
+English tune, Pierpont (1857), a sea shanty, Joplin (1902) and Mozart (1788). Their
+MIDI numbers and durations are those of the music-theory MT4 test corpus.")
+
+(defparameter *profiles* '(:krumhansl-kessler :temperley :aarden))
+
+(defparameter *scale-profile*
+  '((1 0 1 0 1 1 0 1 0 1 0 1) (1 0 1 1 0 1 0 1 1 0 0 1))
+  "A key profile of the caller's: 1 for a scale note, 0 for the others (major, then
+harmonic minor), tonic first.")
+
+(defparameter *pitch-class-labels* '("C" "C#" "D" "Eb" "E" "F" "F#" "G" "Ab" "A" "Bb" "B"))
+
+(defparameter *top-keys*
+  ;; tune: the key music21 ranks first under each profile
+  '(("Twinkle, Twinkle" "C major" "C major" "C major")
+    ("Für Elise" "A minor" "A minor" "A minor")
+    ("Greensleeves" "A minor" "G major" "A minor")
+    ("Jingle Bells" "A minor" "F major" "F major")
+    ("Drunken Sailor" "D major" "D minor" "D minor")
+    ("The Entertainer" "C major" "C major" "A minor")
+    ("Symphony No. 40" "C minor" "G minor" "G minor")))
+
+(defparameter *jingle-ranks*
+  ;; music21's three best keys, with r to three places, per profile
+  '((("A minor" "0.673") ("F major" "0.475") ("A major" "0.436"))
+    (("F major" "0.609") ("D minor" "0.551") ("A minor" "0.363"))
+    (("F major" "0.663") ("D minor" "0.492") ("G minor" "0.466"))))
+
+(defun tune-events (tune)
+  (destructuring-bind (name key midis durations) tune
+    (declare (ignore name key))
+    (mapcar #'cons midis durations)))
+
+(defun same-key-p (a b)
+  "True when the keys A and B have the same mode and tonic pitch class (F# and Gb major)."
+  (and (eq (key-mode a) (key-mode b))
+       (= (pitch-class (key-tonic a)) (pitch-class (key-tonic b)))))
+
+(defun ranked (ranking n)
+  "The first N entries of a DETECT-KEY RANKING as (key-name r-to-three-places)."
+  (loop for (key . r) in (subseq ranking 0 n)
+        collect (list (key-name key) (format nil "~,3f" r))))
+
+(defun demo-key-detection ()
+  (para "PITCH-CLASS-HISTOGRAM sums a list of events into 12 cells, C to B. An event is"
+        "(pitch . duration) or a bare pitch, which counts 1; a pitch is a MIDI number, a"
+        "SPELLED-PITCH or a PITCH-CLASS-NAME. :WEIGHT :COUNT counts each event once. Sums"
+        "are exact:")
+  (show (pitch-class-histogram '((60 . 1/4) (64 . 1/4) (67 . 1/2)))
+        #(1/4 0 0 0 1/4 0 0 1/2 0 0 0 0))
+  (show (pitch-class-histogram (list (parse-pitch "B#3") (parse-pitch-class "Cb") '(61 . 3/8) -11))
+        #(1 11/8 0 0 0 0 0 0 0 0 0 1) "B#3 is class 0, Cb 11, -11 is 1")
+  (terpri)
+  (let ((events (tune-events (first *tunes*))))
+    (para "Twinkle, Twinkle in C major, by duration in whole notes and by count:")
+    (out "  class      ~{~4a~}~%" *pitch-class-labels*)
+    (out "  duration   ~{~4a~}~%" (fraction-texts (coerce (pitch-class-histogram events) 'list)))
+    (out "  count      ~{~4a~}~%~%"
+         (fraction-texts (coerce (pitch-class-histogram events :weight :count) 'list)))
+    (check (pitch-class-histogram events) #(2 0 2 0 2 2 0 3 0 1 0 0) "Twinkle by duration")
+    (check (pitch-class-histogram events :weight :count) #(6 0 6 0 8 8 0 10 0 4 0 0)
+           "Twinkle by count")
+    (para "DETECT-KEY correlates the histogram with a key profile, a weight per scale"
+          "degree for major and for minor, rotated to each of 24 tonics, and returns all 24"
+          "keys as (key . r), best first. r is the Pearson correlation, computed exactly in"
+          "rationals and rounded once to a double float; equal r keep a fixed candidate"
+          "order. Three published profiles: :KRUMHANSL-KESSLER (the default; listeners'"
+          "ratings of probe tones, 1982), :TEMPERLEY (counts from a harmony textbook's"
+          "examples, 2007) and :AARDEN (counts from a folksong corpus, 2003):")
+    (let ((ranking (detect-key (pitch-class-histogram events))))
+      (show (length ranking) 24)
+      (show (ranked ranking 3) '(("C major" "0.858") ("G major" "0.684") ("F major" "0.561")))))
+  (terpri)
+  (para "The profiles do not always agree. Jingle Bells is in F major, but its chorus sits"
+        "on A, the third, and Krumhansl-Kessler hears A as a tonic. The three best keys"
+        "under each profile:")
+  (let* ((histogram (pitch-class-histogram (tune-events (fourth *tunes*))))
+         (columns (mapcar (lambda (profile) (ranked (detect-key histogram :profiles profile) 3))
+                          *profiles*)))
+    (format t "  ~22a~22a~a~%" ":krumhansl-kessler" ":temperley" ":aarden")
+    (loop for i below 3
+          do (out "  ~{~22a~}~%"
+                  (mapcar (lambda (column) (format nil "~{~a ~a~}" (nth i column))) columns)))
+    (check columns *jingle-ranks* "Jingle Bells, three profiles"))
+  (terpri)
+  (para "The first key under each profile for seven tunes; * marks a key other than the"
+        "notated one:")
+  (format t "  ~17a~9a~19a~17a~a~%" "tune" "notated" ":krumhansl-kessler" ":temperley" ":aarden")
+  (let ((rows '()) (right (make-list 3 :initial-element 0)))
+    (dolist (tune *tunes*)
+      (destructuring-bind (name notated midis durations) tune
+        (declare (ignore midis durations))
+        (let* ((histogram (pitch-class-histogram (tune-events tune)))
+               (firsts (mapcar (lambda (profile) (first (detect-key histogram :profiles profile)))
+                               *profiles*))
+               (hits (mapcar (lambda (entry) (same-key-p (car entry) (parse-key notated))) firsts)))
+          (setf right (mapcar (lambda (n hit) (if hit (1+ n) n)) right hits))
+          (push (cons name (mapcar (lambda (entry) (key-name (car entry))) firsts)) rows)
+          (destructuring-bind (kk temperley aarden)
+              (mapcar (lambda (entry hit)
+                        (format nil "~a~:[*~; ~] ~,3f" (key-name (car entry)) hit (cdr entry)))
+                      firsts hits)
+            (out "  ~17a~9a~19a~17a~a~%" name notated kk temperley aarden)))))
+    (destructuring-bind (kk temperley aarden)
+        (mapcar (lambda (n) (format nil "~d of ~d" n (length *tunes*))) right)
+      (out "  ~26a~19a~17a~a~%~%" "notated key first" kk temperley aarden))
+    (check (reverse rows) *top-keys* "first keys of seven tunes"))
+  (para "Krumhansl-Kessler misses three: the relative minor (Jingle Bells), the parallel"
+        "major of a Dorian tune (Drunken Sailor) and the subdominant (Mozart's Symphony"
+        "No. 40). Temperley reads the G naturals of Greensleeves as G major, and Aarden"
+        "takes The Entertainer for its relative minor.")
+  (para "Weighting matters too. Für Elise by count is in E minor (its many short E and D#"
+        "notes); by duration, the default, the long As make it A minor. TUNE-EVENTS gives"
+        "a tune's (MIDI . duration) pairs:")
+  (show (key-name (car (first (detect-key (pitch-class-histogram (tune-events (second *tunes*))
+                                                                 :weight :count)))))
+        "E minor")
+  (show (key-name (car (first (detect-key (pitch-class-histogram (tune-events (second *tunes*)))))))
+        "A minor")
+  (terpri)
+  (let ((melodies (fixture "mt4-melodies.sexp")))
+    (when melodies
+      (para "Over the package's 50-melody corpus, the counts its tests hold each profile"
+            "to (a key counts when tonic pitch class and mode match; music21 ranks the same"
+            "way):")
+      (format t "  ~20a~10a~a~%" "profile" "top 1" "top 2")
+      (let ((rows (loop for profile in *profiles*
+                        collect (let ((first 0) (second 0))
+                                  (dolist (row melodies)
+                                    (destructuring-bind (id key texts durations midis) row
+                                      (declare (ignore id texts))
+                                      (let ((ranking (detect-key (pitch-class-histogram
+                                                                  (mapcar #'cons midis durations))
+                                                                 :profiles profile))
+                                            (key (parse-key key)))
+                                        (cond ((same-key-p key (car (first ranking)))
+                                               (incf first) (incf second))
+                                              ((same-key-p key (car (second ranking)))
+                                               (incf second))))))
+                                  (list first second)))))
+        (loop for profile in *profiles*
+              for (first second) in rows
+              do (format t "  ~20a~10a~a~%" (format nil "~(~s~)" profile)
+                         (format nil "~d (~d%)" first (* 2 first))
+                         (format nil "~d (~d%)" second (* 2 second))))
+        (terpri)
+        (check rows '((39 47) (45 49) (41 48)) "corpus top-1 and top-2"))))
+  (para "A profile can be the caller's own, a list (major minor) of 12 weights each, tonic"
+        "first. With plain scale membership (1 in the scale, 0 outside; harmonic minor),"
+        "Twinkle fits C major and F major equally (it has no B and no Bb), and the tie"
+        "keeps the candidate order, C before F:")
+  (format t "  *scale-profile*  ~a~%~%" (code-text *scale-profile*))
+  (show (ranked (detect-key (pitch-class-histogram (tune-events (first *tunes*)))
+                            :profiles *scale-profile*)
+                2)
+        '(("C major" "0.782") ("F major" "0.782")))
+  (terpri)
+  (para "No evidence, no key: a histogram with 12 equal cells (here the chromatic scale)"
+        "correlates with nothing, and DETECT-KEY returns NIL. A profile with 12 equal"
+        "weights is an error, and anything but a histogram or a profile a TYPE-ERROR:")
+  (show (detect-key (pitch-class-histogram '(60 61 62 63 64 65 66 67 68 69 70 71))) nil)
+  (show-signal (detect-key #(1 0 0 0 0 0 0 0 0 0 0 0)
+                           :profiles '((1 1 1 1 1 1 1 1 1 1 1 1) (2 2 2 2 2 2 2 2 2 2 2 2))))
+  (show (handler-case (detect-key '(1 2 3)) (type-error () :type-error)) :type-error)
+  (show (handler-case (detect-key #(1 0 0 0 0 0 0 0 0 0 0 0) :profiles :equal-tempered)
+          (type-error () :type-error))
+        :type-error))
+
+;;; 25. Transposing to a key; enharmonic keys (MT4) --------------------------------------
+
+(defparameter *greensleeves*
+  ;; (chords notes): the first eight bars in 6/8, after the pickup bar
+  '((() ("A4"))
+    (("Am") ("C5" "D5" "E5" "F#5" "E5"))
+    (("G") ("D5" "B4" "G4" "A4" "B4"))
+    (("Am") ("C5" "A4" "A4" "G#4" "A4"))
+    (("E7") ("B4" "G#4" "E4" "A4"))
+    (("Am") ("C5" "D5" "E5" "F#5" "E5"))
+    (("G") ("D5" "B4" "G4" "A4" "B4"))
+    (("Am" "E7") ("C5" "B4" "A4" "G#4" "F#4" "G#4"))
+    (("Am") ("A4" "A4")))
+  "Greensleeves (English, 16th century) in A minor, with chord symbols.")
+
+(defparameter *greensleeves-targets*
+  ;; (key chords-in-order bar-7)
+  '(("E minor" "Em D Em B7 Em D Em B7 Em" "G4 F#4 E4 D#4 C#4 D#4")
+    ("Eb minor" "Ebm Db Ebm Bb7 Ebm Db Ebm Bb7 Ebm" "Gb4 F4 Eb4 D4 C4 D4")
+    ("D# minor" "D#m C# D#m A#7 D#m C# D#m A#7 D#m" "F#5 E#5 D#5 C##5 B#4 C##5")))
+
+(defparameter *enharmonic-rows*
+  ;; (key default :prefer-sharps :prefer-flats :max-accidentals-7)
+  '(("C# major" "Db major" "Db major" "Db major" "C# major")
+    ("Db major" "Db major" "Db major" "Db major" "Db major")
+    ("F# major" "F# major" "F# major" "Gb major" "F# major")
+    ("Gb major" "Gb major" "F# major" "Gb major" "Gb major")
+    ("Cb major" "B major" "B major" "B major" "Cb major")
+    ("B major" "B major" "B major" "B major" "B major")
+    ("D# minor" "D# minor" "D# minor" "Eb minor" "D# minor")
+    ("Eb minor" "Eb minor" "D# minor" "Eb minor" "Eb minor")
+    ("A# minor" "Bb minor" "Bb minor" "Bb minor" "A# minor")
+    ("Ab minor" "G# minor" "G# minor" "G# minor" "Ab minor")))
+
+(defun print-lead-sheet (bars &key (breaks '(4 7)))
+  "Print BARS, each (chord-texts note-texts), as a chord line over a melody line with a
+bar line after each bar; a new pair of lines starts at each bar index in BREAKS."
+  (let ((chords (make-string-output-stream))
+        (notes (make-string-output-stream)))
+    (flet ((flush ()
+             (out "    ~a~%    ~a~%" (get-output-stream-string chords)
+                  (get-output-stream-string notes))))
+      (loop for (chord-texts note-texts) in bars
+            for index from 0
+            for chord-line = (format nil "~{~a~^ ~}" chord-texts)
+            for note-line = (format nil "~{~a~^ ~}" note-texts)
+            for cell = (max (length chord-line) (length note-line))
+            do (when (member index breaks)
+                 (flush))
+               (format chords "~va   " cell chord-line)
+               (format notes "~va | " cell note-line))
+      (flush))))
+
+(defun chord-fifths (chord)
+  "The line-of-fifths positions of CHORD's tones."
+  (mapcar (lambda (pair) (pitch-fifths (cdr pair))) (chord-tones chord)))
+
+(defun move-bars (bars from to)
+  "BARS of (chords notes), parsed, moved from the key FROM to the key TO."
+  (let ((pair (list from to)))
+    (loop for (chords notes) in bars
+          collect (list (mapcar (lambda (c) (transpose-chord-symbol c pair)) chords)
+                        (mapcar (lambda (p) (transpose-to-key p from to)) notes)))))
+
+(defun bar-texts (bars)
+  (loop for (chords notes) in bars
+        collect (list (mapcar #'print-chord-symbol chords) (names notes))))
+
+(defun demo-transpose-to-key ()
+  (para "TRANSPOSE-TO-KEY moves a spelled pitch from one key to another and spells it for"
+        "the new key: the scale degree and its alteration are kept. The tonic's letter"
+        "moves at most three steps up or down, so C to G is a fourth down and C to F a"
+        "fourth up, and moving back is the exact inverse:")
+  (show (pitch-name (transpose-to-key (parse-pitch "F#4") (parse-key "C") (parse-key "D"))) "G#4"
+        "#4 of C is #4 of D")
+  (show (pitch-name (transpose-to-key (parse-pitch "F#4") (parse-key "C") (parse-key "Db"))) "G4")
+  (show (pitch-name (transpose-to-key (parse-pitch "F#4") (parse-key "C") (parse-key "C#"))) "F##4")
+  (show (pitch-name (transpose-to-key (parse-pitch "C4") (parse-key "C") (parse-key "G"))) "G3")
+  (show (pitch-name (transpose-to-key (parse-pitch "C4") (parse-key "C") (parse-key "Gb"))) "Gb3")
+  (show (pitch-name (transpose-to-key (parse-pitch "C4") (parse-key "C") (parse-key "F#"))) "F#4")
+  (show (pitch-class-string (transpose-to-key (parse-pitch-class "Bb") (parse-key "F") (parse-key "E")))
+        "A" "a pitch class moves as a class")
+  (terpri)
+  (para "Only the tonics count, as in TRANSPOSE-CHORD-SYMBOL with two keys (section 21):"
+        "E4 from C major to A minor is C#4. Chord symbols and notes move by the same rule,"
+        "so a melody and its chords stay consistent: a note that is a chord tone before is"
+        "the same chord tone after, spelled the same way. Greensleeves in A minor, then in"
+        "E minor, Eb minor and D# minor (six flats or six sharps, the same sounds):")
+  (show (pitch-name (transpose-to-key (parse-pitch "E4") (parse-key "C") (parse-key "A minor"))) "C#4")
+  (terpri)
+  (let* ((home (parse-key "A minor"))
+         (bars (loop for (chords notes) in *greensleeves*
+                     collect (list (mapcar #'parse-chord-symbol chords)
+                                   (mapcar #'parse-pitch notes)))))
+    (format t "  A minor~%")
+    (print-lead-sheet (bar-texts bars))
+    (terpri)
+    (loop for (name chords-text bar-7) in *greensleeves-targets*
+          for key = (parse-key name)
+          for moved = (move-bars bars home key)
+          for texts = (bar-texts moved)
+          do (format t "  ~a~%" name)
+             (print-lead-sheet texts)
+             (terpri)
+             (check (format nil "~{~a~^ ~}" (mapcan (lambda (bar) (copy-list (first bar))) texts))
+                    chords-text (format nil "chords in ~a" name))
+             (check (format nil "~{~a~^ ~}" (second (nth 7 texts))) bar-7
+                    (format nil "bar 7 in ~a" name))
+             ;; Each chord's root is the tonic-to-tonic move of the old root.
+             (check (loop for (chords) in bars
+                          for (moved-chords) in moved
+                          always (every (lambda (c m)
+                                          (equalp (chord-symbol-root m)
+                                                  (transpose-to-key (chord-symbol-root c) home key)))
+                                        chords moved-chords))
+                    t (format nil "roots in ~a" name))
+             ;; Moving back gives every note and chord back (TEXT aside).
+             (check (loop for (chords notes) in bars
+                          for (back-chords back-notes) in (move-bars moved key home)
+                          always (and (equalp notes back-notes)
+                                      (every #'same-chord-p chords back-chords)))
+                    t (format nil "back from ~a" name)))
+    (let ((tones 0) (kept 0))
+      (dolist (target *greensleeves-targets*)
+        (let ((moved (move-bars bars home (parse-key (first target)))))
+          (loop for (chords notes) in bars
+                for (moved-chords moved-notes) in moved
+                do (loop for note in notes
+                         for moved-note in moved-notes
+                         do (loop for c in chords
+                                  for m in moved-chords
+                                  when (member (pitch-fifths note) (chord-fifths c))
+                                    do (incf tones)
+                                       (when (member (pitch-fifths moved-note) (chord-fifths m))
+                                         (incf kept)))))))
+      (format t "  melody notes on a chord tone, in the three keys: ~d; still a chord tone, spelled~%  as in the chord: ~d~%~%"
+              tones kept)
+      (check kept tones "chord tones kept")))
+  (para "The raised 7th of the melody (G# in A minor) is the 3rd of E7 in every key: D#"
+        "under B7, D under Bb7, C## under A#7. Eb minor moves down (A to Eb is three"
+        "letters down) and D# minor up (A to D, three letters up).")
+  (para "CHOOSE-ENHARMONIC-KEY picks between keys that sound alike: of the 30 keys, Db and"
+        "C# major, Gb and F# major, Cb and B major, and Bb/A#, Eb/D#, Ab/G# minor. It"
+        "returns a key with at most :MAX-ACCIDENTALS (default 6) sharps or flats when there"
+        "is one; when both qualify it keeps the key given, unless :PREFER :SHARPS or"
+        ":FLATS says otherwise:")
+  (format t "  ~11a~11a~17a~17a~a~%" "key" "default" ":prefer :sharps" ":prefer :flats" ":max-accidentals 7")
+  (let ((rows (loop for (text) in *enharmonic-rows*
+                    for key = (parse-key text)
+                    collect (cons text
+                                  (mapcar (lambda (arguments)
+                                            (key-name (apply #'choose-enharmonic-key key arguments)))
+                                          '(() (:prefer :sharps) (:prefer :flats)
+                                            (:max-accidentals 7)))))))
+    (dolist (row rows)
+      (out "  ~11a~11a~17a~17a~a~%" (first row) (second row) (third row) (fourth row) (fifth row)))
+    (check rows *enharmonic-rows* "enharmonic keys"))
+  (terpri)
+  (para "D♭ against C♯: seven sharps is one more than the default allows, so C# major"
+        "becomes Db major (five flats). G♭ against F♯: six each, so either stays as given."
+        "A key beyond seven, built with MAKE-KEY, comes back to one of the 30:")
+  (show (key-name (choose-enharmonic-key (parse-key "C# major")) :accidentals :unicode) "D♭ major")
+  (show (key-name (choose-enharmonic-key (parse-key "F# major") :prefer :flats) :accidentals :unicode)
+        "G♭ major")
+  (show (key-name (choose-enharmonic-key (make-key :tonic (parse-pitch-class "G#")))) "Ab major")
+  (show (key-name (choose-enharmonic-key (parse-key "B major") :max-accidentals 4)) "B major"
+        "Cb major has seven")
+  (show (handler-case (choose-enharmonic-key (parse-key "C") :max-accidentals 8)
+          (type-error () :type-error))
+        :type-error)
+  (terpri)
+  (para "Together: The Entertainer (section 23) up a semitone. C major up an A1 (seven"
+        "fifths on the line) is C# major, CHOOSE-ENHARMONIC-KEY makes it Db major, and"
+        "TRANSPOSE-TO-KEY writes the printed melody there. That is what SPELL-SEQUENCE"
+        "gave for the raised MIDI numbers with no key hint:")
+  (show (pitch-class-string (fifths-pitch-class (+ 7 (pitch-fifths (parse-pitch-class "C"))))) "C#")
+  (show (key-name (choose-enharmonic-key (parse-key "C# major"))) "Db major")
+  (let ((melody (mapcar (lambda (p) (transpose-to-key p (parse-key "C major") (parse-key "Db major")))
+                        (mapcar #'parse-pitch *entertainer-names*))))
+    (print-wrapped "melody" (names melody))
+    (check (equalp melody (spell-sequence (shifted *entertainer* 1))) t
+           "transposed melody spelled from MIDI")))
+
 ;;; Entry point -----------------------------------------------------------------
 
 (defun run-demos ()
@@ -2255,7 +2920,8 @@ printed texts that failed, of the shape of music-theory#10 or not."
                sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale~%~
                degrees and Roman numerals (slice MT2, sections 12-16); chord symbols: the~%~
                grammar, dialects, realisation, essential tones, transposition (slice MT3,~%~
-               sections 17-22)~%"
+               sections 17-22); spelling MIDI notes, key detection, transposition to a key~%~
+               (slice MT4, sections 23-25)~%"
             (asdf:component-version (asdf:find-system "music-theory")))
     (section "1. Spelled pitches: letter, accidental, octave" (demo-pitches))
     (section "2. MIDI numbers and the scientific octave" (demo-midi))
@@ -2279,6 +2945,9 @@ printed texts that failed, of the shape of music-theory#10 or not."
     (section "20. Essential tones" (demo-essential))
     (section "21. Transposing chord symbols" (demo-transposition))
     (section "22. Chord-symbol errors and restarts" (demo-chord-errors))
+    (section "23. Spelling a MIDI melody" (demo-spelling))
+    (section "24. Key detection: histograms and key profiles" (demo-key-detection))
+    (section "25. Transposing to a key; enharmonic keys" (demo-transpose-to-key))
     (banner "Summary")
     (format t "~d results checked against their expected values: ~d mismatched.~%~
                ~:[Every section ran to the end.~;Sections that stopped on an error: ~:*~{~a~^; ~}.~]~%"
