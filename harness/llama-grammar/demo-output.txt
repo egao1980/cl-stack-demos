@@ -3,7 +3,7 @@
 ========================================================================
   llama-version                          1.0.0-dev
   libllamastack ABI                      4
-  model                                  ~/Projects/cl-workspace/.worktrees/native/scratch/llama/models/stories260K.gguf
+  model                                  <tmp>/stories260K.gguf
   complete "Once upon a time" (12)       ", there was a little girl named Lily. She"
   ok       some text: T
 
@@ -95,7 +95,7 @@ A grammar that names the end-of-turn token gets there after one word:
 llama.cpp masks EOG tokens until the grammar is complete, so <|im_end|> is never
 allowed. The 0.2.1 shim stops at the dead end before it picks.
 
-  model                                  ~/Projects/cl-workspace/.worktrees/native/scratch/pros-llama/models/SmolLM2-135M-Instruct-Q4_0.gguf
+  model                                  <tmp>/SmolLM2-135M-Instruct-Q4_0.gguf
   ok       yes/no grammar ends at EOG: (:OK "yes")
   grammar root ::= ("yes" | "no") <|im_end|> llama-cpp error (RUNTIME): llama_stack_complete_ex: grammar dead end: the grammar allows no token after 3 generated token(s) "yes". llama.cpp masks end-of-generation tokens until the grammar is complete, so a grammar that names one (<|im_end|>, </s>) cannot finish; end the grammar where the text ends
   ok       a grammar dead end, not SIGABRT: T

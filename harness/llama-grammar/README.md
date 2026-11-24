@@ -5,7 +5,7 @@
 - exiting with an engine in a global ended in a Metal `GGML_ASSERT` instead of the exit code (#18);
 - the finalizers could never run (#20).
 
-The code is in [`src/demo.lisp`](src/demo.lisp). [`demo-output.txt`](demo-output.txt) is the stdout of the last run (macOS arm64 Metal, SBCL 2.4.11; llama.cpp's own log goes to stderr), with home and temp paths replaced by `~` and `<tmp>`. That run used the PR #21 checkout (head `b40ba0e`), with `libllamastack` built by `scripts/build-llama.sh` against llama.cpp master `c212d25` (`LLAMA_CPP_NATIVE`), before 0.2.1 was on GHCR. Re-run it with `cl-repo run` once 0.2.1 is published.
+The code is in [`src/demo.lisp`](src/demo.lisp). [`demo-output.txt`](demo-output.txt) is the stdout of the last run (macOS arm64 Metal, SBCL 2.6.9; llama.cpp's own log goes to stderr), with home and temp paths replaced by `~` and `<tmp>`. That run used llama-cpp 0.2.1 as published on GHCR (`cl-repo run` pulled `llama-cpp:0.2.1` and its darwin/arm64 Metal overlay, built by the `v0.2.1` tag run of `publish-oci.yml`; no `LLAMA_CPP_NATIVE`), with the models in `<tmp>`. The run before it used the PR #21 checkout (head `b40ba0e`) with a local build against llama.cpp `c212d25`, with the same 25 checks.
 
 ## Run
 
