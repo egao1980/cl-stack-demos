@@ -8,9 +8,11 @@ SBCL is free software, provided as is, with absolutely no warranty.
 It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
-music-theory 0.3.0: spelled pitches, the line of fifths and intervals (slice MT0,
+music-theory 0.4.0: spelled pitches, the line of fifths and intervals (slice MT0,
 sections 1-6); meters, rhythm and tempo (slice MT1, sections 7-11); keys, scale
-degrees and Roman numerals (slice MT2, sections 12-16)
+degrees and Roman numerals (slice MT2, sections 12-16); chord symbols: the
+grammar, dialects, realisation, essential tones, transposition (slice MT3,
+sections 17-22)
 
 ========================================================================
 == 1. Spelled pitches: letter, accidental, octave
@@ -1017,7 +1019,398 @@ key. In minor the same functions are i-VI-iio6-V7-i:
             E G B | C E G | F# A C /A | B D# F# A | E G B
 
 ========================================================================
+== 17. A lead-sheet chord chart parsed
+========================================================================
+A CHORD-SYMBOL is the value behind lead-sheet text such as Cmaj7 or G7/B: ROOT,
+QUALITY (one of 15 keywords), EXTENSIONS (9, 11, 13), ALTERATIONS and ADDED as
+(degree . alter) pairs, SUSPENSION 2 or 4, OMITTED degrees, BASS, and NO-CHORD-P
+for N.C. PARSE-CHORD-SYMBOL reads text with a closed grammar (the EBNF is in the
+header of src/chord-symbol.lisp) by longest match, without backtracking or
+regular expressions. PRINT-CHORD-SYMBOL writes the canonical text. TEXT keeps
+the input as written and DIALECT the dialect it was read in, :POP by default.
+
+  (parse-chord-symbol "A7b9")
+    => #S(chord-symbol
+          :root #S(pitch-class-name :letter 5 :alter 0)
+          :quality :dominant-7
+          :extensions nil
+          :alterations ((9 . -1))
+          :suspension nil
+          :added nil
+          :omitted nil
+          :bass nil
+          :no-chord-p nil
+          :text "A7b9"
+          :dialect :pop)
+  (print-chord-symbol (parse-chord-symbol "A7b9")) => "A7(b9)"
+  (chord-symbol-text (parse-chord-symbol "A7b9")) => "A7b9"
+
+A chart on one line, split at the bar lines and the spaces, with every symbol
+parsed. A seventh word gives its quality, and its number the extensions: 9 is
+(9), 13 is (9 11 13).
+
+  | C  Am7 | Dm7  G7 | Cmaj7  A7b9 | D9sus4  G13 | C6/9  N.C. |
+
+  bar  text     root  quality      extensions  alterations  suspension  added
+  1    C        C     major        -           -            -           -
+  1    Am7      A     minor-7      -           -            -           -
+  2    Dm7      D     minor-7      -           -            -           -
+  2    G7       G     dominant-7   -           -            -           -
+  3    Cmaj7    C     major-7      -           -            -           -
+  3    A7b9     A     dominant-7   -           b9           -           -
+  4    D9sus4   D     dominant-7   9           -            4           -
+  4    G13      G     dominant-7   9 11 13     -            -           -
+  5    C6/9     C     major-6      -           -            -           9
+  5    N.C.     no chord: NO-CHORD-P is T, the other slots empty
+
+CHORD-TONES realises a chord: its tones as (degree . PITCH-CLASS-NAME) pairs,
+spelled exactly, ascending by degree. Below, each list is written as its degrees
+(b9 for a flat ninth) and its names. A suspension replaces the 3 (D9sus4 has G,
+not F#), the 6/9 chord is the sixth chord with an added 9, and G13 lists its 11
+as MusicXML's dominant 13th does (section 20 shows which tones to keep). N.C.
+has no tones.
+
+  text     degrees           tones           PRINT-CHORD-SYMBOL
+  C        1 3 5             C E G           C
+  Am7      1 3 5 7           A C E G         Am7
+  Dm7      1 3 5 7           D F A C         Dm7
+  G7       1 3 5 7           G B D F         G7
+  Cmaj7    1 3 5 7           C E G B         Cmaj7
+  A7b9     1 3 5 7 b9        A C# E G Bb     A7(b9)
+  D9sus4   1 4 5 7 9         D G A C E       D9sus4
+  G13      1 3 5 7 9 11 13   G B D F A C E   G13
+  C6/9     1 3 5 6 9         C E G A D       C6/9
+  N.C.     -                 -               N.C.
+
+========================================================================
+== 18. Dialects: classical, pop and jazz
+========================================================================
+PARSE-CHORD-SYMBOL takes :DIALECT :CLASSICAL, :POP (the default) or :JAZZ. All
+three read the same grammar, and differ in one place only: dim, o and ° alone
+are the diminished triad in :CLASSICAL and the diminished seventh in :POP and
+:JAZZ. Cdim7, Co7 and C°7 are the seventh in all three. The other signs mean the
+same everywhere: - minor, Δ major seventh, ø half-diminished seventh (m7b5),
++ augmented, and 7alt the altered dominant (b9 #9 #11 b13, no 5). The quality
+each text reads as:
+
+  text    :classical          :pop                :jazz
+  Cdim    diminished          diminished-7        diminished-7
+  C°      diminished          diminished-7        diminished-7
+  C-7     minor-7             minor-7             minor-7
+  CΔ7     major-7             major-7             major-7
+  Cø      half-diminished-7   half-diminished-7   half-diminished-7
+  C7alt   dominant-7          dominant-7          dominant-7
+  C+      augmented           augmented           augmented
+
+Printing is where the dialects differ most. PRINT-CHORD-SYMBOL writes each value
+read above in each dialect's words: :CLASSICAL ° ø + and M, :POP plain text
+(m(b5), m7(b5), dim7, maj), :JAZZ - Δ ø °, with 7alt for the altered dominant.
+Only a dialect with a word for a chord prints it; otherwise the tones go in the
+group:
+
+  tones               :classical               :pop                     :jazz
+  C Eb Gb             C°                       Cm(b5)                   C-(b5)
+  C Eb Gb Bbb         C°7                      Cdim7                    C°7
+  C Eb G Bb           Cm7                      Cm7                      C-7
+  C E G B             CM7                      Cmaj7                    CΔ7
+  C Eb Gb Bb          Cø7                      Cm7(b5)                  Cø7
+  C E Bb Db D# F# Ab  C7(b9,#9,#11,b13,omit5)  C7(b9,#9,#11,b13,omit5)  C7alt
+  C E G#              C+                       C+                       C+
+
+Printed text reads back. The library promises that for every well-formed chord,
+dialect and accidental style, parsing the printed text in that dialect gives the
+same value, and printing that again the same text. A sweep: every root, quality
+word and ending below, read in each dialect, then each distinct value printed and
+read back in each dialect and style.
+
+  roots    C F# Bb
+  words    "" m - dim o ° aug + 5 6 m6 -6 6/9 m6/9 -6/9 7 maj7 M7 Δ7 Δ m7 -7 mM7
+           mmaj7 -Δ7 m(maj7) ø ø7 dim7 °7 +7 +M7 +Δ 9 maj9 m9 -9 mmaj9 ø9 °9 +9 11
+           maj11 m11 ø11 13 maj13 m13 -13 ø13 +13
+  endings  "" (b5) (#5) (b9) (#9) (#11) (b13) (b9,#9) (b5,#5) alt (add9) (add2)
+           (add4) (add6) (addb6) (add#4) (add11) (add13) (omit3) (omit5) (omit9)
+           (omit11) sus4 sus2 sus4(b9) sus2(add6) (b9,omit5) (#11,omit3) (#5,add9)
+           (add9,omit5) /E /F# (b9)/Ab
+
+  15,147 texts, 3,789 of them rejected (outside the grammar, or against R1-R6)
+  2,388 distinct values, 14,328 round trips (3 dialects x 2 styles each):
+    14,238 give the same value back, and the same text when printed again
+    90 fail, all of the shape of music-theory#10 (below)
+    0 fail in any other way
+
+Known issue, egao1980/music-theory#10 (open): a diminished triad or a
+half-diminished seventh without its 5 prints in :POP (the triad in :JAZZ too)
+as the minor chord with b5 and omit5, and rule R5 then rejects an omitted 5 that
+is also altered. Half of the failures are ASCII texts and half the same texts
+in Unicode. The ASCII ones with the root C, then the example from the issue:
+
+  45 ASCII, 45 Unicode
+  root C   C-(b5,add9,omit5) C-(b5,b9,omit5) C-(b5,omit5) Cm(b5,add9,omit5)
+           Cm(b5,b9,omit5) Cm(b5,omit5) Cm11(b5,b9,omit5) Cm11(b5,omit5)
+           Cm13(b5,b9,omit5) Cm13(b5,omit5) Cm7(b5,add9,omit5) Cm7(b5,b9,omit5)
+           Cm7(b5,omit5) Cm9(b5,b9,omit5) Cm9(b5,omit5)
+
+  (print-chord-symbol (parse-chord-symbol "C°(omit5)" :dialect :classical) :dialect :pop)
+    => "Cm(b5,omit5)"
+  (parse-chord-symbol "Cm(b5,omit5)")
+    -> chord-symbol-parse-error "Cm(b5,omit5)" at 6: expected an omitted degree that is not altered (breaks rule R5)
+
+========================================================================
+== 19. Unicode and ASCII, slash chords
+========================================================================
+Accidentals are ASCII (b # bb ## x) or Unicode (♭ ♯ 𝄫 𝄪), in the root, the bass
+and the modifiers alike, and both spellings read as the same value. In a
+modifier - is a flat and + a sharp (C7-9, C7+5); right after the root letter -
+is minor. PRINT-CHORD-SYMBOL prints :ASCII by default or :UNICODE; the style
+spells the root, the bass and the group, while the dialect's words stay fixed,
+so :JAZZ prints ø either way. SAME-CHORD-P (this demo) compares every slot but
+TEXT and DIALECT.
+
+  (same-chord-p (parse-chord-symbol "F♯m7♭5") (parse-chord-symbol "F#m7b5")) => t
+  (chord-symbol-quality (parse-chord-symbol "F♯m7♭5"))
+    => :half-diminished-7   ; m7 with b5 folds into ø7
+  (print-chord-symbol (parse-chord-symbol "F♯m7♭5")) => "F#m7(b5)"
+  (print-chord-symbol (parse-chord-symbol "F#m7b5") :accidentals :unicode)
+    => "F♯m7(♭5)"
+  (print-chord-symbol (parse-chord-symbol "F#m7b5") :dialect :jazz) => "F#ø7"
+  (print-chord-symbol (parse-chord-symbol "F#m7b5") :dialect :jazz :accidentals :unicode)
+    => "F♯ø7"
+  (print-chord-symbol (parse-chord-symbol "C7-9")) => "C7(b9)"
+  (print-chord-symbol (parse-chord-symbol "C7+5"))
+    => "C+7"   ; C7 with #5 folds into C+7
+  (chord-symbol-quality (parse-chord-symbol "C-7")) => :minor-7
+
+  ASCII     Unicode     same   :ascii      :unicode
+  F#m7b5    F♯m7♭5      yes    F#m7(b5)    F♯m7(♭5)
+  Bb7#9     B♭7♯9       yes    Bb7(#9)     B♭7(♯9)
+  Gb13#11   G♭13♯11     yes    Gb13(#11)   G♭13(♯11)
+  Ebbmaj7   E𝄫maj7      yes    Ebbmaj7     E𝄫maj7
+  Fxm       F𝄪m         yes    F##m        F𝄪m
+  Db/Ab     D♭/A♭       yes    Db/Ab       D♭/A♭
+
+A slash gives the bass. It can be a chord tone (G7/B has the 3 in the bass, the
+first inversion) or not (C/F#, a C triad over F#). CHORD-TONES lists the chord's
+own tones, so the bass is among them only when it is a chord tone anyway; it is
+always (CHORD-SYMBOL-BASS c). 6/9 is one word, so C6/9/E is the 6/9 chord over E.
+
+  text       bass  in chord  tones         printed
+  G7/B       B     3         G B D F       G7/B
+  Dm7/C      C     7         D F A C       Dm7/C
+  C6/9/E     E     3         C E G A D     C6/9/E
+  G7(b9)/F   F     7         G B D F Ab    G7(b9)/F
+  Cmaj7/B    B     7         C E G B       Cmaj7/B
+  C/F#       F#    -         C E G         C/F#
+  C/F♯       F#    -         C E G         C/F#
+  Ab/Bb      Bb    -         Ab C Eb       Ab/Bb
+  D/C        C     -         D F# A        D/C
+  (print-chord-symbol (parse-chord-symbol "C/F#") :accidentals :unicode) => "C/F♯"
+
+========================================================================
+== 20. Essential tones
+========================================================================
+Fewer voices than chord tones: CHORD-ESSENTIAL-TONES chord n returns at most N of
+the chord's tones, the most important first, which is what a three-voice choir or
+a guitar trio would keep. The third and the seventh come first (they give the
+quality), then the top extension, a fifth the quality alters (the b5 of Bø7),
+the altered and added tones, the root, the lower extensions, and a perfect fifth
+last. Each chord below as all its tones, then n = 3 and n = 4, as degrees and
+names:
+
+  chord   all tones           n = 3        n = 4
+  G13     1 3 5 7 9 11 13     3 7 13       3 7 13 1
+          G B D F A C E       B F E        B F E G
+  C7#9    1 3 5 7 #9          3 7 #9       3 7 #9 1
+          C E G Bb D#         E Bb D#      E Bb D# C
+  Fm11    1 3 5 7 9 11        3 7 11       3 7 11 1
+          F Ab C Eb G Bb      Ab Eb Bb     Ab Eb Bb F
+  Bø7     1 3 5 7             3 7 5        3 7 5 1
+          B D F A             D A F        D A F B
+
+G13 keeps B F E: the 13 outranks the root, and the 5, 9 and 11 go first. Bø7
+keeps its b5 (F) over its root, because the b5 is what makes it half-diminished.
+The whole order comes from a table keyed by quality and extensions, changed by
+the chord: a suspension takes the 3's place, omitted tones leave, and the
+altered and added tones go where the table says. The order with N large, and
+the tones it never lists (the 11 of a dominant 13th, the 3 of an eleventh
+chord with a major third):
+
+  chord      priority order        left out
+  C          1 3 5                 -
+  Cadd9      1 3 9 5               -
+  C6         3 6 1 5               -
+  C7         3 7 1 5               -
+  C7sus4     4 7 1 5               -
+  C7(omit3)  7 1 5                 -
+  C9         3 7 9 1 5             -
+  C11        11 7 1 9 5            3
+  C13        3 7 13 1 9 5          11
+  C13(#11)   3 7 13 #11 1 9 5      -
+  C13(b9)    3 7 13 b9 1 5         11
+  C7alt      3 7 b9 #9 #11 b13 1   -
+  Cm11       3 7 11 1 9 5          -
+  C°7        3 7 5 1               -
+  C+7        3 7 5 1               -
+  (tone-names (chord-essential-tones (parse-chord-symbol "C7alt") 4))
+    => "E Bb Db D#"
+  (chord-essential-tones (parse-chord-symbol "C7") 0) => nil
+  (chord-essential-tones (parse-chord-symbol "N.C.") 3) => nil
+
+========================================================================
+== 21. Transposing chord symbols
+========================================================================
+TRANSPOSE-CHORD-SYMBOL moves ROOT and BASS and keeps every other slot: quality,
+extensions and alterations go along unchanged, and TEXT becomes NIL. The second
+argument is an INTERVAL, or a list of two KEYs. An interval moves a pitch a fixed
+distance on the line of fifths (M2 +2, m2 -5, A1 +7); a pair of keys moves it
+from the first tonic to the second, so the spelling follows the target key. A
+progression in Eb major, up a M2, from Eb major to E major, and up a m2 for
+comparison (the same sounds as E major, spelled from Fb):
+
+  Eb major    up M2       Eb to E major   up m2
+  Ebmaj7      Fmaj7       Emaj7           Fbmaj7
+  Cm7         Dm7         C#m7            Dbm7
+  Fm7         Gm7         F#m7            Gbm7
+  Bb7/D       C7/E        B7/D#           Cb7/Eb
+  Gm7         Am7         G#m7            Abm7
+  C7(b9)      D7(b9)      C#7(b9)         Db7(b9)
+  Fm7/Ab      Gm7/Bb      F#m7/A          Gbm7/Bbb
+  Bb13        C13         B13             Cb13
+  Eb6/9       F6/9        E6/9            Fb6/9
+
+The tones follow the root, because they are spelled from it:
+
+  (tone-names (chord-tones (parse-chord-symbol "C7b9"))) => "C E G Bb Db"
+  (tone-names (chord-tones (transpose-chord-symbol (parse-chord-symbol "C7b9") (list (parse-key "Eb major") (parse-key "E major")))))
+    => "C# E# G# B D"
+  (chord-symbol-text (transpose-chord-symbol (parse-chord-symbol "Bb7/D") (parse-interval "M2")))
+    => nil
+  (print-chord-symbol (transpose-chord-symbol (parse-chord-symbol "G7/B") (reverse-interval (parse-interval "M2"))))
+    => "F7/A"
+  (print-chord-symbol (transpose-chord-symbol (parse-chord-symbol "G7/B") (parse-interval "A1")))
+    => "G#7/B#"
+  (print-chord-symbol (transpose-chord-symbol (parse-chord-symbol "G7/B") (list (parse-key "C") (parse-key "Db"))))
+    => "Ab7/C"
+  (chord-symbol-no-chord-p (transpose-chord-symbol (parse-chord-symbol "N.C.") (parse-interval "M2")))
+    => t
+
+The progression in every major key, by key. Transposing back to Eb major gives
+each chord back, and every tone of each chord moves by the same distance on
+the line of fifths as the tonic:
+
+  Cb major  Cbmaj7 Abm7 Dbm7 Gb7/Bb Ebm7 Ab7(b9) Dbm7/Fb Gb13 Cb6/9
+  Gb major  Gbmaj7 Ebm7 Abm7 Db7/F Bbm7 Eb7(b9) Abm7/Cb Db13 Gb6/9
+  Db major  Dbmaj7 Bbm7 Ebm7 Ab7/C Fm7 Bb7(b9) Ebm7/Gb Ab13 Db6/9
+  Ab major  Abmaj7 Fm7 Bbm7 Eb7/G Cm7 F7(b9) Bbm7/Db Eb13 Ab6/9
+  Eb major  Ebmaj7 Cm7 Fm7 Bb7/D Gm7 C7(b9) Fm7/Ab Bb13 Eb6/9
+  Bb major  Bbmaj7 Gm7 Cm7 F7/A Dm7 G7(b9) Cm7/Eb F13 Bb6/9
+  F major   Fmaj7 Dm7 Gm7 C7/E Am7 D7(b9) Gm7/Bb C13 F6/9
+  C major   Cmaj7 Am7 Dm7 G7/B Em7 A7(b9) Dm7/F G13 C6/9
+  G major   Gmaj7 Em7 Am7 D7/F# Bm7 E7(b9) Am7/C D13 G6/9
+  D major   Dmaj7 Bm7 Em7 A7/C# F#m7 B7(b9) Em7/G A13 D6/9
+  A major   Amaj7 F#m7 Bm7 E7/G# C#m7 F#7(b9) Bm7/D E13 A6/9
+  E major   Emaj7 C#m7 F#m7 B7/D# G#m7 C#7(b9) F#m7/A B13 E6/9
+  B major   Bmaj7 G#m7 C#m7 F#7/A# D#m7 G#7(b9) C#m7/E F#13 B6/9
+  F# major  F#maj7 D#m7 G#m7 C#7/E# A#m7 D#7(b9) G#m7/B C#13 F#6/9
+  C# major  C#maj7 A#m7 D#m7 G#7/B# E#m7 A#7(b9) D#m7/F# G#13 C#6/9
+
+  135 chords: 135 come back to Eb major, 135 have every tone moved by the shift
+
+========================================================================
+== 22. Chord-symbol errors and restarts
+========================================================================
+Text outside the grammar, or an item that breaks one of the rules R1-R6 (one
+suspension, on a major third; a 5 altered only where the fifth is perfect; no
+repeated alteration; no added tone already in the chord; an omitted tone must be
+a natural chord tone; alt only on a plain dominant seventh), signals
+CHORD-SYMBOL-PARSE-ERROR, a MUSIC-THEORY-ERROR. POSITION is the index of the
+first character the parser could not accept and EXPECTED names what it could
+have taken there:
+
+  (parse-chord-symbol "Cmaj8")
+    -> chord-symbol-parse-error "Cmaj8" at 4: expected a modifier, "(", "/" or the end of the symbol
+  (parse-chord-symbol "Hm7")
+    -> chord-symbol-parse-error "Hm7" at 0: expected a root letter A-G or N.C.
+  (handler-case (parse-chord-symbol "Cmaj8") (chord-symbol-parse-error (c) (list (chord-symbol-parse-error-position c) (chord-symbol-parse-error-expected c))))
+    => (4 "a modifier, \"(\", \"/\" or the end of the symbol")
+
+Cmaj8 reads C and the word maj, and fails at the 8: no seventh word ends in 8.
+H, the German B, is not a root letter, and neither is a lower-case c. Others,
+with a caret under the position:
+
+  Cmaj8
+      ^ 4: a modifier, "(", "/" or the end of the symbol
+  Hm7
+  ^ 0: a root letter A-G or N.C.
+  c7
+  ^ 0: a root letter A-G or N.C.
+  C7b95
+    ^ 2: a flat 5, 9 or 13 (not an allowed degree)
+  C7 b9
+     ^ 3: the end of the symbol after a space
+  C7(b9
+       ^ 5: "," or ")"
+  C/E7
+     ^ 3: the end of the symbol
+  Cm7sus4
+     ^ 3: a suspension on a major-third quality (breaks rule R1)
+  C+(b5)
+     ^ 3: an alteration of 5 on a quality with a perfect fifth (breaks rule R2)
+  C7(b9,b9)
+        ^ 6: an alteration not already in the chord (breaks rule R3)
+  C9(add9)
+     ^ 3: an added degree that is not already in the chord (breaks rule R4)
+  C7(b5,omit5)
+        ^ 6: an omitted degree that is not altered (breaks rule R5)
+  C7b9alt
+      ^ 4: an alteration not already in the chord (breaks rule R3)
+
+The error is signalled inside two restarts: USE-VALUE, whose value
+PARSE-CHORD-SYMBOL returns, and SKIP-CHORD-SYMBOL, which makes it return NIL:
+
+  the restarts of "Hm7": use-value, skip-chord-symbol
+
+A chart with bad symbols, read by one handler that logs each error and skips the
+symbol, so the rest of the chart still comes through:
+
+  | C  Cmaj8 | Am7  Hm7 | Dm7  G7(b9 | Cmaj7  H7 |
+  skipped "Cmaj8" at 4, "Hm7" at 0, "G7(b9" at 5, "H7" at 0
+  => | C  ? | Am7  ? | Dm7  ? | Cmaj7  ? |
+
+The same chart with a handler for German charts: when the error is an H in the
+root's place, it reads the text again with B there and returns that value with
+USE-VALUE; anything else it skips:
+
+  => | C  ? | Am7  Bm7 | Dm7  ? | Cmaj7  B7 |
+
+An unknown word in the quality's place is a warning, not an error:
+UNKNOWN-CHORD-QUALITY with the word as TEXT, inside a USE-VALUE restart that takes
+a quality keyword. Unhandled or muffled, the quality is :MAJOR, and the parser
+goes on after the word. (Cmajor is not unknown: maj matches, and or is an error.)
+
+  (handler-case (parse-chord-symbol "Cdom7(b9)") (unknown-chord-quality (w) (list (unknown-chord-quality-text w) (princ-to-string w))))
+    => ("dom7" "unknown chord quality \"dom7\"")
+  (handler-bind ((unknown-chord-quality (lambda (w) (use-value :dominant-7 w))))
+    (print-chord-symbol (parse-chord-symbol "Cdom7(b9)")))
+    => "C7(b9)"
+  (handler-bind ((warning #'muffle-warning))
+    (print-chord-symbol (parse-chord-symbol "Cdom7(b9)")))
+    => "C(b9)"   ; muffled: a C major triad with a b9
+
+One handler on MUSIC-THEORY-ERROR catches these and the other chord errors: a
+value the printer cannot print (a triad with EXTENSIONS breaks rule W3), and
+INVALID-PITCH for a tone or a transposed root beyond two accidentals:
+
+  (parse-chord-symbol "Hm7")
+    -> chord-symbol-parse-error "Hm7" at 0: expected a root letter A-G or N.C.
+  (print-chord-symbol (make-chord-symbol :root (parse-pitch-class "C") :quality :major :extensions '(9)))
+    -> music-theory-error: only a seventh quality has extensions
+  (chord-tones (parse-chord-symbol "E##"))
+    -> invalid-pitch: needs more than two accidentals
+  (transpose-chord-symbol (parse-chord-symbol "F##7") (parse-interval "A1"))
+    -> invalid-pitch: needs more than two accidentals
+
+========================================================================
 == Summary
 ========================================================================
-398 results checked against their expected values: 0 mismatched.
+445 results checked against their expected values: 0 mismatched.
 Every section ran to the end.
