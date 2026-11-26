@@ -1,0 +1,222 @@
+========================================================================
+== Loaded systems
+========================================================================
+  cl-stack-code          0.15.0
+  ai-agent-protocol      0.16.1
+  policy-protocol        0.1.0
+  llm-protocol           0.7.1
+  llm-protocol-openai    0.8.0
+  http-backend-async     0.2.31
+model: a scripted OpenAI-compatible server on 127.0.0.1 (no real model); key: a dummy
+
+========================================================================
+== 1. Plan mode: explore in a confined copy, propose_plan writes plan.md
+========================================================================
+project: a git repository with greet.sh and README.md committed
+$ echo "let greet.sh take a name" | cl-stack-code --model openai:demo-model -p --output-format stream-json --permission-mode plan
+init: permission_mode "plan"
+plan opened: plan_id 85e0d268…, revision 0, path "<tmp>/s1/data/plan-docs/<tmp-key>-s1-project/85e0d26864c74fc137fc91cc9f50a1d4/plan.md"
+        area "<tmp>/s1/data/plans/<tmp-key>-s1-project/5d46f6cbc9069b3d3f07afe492807f6d/tree/", sandbox {status "confined", backend "seatbelt-backend", network "none"}
+plan proposed: revision 1, title "Greet by name"
+        step 1 [pending] Read the name from the first argument in greet.sh.
+        step 2 [pending] Document the argument in README.md.
+        files ["greet.sh", "README.md"]
+request 1: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control propose_plan ask_user
+request 2: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control propose_plan ask_user
+           tool result | #!/bin/sh
+           tool result | # greet.sh: prints a greeting
+           tool result | echo "Hello"
+           tool result | Hello
+           tool result | greet.sh
+           tool result | probe.out
+           tool result | README.md
+           tool result | [exit code 0]
+request 3: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control propose_plan ask_user
+           tool result | Tool write was not run: permission denied for path:greet.sh
+           tool result | Feedback: You are in plan mode: project files cannot be edited now. Describe the change in the plan instead (call propose_plan when it is ready). Scratch files may go under .plan-scratch/.
+           tool result | Do not repeat the same call. Follow the feedback above and continue.
+request 4: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control propose_plan ask_user
+           tool result | Wrote .plan-scratch/greet-try.sh (129 bytes)
+           tool result | hash: sha256:b45f7e00e029ca257d2e120f71ab870ca38442e0d99cc96cceea03bf6eff3ca4
+           tool result | Hello, Ada!
+           tool result | [exit code 0]
+system prompt has a plan mode section: yes
+requests the server saw: 4 (propose_plan ended the run: yes)
+result: subtype "success", is_error false, plan {status "proposed", revision 1}
+exit code: 0
+stderr: cl-stack-code: "plan" mode now plans first: the agent explores and proposes a plan, and nothing changes until you approve it. The old behaviour (work in a copy of the project, then approve the diff) is the "preview" mode: use --permission-mode preview or "permissionMode": "preview" to keep it.
+stderr: cl-stack-code: plan 85e0d26864c74fc137fc91cc9f50a1d4 r1: proposed; review <tmp>/s1/data/plan-docs/<tmp-key>-s1-project/85e0d26864c74fc137fc91cc9f50a1d4/plan.md, then cl-stack-code -p --resume 47ca5290b1facdbfaa4014a650aa4a0f --approve-plan (or --reject-plan; or --resume 47ca5290b1facdbfaa4014a650aa4a0f --permission-mode plan "…" to revise)
+plan directory files: meta.sexp plan.md revisions/1.md
+plan.md is outside the project: yes
+plan.md = revisions/1.md: yes
+project after the plan run: git status (clean); greet.sh unchanged: yes
+
+========================================================================
+== 1b. A second plan run on the same data directory: the migration notice is not repeated
+========================================================================
+$ echo "what does greet.sh print?" | cl-stack-code --model openai:demo-model -p --output-format stream-json --permission-mode plan
+plan opened: plan_id a6f11081…, revision 0, path "<tmp>/s1/data/plan-docs/<tmp-key>-s1-project/a6f11081b48c89dfafe65f595173a8a0/plan.md"
+        area "<tmp>/s1/data/plans/<tmp-key>-s1-project/cdaa193ae8d3b35cfef29843ea7dbe96/tree/", sandbox {status "confined", backend "seatbelt-backend", network "none"}
+result: subtype "success", is_error false, plan null
+        result | greet.sh prints Hello; it takes no arguments.
+exit code: 0
+stderr: cl-stack-code: plan a6f11081b48c89dfafe65f595173a8a0: no plan proposed yet
+migration notice on stderr: no
+
+========================================================================
+== 2. The user edits plan.md, then --resume ID --approve-plan runs it in the project
+========================================================================
+the user appends a "Notes" section to plan.md
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --resume 47ca5290b1facdbfaa4014a650aa4a0f --approve-plan
+plan approved: revision 2, mode "acceptEdits"
+plan step: step 1 -> "in_progress"; checklist 1:in_progress 2:pending
+plan step: step 1 -> "done"; checklist 1:done 2:pending
+plan step: step 2 -> "in_progress"; checklist 1:done 2:in_progress
+plan step: step 2 -> "done"; checklist 1:done 2:done
+plan executed: status "executed"
+        row: "README.md" "modified", planned true
+        row: "greet.sh" "modified", planned true
+        diff | diff --git a/README.md b/README.md
+        diff | --- a/README.md
+        diff | +++ b/README.md
+        diff | @@ -1,3 +1,3 @@
+        diff |  # greet
+        diff |  
+        diff | -`sh greet.sh` prints a greeting.
+        diff | +`sh greet.sh` prints a greeting; `sh greet.sh NAME` greets NAME.
+        diff | diff --git a/greet.sh b/greet.sh
+        diff | --- a/greet.sh
+        diff | +++ b/greet.sh
+        diff | @@ -1,3 +1,3 @@
+        diff |  #!/bin/sh
+        diff | -# greet.sh: prints a greeting
+        diff | -echo "Hello"
+        diff | +# greet.sh: prints a greeting, by name when one is given
+        diff | +if [ -n "$1" ]; then echo "Hello, $1!"; else echo "Hello"; fi
+execution turn's user text (first 4 lines):
+        | The user approved this plan. Carry it out in the project now. Call update_plan with in_progress when you start a step and done when it is finished. If you have to deviate from the plan, say why.
+        | 
+        | <plan id="85e0d26864c74fc137fc91cc9f50a1d4" revision="2">
+        | # Greet by name
+the user's Notes section reached the model: yes
+request 1: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+request 2: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+           tool result | ◐ 1. Read the name from the first argument in greet.sh.
+           tool result | ☐ 2. Document the argument in README.md.
+request 3: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+           tool result | Wrote greet.sh (129 bytes)
+           tool result | hash: sha256:b45f7e00e029ca257d2e120f71ab870ca38442e0d99cc96cceea03bf6eff3ca4
+request 4: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+           tool result | Tool bash was not run: approval is not available (no one can be asked)
+           tool result | Feedback: cl-stack-code is running headless (-p) and cannot ask for approval. Allow this call with --allowed-tools or a permissions.allow rule in settings, or run with --permission-mode acceptEdits or bypassPermissions.
+           tool result | Do not repeat the same call. Follow the feedback above and continue.
+           tool result | ☑ 1. Read the name from the first argument in greet.sh.
+           tool result | ☐ 2. Document the argument in README.md.
+request 5: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+           tool result | ☑ 1. Read the name from the first argument in greet.sh.
+           tool result | ◐ 2. Document the argument in README.md.
+request 6: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+           tool result | Edited README.md: 1 replacement
+           tool result | --- a/README.md
+           tool result | +++ b/README.md
+           tool result | @@ -1,3 +1,3 @@
+           tool result |  # greet
+           tool result |  
+           tool result | -`sh greet.sh` prints a greeting.
+           tool result | +`sh greet.sh` prints a greeting; `sh greet.sh NAME` greets NAME.
+           tool result | hash: sha256:bab3b7495ef466840ec03f4cf40508b50637488a0a774b3a5a616bbecd7c29c0
+request 7: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control update_plan
+           tool result | ☑ 1. Read the name from the first argument in greet.sh.
+           tool result | ☑ 2. Document the argument in README.md.
+result: subtype "success", is_error false, plan {status "executed", revision 2}
+        result | Done: greet.sh takes a name and README.md says so.
+exit code: 0
+revisions: revisions/1.md revisions/2.md
+project after approval: git status M README.md
+ M greet.sh
+        greet.sh | #!/bin/sh
+        greet.sh | # greet.sh: prints a greeting, by name when one is given
+        greet.sh | if [ -n "$1" ]; then echo "Hello, $1!"; else echo "Hello"; fi
+
+========================================================================
+== 2b. The executed plan cannot be approved again
+========================================================================
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --resume 47ca5290b1facdbfaa4014a650aa4a0f --approve-plan
+stderr: cl-stack-code: session 47ca5290b1facdbfaa4014a650aa4a0f has no plan to approve
+exit code: 2; requests the server saw: 0
+
+========================================================================
+== 3. Revise (revision 2, the prompt as feedback), then reject
+========================================================================
+$ echo "let greet.sh take a name" | cl-stack-code --model openai:demo-model -p --output-format stream-json --permission-mode plan
+plan opened: plan_id c69d08e0…, revision 0, path "<tmp>/s3/data/plan-docs/<tmp-key>-s3-project/c69d08e0f3f3d4327d49a0222764b467/plan.md"
+        area "<tmp>/s3/data/plans/<tmp-key>-s3-project/1c7de4b8cd5987a43dc77f8f72604e08/tree/", sandbox {status "confined", backend "seatbelt-backend", network "none"}
+plan proposed: revision 1, title "Greet by name"
+        step 1 [pending] Read the name from the first argument in greet.sh.
+        step 2 [pending] Document the argument in README.md.
+        files ["greet.sh", "README.md"]
+result: subtype "success", is_error false, plan {status "proposed", revision 1}
+exit code: 0
+$ echo "greet in French" | cl-stack-code --model openai:demo-model -p --output-format stream-json --resume ca39ebf7ca499a7d7761ab3537aeb176 --permission-mode plan
+plan reopened: plan_id c69d08e0…, revision 1, path "<tmp>/s3/data/plan-docs/<tmp-key>-s3-project/c69d08e0f3f3d4327d49a0222764b467/plan.md"
+        area "<tmp>/s3/data/plans/<tmp-key>-s3-project/1c7de4b8cd5987a43dc77f8f72604e08/tree/", sandbox {status "confined", backend "seatbelt-backend", network "none"}
+plan proposed: revision 2, title "Greet by name"
+        step 1 [pending] Read the name from the first argument in greet.sh.
+        step 2 [pending] Document the argument in README.md.
+        files ["greet.sh", "README.md"]
+the revision turn's user text: "greet in French"
+result: subtype "success", is_error false, plan {status "proposed", revision 2}
+exit code: 0
+stderr: cl-stack-code: plan c69d08e0f3f3d4327d49a0222764b467 r2: proposed; review <tmp>/s3/data/plan-docs/<tmp-key>-s3-project/c69d08e0f3f3d4327d49a0222764b467/plan.md, then cl-stack-code -p --resume ca39ebf7ca499a7d7761ab3537aeb176 --approve-plan (or --reject-plan; or --resume ca39ebf7ca499a7d7761ab3537aeb176 --permission-mode plan "…" to revise)
+revisions: revisions/1.md revisions/2.md
+plan.md is revision 2 (Bonjour): yes
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --resume ca39ebf7ca499a7d7761ab3537aeb176 --reject-plan
+plan rejected: plan_id c69d08e0…
+stderr: cl-stack-code: plan c69d08e0f3f3d4327d49a0222764b467: rejected
+exit code: 0; requests the server saw: 0 (reject is action only)
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --resume ca39ebf7ca499a7d7761ab3537aeb176 --approve-plan
+stderr: cl-stack-code: session ca39ebf7ca499a7d7761ab3537aeb176 has no plan to approve
+exit code: 2; requests the server saw: 0
+project after revise and reject: git status (clean)
+
+========================================================================
+== 4. Preview mode, the fifth permission mode (H5a renamed)
+========================================================================
+$ echo "hi" | cl-stack-code --model openai:demo-model -p --output-format stream-json --permission-mode sandbox
+stderr: cl-stack-code: unknown --permission-mode "sandbox": use default, acceptEdits, bypassPermissions, plan, preview
+exit code: 2
+$ echo "let greet.sh take a name" | cl-stack-code --model openai:demo-model -p --output-format stream-json --permission-mode preview
+preview "opened": preview_id 655a1951…, sandbox "confined"
+preview "projected": preview_id 655a1951…
+"plan" events: 0
+request 1: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control
+request 2: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control
+           tool result | Wrote greet.sh (129 bytes)
+           tool result | hash: sha256:b45f7e00e029ca257d2e120f71ab870ca38442e0d99cc96cceea03bf6eff3ca4
+request 3: tools offered read write edit multi_edit glob grep ls bash job_output job_input job_kill job_list unit_list unit_search unit_read unit_tail unit_control
+           tool result | Hello, Ada!
+           tool result | [exit code 0]
+result: subtype "success"; result.preview {status "open"}; "plan" key in the result: no
+        diff | diff --git a/greet.sh b/greet.sh
+        diff | --- a/greet.sh
+        diff | +++ b/greet.sh
+        diff | @@ -1,3 +1,3 @@
+        diff |  #!/bin/sh
+        diff | -# greet.sh: prints a greeting
+        diff | -echo "Hello"
+        diff | +# greet.sh: prints a greeting, by name when one is given
+        diff | +if [ -n "$1" ]; then echo "Hello, $1!"; else echo "Hello"; fi
+stderr: cl-stack-code: preview 655a1951338c6c56d529b831eb77cf31: 1 file changed, not applied (cl-stack-code -p --resume 93997acecf6bc598ae01b301e4b6a98e --apply applies it)
+exit code: 0; migration notice: none
+project before --apply: git status (clean)
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --resume 93997acecf6bc598ae01b301e4b6a98e --apply
+preview "applied"
+stderr: cl-stack-code: preview 655a1951338c6c56d529b831eb77cf31: applied 1 file
+exit code: 0; requests the server saw: 0
+project after --apply: git status M greet.sh
+
+========================================================================
+== Summary
+========================================================================
+scenes that raised an error: none
+(total wall time 7.7 s)
