@@ -1,0 +1,113 @@
+========================================================================
+== Loaded systems
+========================================================================
+  cl-stack-code          0.16.0
+  ai-agent-protocol      0.17.0
+  mcp-protocol           0.5.0
+  mcp-backend-stdio      0.3.0
+  rpc-backend-stdio      0.4.1
+  llm-protocol-openai    0.8.0
+  http-backend-async     0.2.31
+model: a scripted OpenAI-compatible server on 127.0.0.1 (no real model); key: a dummy
+MCP server: a stub child SBCL (mcp-protocol server, rpc-backend-stdio, stdio)
+
+========================================================================
+== 1. MCP sampling: denied headless, then allowed by mcp_sampling(docs)
+========================================================================
+user settings: mcpServers.docs = the stub (summarize, deploy) with "sampling": {"maxTokens": 256}
+the stub's summarize sends sampling/createMessage: maxTokens 10000, hint gpt-x, includeContext allServers
+
+-- 1a. -p, no rule for sampling
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --allowed-tools mcp__docs__summarize summarize MCP sampling
+init mcp_servers[docs]: status connected, tools 2, sampling true, elicitation true, deferred false, loaded []
+event: {"error":null,"max_tokens":256,"model":"openai:demo-model","outcome":"denied","reason":"headless","request_id":"mcp-sampling-1","server":"docs","session_id":"47f607a157e9890997eafe8cdae6849c","subtype":"mcp_sampling","tool_use_id":"call_1","type":"system","usage":null}
+tool_result mcp__docs__summarize (done): sampling refused: -1 Sampling needs approval and cl-stack-code is running headless (-p); allow it with an mcp_sampling rule
+request 1: 17 built-in tools + mcp__docs__summarize mcp__docs__deploy
+request 2: 17 built-in tools + mcp__docs__summarize mcp__docs__deploy
+           tool result | sampling refused: -1 Sampling needs approval and cl-stack-code is running headless (-p); allow it with an mcp_sampling rule
+a sample reached the model: no
+result: subtype success; permission_denials [{"id":"mcp-sampling-1","input":{"server":"docs"},"name":"mcp_sampling","reason":"headless"}]
+exit code: 0
+
+-- 1b. -p with --allowed-tools 'mcp_sampling(docs)'
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --allowed-tools mcp__docs__summarize --allowed-tools mcp_sampling(docs) summarize MCP sampling
+event: {"error":null,"max_tokens":256,"model":"openai:demo-model","outcome":"allowed","reason":null,"request_id":"mcp-sampling-1","server":"docs","session_id":"42d7e9c4639a65bd54675e003bae8fb1","subtype":"mcp_sampling","tool_use_id":"call_2","type":"system","usage":{"input_tokens":31,"output_tokens":14}}
+tool_result mcp__docs__summarize (done): summary: MCP sampling lets a server borrow the host's model, under the host's rules. (model demo-model, stop endTurn)
+request 1: 17 built-in tools + mcp__docs__summarize mcp__docs__deploy
+request 2 (a SAMPLE): model demo-model, max_tokens 256, tools 0
+           system: You are the docs server's summarizer.
+           user: Summarize MCP sampling in one line.
+request 3: 17 built-in tools + mcp__docs__summarize mcp__docs__deploy
+           tool result | summary: MCP sampling lets a server borrow the host's model, under the host's rules. (model demo-model, stop endTurn)
+result: subtype success; permission_denials []
+exit code: 0
+(scene-1-sampling: 1.6 s)
+
+========================================================================
+== 2. MCP elicitation: declined headless, then accepted with content through the SDK
+========================================================================
+user settings: mcpServers.docs = the stub; "elicitation" left at its default (true)
+the stub's deploy sends elicitation/create: env (enum staging|production, required), replicas (integer 1..5)
+
+-- 2a. -p
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --allowed-tools mcp__docs__deploy deploy web
+event: {"fields":[],"outcome":"declined","reason":"headless","request_id":"mcp-elicitation-1","server":"docs","session_id":"8a91f44ad25df2cd11e82d5814f290f5","subtype":"mcp_elicitation","tool_use_id":"call_3","type":"system"}
+tool_result mcp__docs__deploy (done): deploy: decline 
+result: subtype success; permission_denials []
+exit code: 0
+
+-- 2b. the SDK: make-client, client-turn, client-pending-approvals, client-respond-approval
+pending approval_request: {"id":"mcp-elicitation-1","input":{"message":"Deploy web: which environment?","requested_schema":{"properties":{"env":{"enum":["staging","production"],"title":"Environment","type":"string"},"replicas":{"maximum":5,"minimum":1,"title":"Replicas","type":"integer"}},"required":["env"],"type":"object"},"server":"docs"},"kind":"mcp_elicitation","name":"mcp_elicitation","preview":null,"server":"docs","session_id":"660da30b1b955b267ab6bfd94b082c14","step":1,"summary":"MCP server docs asks: Deploy web: which environment?","tool_use_id":"call_4","type":"approval_request"}
+respond mcp-elicitation-1 :accept {"env": "qa"} (not in the enum)
+  mcp-elicitation-content-error: the content does not match the requested schema: Schema validation failed
+  env: enum
+
+still pending: yes
+respond mcp-elicitation-1 :accept {"env": "staging", "replicas": 2}
+  → ("mcp-elicitation-1")
+event: {"decision":"accept","id":"mcp-elicitation-1","session_id":"660da30b1b955b267ab6bfd94b082c14","type":"approval_resolved"}
+event: {"fields":["env","replicas"],"outcome":"accepted","reason":null,"request_id":"mcp-elicitation-1","server":"docs","session_id":"660da30b1b955b267ab6bfd94b082c14","subtype":"mcp_elicitation","tool_use_id":"call_4","type":"system"}
+tool_result mcp__docs__deploy (done): deploy: accept env=staging replicas=2
+request 1: 17 built-in tools + mcp__docs__summarize mcp__docs__deploy
+request 2: 17 built-in tools + mcp__docs__summarize mcp__docs__deploy
+           tool result | deploy: accept env=staging replicas=2
+other requests (answered with a one-model list): GET /v1/models HTTP/1.1
+result: subtype success, text "Deployed."
+(scene-2-elicitation: 1.1 s)
+
+========================================================================
+== 3. Deferred tool loading: mcpToolSearch "always", tool_search, a deferred tool called by name
+========================================================================
+user settings: mcpServers.catalog = the stub's 8 plain tools; "mcpToolSearch": "always"
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --allowed-tools mcp__catalog__invoice_send --allowed-tools mcp__catalog__weather_today send invoice INV-7, then the weather in Oslo
+init mcp_tool_search: {"active":true,"deferred":8,"mode":"always","threshold":40}
+init tools (non-built-in): tool_search
+init mcp_servers[catalog]: status connected, tools 8, sampling false, elicitation true, deferred true, loaded []
+request 1 tool_search description | Search the deferred tools and load the matches: they can be called from the next step. Query with words from a tool's name or description, or select:NAME,NAME for exact names.
+request 1 tool_search description | Deferred tools: mcp__catalog__invoice_create, mcp__catalog__invoice_list, mcp__catalog__invoice_send, mcp__catalog__weather_today, mcp__catalog__calendar_next, mcp__catalog__github_issues, mcp__catalog__database_query, mcp__catalog__echo
+request 1 tool_search parameters: {"properties":{"max_results":{"maximum":20,"minimum":1,"type":"integer"},"query":{"type":"string"}},"required":["query"],"type":"object"}
+request 1: 17 built-in tools + tool_search
+request 2: 17 built-in tools + mcp__catalog__invoice_create mcp__catalog__invoice_list mcp__catalog__invoice_send tool_search
+           tool result | Loaded 3 tools; they can be called from the next step:
+           tool result | - mcp__catalog__invoice_create: Create an invoice for a customer
+           tool result | - mcp__catalog__invoice_list: List the open invoices
+           tool result | - mcp__catalog__invoice_send: Send an invoice by e-mail
+request 3: 17 built-in tools + mcp__catalog__invoice_create mcp__catalog__invoice_list mcp__catalog__invoice_send tool_search
+           tool result | invoice_send ran (invoice=INV-7)
+request 4: 17 built-in tools + mcp__catalog__invoice_create mcp__catalog__invoice_list mcp__catalog__invoice_send mcp__catalog__weather_today tool_search
+           tool result | weather_today ran (city=Oslo)
+tool_result tool_search (done): Loaded 3 tools; they can be called from the next step:
+- mcp__catalog__invoice_create: Create an invoice for a customer
+- mcp__catalog__invoice_list: List the open invoices
+- mcp__catalog__invoice_send: Send an invoice by e-mail
+tool_result mcp__catalog__invoice_send (done): invoice_send ran (invoice=INV-7)
+tool_result mcp__catalog__weather_today (done): weather_today ran (city=Oslo)
+result: subtype success; permission_denials []
+exit code: 0
+(scene-3-tool-search: 0.5 s)
+
+========================================================================
+== Summary
+========================================================================
+scenes that raised an error: none
+(total wall time 3.3 s)
