@@ -1,0 +1,107 @@
+========================================================================
+== Loaded systems
+========================================================================
+  cl-stack-code          0.14.0
+  ai-agent-protocol      0.16.0
+  llm-protocol           0.7.1
+  llm-protocol-openai    0.8.0
+  http-protocol          0.4.5
+  http-backend-async     0.2.31
+  event-backend-libuv    0.2.3
+model: a scripted OpenAI-compatible server on 127.0.0.1 (no real model); key: a dummy
+
+========================================================================
+== 1. 529 overloaded, then 429 with Retry-After: 1, then an answer
+========================================================================
+settings.json: {"retry": {"maxAttempts": 4, "initialDelayMs": 50, "maxDelayMs": 2000}, "contextWindow": 4096}
+$ echo "say something" | cl-stack-code --model openai:demo-model -p --output-format stream-json
+init: retry {max_attempts 4, initial_delay_ms 50, max_delay_ms 2000}, request_timeout_ms null, turn_timeout_ms null, context_window 4096 ("settings")
+retry: reason "overloaded", attempt 1 of 4, status 529, retry_after_ms null, delay_ms in (80, 100]: yes (jittered)
+       error "llm provider overloaded (HTTP 529): the server is overloaded"
+retry: reason "rate_limit", attempt 2 of 4, status 429, retry_after_ms 1000, delay_ms 1000
+       error "llm rate limited (HTTP 429), retry after 1s: slow down"
+assistant: context_tokens 1200, context_pct 29 (of contextWindow 4096)
+result: subtype "success", is_error false, retries 2
+        result "Recovered after two retries."
+exit code: 0
+requests the server saw: 3
+gap before the third request >= 1.0 s (Retry-After honoured): yes
+run took < 5 s: yes
+
+========================================================================
+== 2. Retries exhausted: the server keeps answering 503
+========================================================================
+settings.json: {"retry": {"maxAttempts": 3, "initialDelayMs": 50, "maxDelayMs": 2000}}
+$ echo "say something" | cl-stack-code --model openai:demo-model -p --output-format stream-json
+retry: reason "overloaded", attempt 1 of 3, status 503, retry_after_ms null, delay_ms in (80, 100]: yes (jittered)
+       error "llm provider overloaded (HTTP 503): Service Unavailable: the server is overloaded"
+retry: reason "overloaded", attempt 2 of 3, status 503, retry_after_ms null, delay_ms in (160, 200]: yes (jittered)
+       error "llm provider overloaded (HTTP 503): Service Unavailable: the server is overloaded"
+result: subtype "error_overloaded", is_error true, error_class "model-overloaded", retries 2
+        error "openai is overloaded (HTTP 503) after 3 attempts: Service Unavailable: the server is overloaded"
+exit code: 3
+requests the server saw: 3 (maxAttempts 3)
+
+========================================================================
+== 2b. The same failure in text mode: the message goes to stderr
+========================================================================
+$ echo "say something" | cl-stack-code --model openai:demo-model -p --max-retries 0
+stderr: cl-stack-code: openai is overloaded (HTTP 503): Service Unavailable: the server is overloaded
+exit code: 3; requests the server saw: 1 (--max-retries 0)
+
+========================================================================
+== 3. A silent server: requestTimeoutMs 1000 (turnTimeoutMs 4000 as a backstop)
+========================================================================
+settings.json: {"retry": {"maxAttempts": 1, "initialDelayMs": 50, "maxDelayMs": 2000}, "requestTimeoutMs": 1000, "turnTimeoutMs": 4000}
+the server reads the request, says nothing for 6 s, then hangs up
+$ echo "say something" | cl-stack-code --model openai:demo-model -p --output-format stream-json
+init: retry {max_attempts 1, initial_delay_ms 50, max_delay_ms 2000}, request_timeout_ms 1000, turn_timeout_ms 4000, context_window 65536 ("default")
+result: subtype "error_turn_timeout", is_error true, error_class "turn-timeout"
+        error "the turn timed out after 4 s (turnTimeoutMs)"
+exit code: 124
+requests the server saw: 1
+ended by requestTimeoutMs (within 2 s): no, the turn timeout ended the turn
+run-cli returned after about 6 s (when the server hung up at 6 s)
+
+========================================================================
+== 3b. The turn timeout alone: --turn-timeout 1.5
+========================================================================
+$ echo "say something" | cl-stack-code --model openai:demo-model -p --output-format stream-json --turn-timeout 1.5
+result: subtype "error_turn_timeout", is_error true, error_class "turn-timeout"
+        error "the turn timed out after 3/2 s (--turn-timeout)"
+exit code: 124
+run-cli returned after about 6 s (when the server hung up at 6 s)
+
+========================================================================
+== 4. --continue --retry re-sends a failed turn
+========================================================================
+settings.json: {"retry": {"maxAttempts": 1, "initialDelayMs": 50, "maxDelayMs": 2000}}
+$ echo "what is 2 + 2?" | cl-stack-code --model openai:demo-model -p --output-format stream-json
+result: subtype "error_overloaded", is_error true, error_class "model-overloaded"
+        error "openai is overloaded (HTTP 503): the server is overloaded"
+exit code: 3
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --continue --retry
+result: subtype "success", is_error false
+        result "4"
+exit code: 0
+requests: 1; the re-sent request's last user message: "what is 2 + 2?"
+$ cl-stack-code --model openai:demo-model -p --output-format stream-json --continue --retry
+stderr: cl-stack-code: the last turn did not fail; nothing to retry
+exit code: 2; requests the server saw: 0
+
+========================================================================
+== 5. 401 echoing part of the key: error_auth, the key redacted
+========================================================================
+$ echo "say something" | cl-stack-code --model openai:demo-model -p --output-format stream-json
+result: subtype "error_auth", is_error true, error_class "model-auth-error"
+        error "openai (http://127.0.0.1:<port>/v1) rejected the API key for model demo-model (HTTP 401): Incorrect API key provided: [redacted]. Check your key.; check OPENAI_API_KEY"
+exit code: 3
+the key or its 12-character prefix in the error: no
+requests the server saw: 1 (401 is not retried)
+
+========================================================================
+== Summary
+========================================================================
+scenes that raised an error: none
+total wall time under 30 s: yes
+(total wall time 14.5 s)
