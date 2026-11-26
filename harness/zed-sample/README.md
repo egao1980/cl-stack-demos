@@ -15,7 +15,7 @@ The session uses:
 
 | | |
 |-|-|
-| Headless rehearsal | done on cl-stack-code 0.12.3, `Checks failed: 0`: [`rehearsal/`](rehearsal/) (below) |
+| Headless rehearsal | done on cl-stack-code 0.12.3 with a live model, `Checks failed: 0`: [`rehearsal/`](rehearsal/) (below); re-checked on **0.14.0** with a scripted server on 2026-11-26, `Checks failed: 0` (below) |
 | Recording in Zed | done 2026-11-23 on cl-stack-code **0.13.2** with Claude Opus 5.5: [`recording/`](recording/) (below) |
 
 ## Headless rehearsal
@@ -46,6 +46,14 @@ Run 6, 2026-11-23, cl-stack-code **0.12.3** (lisp-workspace launcher, pre-built 
 - `stopReason end_turn` after 542.3 s; the independent `cl-repo test` passes.
 - The model server did not drop the connection in this run (no retry needed).
 
+### 0.14.0 check with a scripted server
+
+2026-11-26, after cl-stack-sample was refreshed to the latest stack ([cl-stack-sample#9](https://github.com/egao1980/cl-stack-sample/pull/9)), and `demo/zed-seeded-bug` was rebased onto it, still with one failing test. `rehearse.sh` ran unchanged, with `ZED_SAMPLE_LAUNCHER` set to the lisp-workspace launcher at 0.14.0. `HARNESS_DEMOS_*` pointed at a scripted OpenAI-compatible server on 127.0.0.1 with a dummy key, not a model. The script made seven moves: `read`; `bash sleep 1; cl-repo test; sleep 2` (a permission prompt, then Zed's terminal); `skill duration-units`; `source-read`; `edit-replace` (the fix); `cl-repo test` for both suites; and an answer streamed over 8 s. **`Checks failed: 0`.** `initialize` → cl-stack-code 0.14.0 in 0.53 s, `end_turn` after 29.6 s. This checks the ACP plumbing on 0.14.0, not a model. The committed `rehearsal/` files are still run 6.
+
+Two stack bugs surfaced on the way, both filed:
+- [http-backend-async#89](https://github.com/egao1980/http-backend-async/issues/89): a streamed body that ends at connection close (no `Content-Length`, no chunking) is cut at the first pause between writes. The scripted server therefore uses chunked encoding.
+- [cl-repository#201](https://github.com/egao1980/cl-repository/issues/201): `cl-repo test` keeps a fasl compiled in the same second as the edit that follows it. That is why the scripted `cl-repo test` sleeps 2 s before the edit.
+
 Earlier runs: run 4 never reached the model, because `src/rehearsal.lisp` had an extra close paren (a reader error the old output filter hid; fixed, and the filter now keeps compiler errors). Run 5 reached a server with no model loaded: its 400 answer surfaced as `NO-APPLICABLE-METHOD stream-element-type` on http-protocol's buffered body stream ([http-protocol#48](https://github.com/egao1980/http-protocol/issues/48), fixed in http-protocol 0.4.2; the same gap in http-backend-async: [#74](https://github.com/egao1980/http-backend-async/issues/74)).
 
 ## Recording
@@ -73,7 +81,7 @@ What the recording needed fixed first:
 
 The Zed side follows lisp-workspace [`editors/zed/`](https://github.com/egao1980/lisp-workspace/tree/main/editors/zed) (its README and [`agent_servers.json`](https://github.com/egao1980/lisp-workspace/blob/main/editors/zed/agent_servers.json)); this demo only puts the wire-logging wrapper in front of the launcher. Zed 1.29.3 on macOS.
 
-1. **Build the executable** (Zed gets the `initialize` reply in about a second): `lisp-workspace/scripts/cl-stack-code.sh --build`. `--which` prints it: `~/.cache/cl-stack-code/cl-stack-code-0.13.2-<lisp>`.
+1. **Build the executable** (Zed gets the `initialize` reply in about a second): `lisp-workspace/scripts/cl-stack-code.sh --build`. `--which` prints it: `~/.cache/cl-stack-code/cl-stack-code-0.14.0-<lisp>` (the launcher's pin since lisp-workspace 064427e; the recording above used 0.13.2).
 2. **Clone and sync** the sample at the demo branch, then load the model on the server (see above):
 
    ```bash

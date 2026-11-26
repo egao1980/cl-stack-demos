@@ -19,6 +19,12 @@ The same task as [`../zed-sample`](../zed-sample/), with cl-stack-code's own int
 
 The fix is [`recording/fix.diff`](recording/fix.diff); keyframes at 3, 14, 30, 45 and 60 s in [`recording/keyframes/`](recording/keyframes/).
 
+## Headless check on cl-stack-code 0.14.0
+
+2026-11-26, after cl-stack-sample was refreshed to the latest stack ([cl-stack-sample#9](https://github.com/egao1980/cl-stack-sample/pull/9)), and `demo/zed-seeded-bug` was rebased onto it, still with one failing test. There was no video and no real model. A fresh clone of the demo branch ran `cl-stack-code -p "the tests fail, find and fix the bug"` (the lisp-workspace launcher at 0.14.0) against a scripted OpenAI-compatible server on 127.0.0.1, with a dummy key. The script had seven steps: `read`, `bash sleep 1; cl-repo test` (refused, as headless runs refuse anything not allowed), `skill duration-units`, `source-read`, `edit-replace` (the `char-downcase` fix), `cl-repo test` for both suites, and an answer. The result was `success`, and an independent `cl-repo test` in the clone passed. This checks the plumbing (cl-stack-code 0.14.0, lisp-mcp 0.7.3 tools in the session image, the sample's skill and rule), not a model.
+
+`run-agent.sh` itself is interactive and needs a real key, so it was not re-run. It starts `~/Projects/cl-workspace/.lisp-workspace/scripts/cl-stack-code.sh`. That launcher pins 0.14.0 from lisp-workspace 064427e (#186) on; an older checkout pins an older cl-stack-code.
+
 ## Run it
 
 1. Clone the sample at the demo branch and sync it: `git clone -b demo/zed-seeded-bug https://github.com/egao1980/cl-stack-sample` and `cl-repo sync` in it.
