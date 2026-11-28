@@ -6,7 +6,10 @@
                     (#:dt #:datetime-protocol)
                     (#:orm #:sql-orm)
                     (#:mig #:sql-migrate)
-                    (#:sql #:sql-protocol))
+                    (#:sql #:sql-protocol)
+                    (#:q #:sql-query)
+                    (#:qd #:sql-query-duckdb)
+                    (#:ddb #:cl-stack-duckdb))
   (:export #:run-demos))
 
 (in-package #:harness-demos-data)
