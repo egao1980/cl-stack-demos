@@ -1,5 +1,6 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-;;; Computing Hangul syllable namesThis is SBCL 2.6.9, an implementation of ANSI Common Lisp.
+; cl-repo: dependencies from cl-repo.lock (33 packages)
+This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
 SBCL is free software, provided as is, with absolutely no warranty.
@@ -43,6 +44,14 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3>
 WARNING:
    redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-CONNECTION>
 WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo.lisp" (written 28 NOV 2026 08:46:08 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.019
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/run.lisp" (written 28 NOV 2026 08:33:39 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/run-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.000
 
 ========================================================================
 == Demo 1: diff-protocol 0.3.0
@@ -374,7 +383,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     (schema-snapshot-equal folded v2 :dialect :sqlite3) => T
     fold of the inverted ops from v2 = v1 => T
     diff-schema v2 v2 :complete t => no ops => T
-    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009AFA9A3}> conflicts with snapshot: no column ITEMS.LEGACY
+    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009339CE3}> conflicts with snapshot: no column ITEMS.LEGACY
 
 --- 3b. alter-column-op on SQLite: table rebuild, data preserved
     op: alter-column-op items: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
@@ -757,7 +766,139 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
     first leaf footprints: lisp:/src/protocol.lisp/defgeneric backend-launch/2, lisp:/src/protocol.lisp/defgeneric backend-launch/3/1, lisp:/src/protocol.lisp/defgeneric backend-run/2
     render :unified:
       | diff --git a/src/protocol.lisp b/src/protocol.lisp
-      | Binary files a/src/protocol.lisp and b/src/protocol.lisp differ
+      | --- a/src/protocol.lisp
+      | +++ b/src/protocol.lisp
+      | @@ lisp:/src/protocol.lisp/defgeneric process-pid @@
+      | +
+      | +(defgeneric process-pid (handle)
+      | +  (:documentation "The OS process id of the direct child (a positive integer), or NIL
+      | +when the backend cannot tell (BACKEND-SUPPORTS-P :PID is NIL). On Unix with
+      | +:PROCESS-GROUP T it is also the process group id. Stays the same after exit.")
+      | +  (:method ((handle process-handle))
+      | +    nil))
+      | @@ lisp:/src/protocol.lisp/defgeneric backend-supports-p @@
+      | +
+      | +(defgeneric backend-supports-p (backend capability)
+      | +  (:documentation "True when BACKEND implements CAPABILITY (a keyword) on this
+      | +implementation / platform. Unknown capabilities are NIL. Defined:
+      | +  :PROCESS-GROUP  LAUNCH / RUN accept :PROCESS-GROUP T and KILL :TREE T stops
+      | +                  the descendants (see PROCESS-KILL).
+      | +  :PID            PROCESS-PID returns the OS pid.")
+      | +  (:method ((backend process-backend) capability)
+      | +    (declare (ignore capability))
+      | +    nil))
+      | @@ lisp:/src/protocol.lisp/defun pid @@
+      | +(defun pid (handle) (process-pid handle))
+      | @@ lisp:/src/protocol.lisp/defun supports-p @@
+      | +
+      | +(defun supports-p (capability &key (backend *process-backend*))
+      | +  "BACKEND-SUPPORTS-P on BACKEND (default *PROCESS-BACKEND*)."
+      | +  (backend-supports-p (%ensure-backend backend) capability))
+      | @@ lisp:/src/protocol.lisp/defgeneric backend-run/2 @@
+      | -(backend command &key input output error-output error
+      | -                                              directory env env-mode timeout
+      | -                                              discard-stderr shell external-format)
+      | +(backend command &key input output error-output error
+      | +                                              directory env env-mode timeout
+      | +                                              discard-stderr shell external-format
+      | +                                              process-group)
+      | @@ lisp:/src/protocol.lisp/defgeneric backend-run/3/1 @@
+      | -"Sync run. → (values exit-code stdout stderr).
+      | -COMMAND is a list of strings (preferred) or a string with :SHELL T.
+      | -
+      | -INPUT: NIL (no input), a string (encoded with EXTERNAL-FORMAT), an octet
+      | -vector (written as is), a pathname (the file), or an input stream (copied).
+      | -OUTPUT / ERROR-OUTPUT: :OCTETS (default) → exact bytes, an OCTET-VECTOR, never
+      | -decoded; :STRING → decoded with EXTERNAL-FORMAT; NIL → discarded (empty
+      | -OCTET-VECTOR). (UNSIGNED-BYTE 8) and CHARACTER are accepted for :OCTETS and
+      | -:STRING (see NORMALIZE-CAPTURE). ERROR is the 0.2 name of ERROR-OUTPUT;
+      | -DISCARD-STDERR T means ERROR-OUTPUT NIL.
+      | -EXTERNAL-FORMAT: encoding for string INPUT / :STRING capture, default :UTF-8.
+      | -ENV / ENV-MODE: see MERGE-ENVIRONMENT. ENV entries are (name . value) or
+      | -\"NAME=VALUE\"; :MERGE (default) adds to the inherited environment, NIL value
+      | -unsets; :REPLACE gives the child exactly ENV. Program lookup uses the parent's
+      | -PATH.
+      | -TIMEOUT: seconds (real) or NIL. When it expires the backend signals
+      | -PROCESS-TIMEOUT-ERROR (command, timeout, process handle) with a CONTINUE
+      | -restart that waits another TIMEOUT seconds. Leaving BACKEND-RUN any other way
+      | -kills the child."
+      | +"Sync run. → (values exit-code stdout stderr).
+      | +COMMAND is a list of strings (preferred) or a string with :SHELL T.
+      | +
+      | +INPUT: NIL (no input), a string (encoded with EXTERNAL-FORMAT), an octet
+      | +vector (written as is), a pathname (the file), or an input stream (copied).
+      | +OUTPUT / ERROR-OUTPUT: :OCTETS (default) → exact bytes, an OCTET-VECTOR, never
+      | +decoded; :STRING → decoded with EXTERNAL-FORMAT; NIL → discarded (empty
+      | +OCTET-VECTOR). (UNSIGNED-BYTE 8) and CHARACTER are accepted for :OCTETS and
+      | +:STRING (see NORMALIZE-CAPTURE). ERROR is the 0.2 name of ERROR-OUTPUT;
+      | +DISCARD-STDERR T means ERROR-OUTPUT NIL.
+      | +EXTERNAL-FORMAT: encoding for string INPUT / :STRING capture, default :UTF-8.
+      | +ENV / ENV-MODE: see MERGE-ENVIRONMENT. ENV entries are (name . value) or
+      | +\"NAME=VALUE\"; :MERGE (default) adds to the inherited environment, NIL value
+      | +unsets; :REPLACE gives the child exactly ENV. Program lookup uses the parent's
+      | +PATH.
+      | +TIMEOUT: seconds (real) or NIL. When it expires the backend signals
+      | +PROCESS-TIMEOUT-ERROR (command, timeout, process handle) with a CONTINUE
+      | +restart that waits another TIMEOUT seconds. Leaving BACKEND-RUN any other way
+      | +kills the child (the whole process tree with :PROCESS-GROUP T\).
+      | +PROCESS-GROUP: as BACKEND-LAUNCH."
+      | @@ lisp:/src/protocol.lisp/defgeneric backend-launch/2 @@
+      | -(backend command &key input output error-output error
+      | -                                                 directory env env-mode shell
+      | -                                                 element-type external-format)
+      | +(backend command &key input output error-output error
+      | +                                                 directory env env-mode shell
+      | +                                                 element-type external-format
+      | +                                                 process-group)
+      | @@ lisp:/src/protocol.lisp/defgeneric backend-launch/3/1 @@
+      | -"Async spawn → PROCESS-HANDLE.
+      | -INPUT / OUTPUT / ERROR-OUTPUT: NIL → :STREAM (a pipe, see PROCESS-STDIN /
+      | -PROCESS-STDOUT / PROCESS-STDERR), or a pathname, :OUTPUT (error-output only),
+      | -:INTERACTIVE, as UIOP:LAUNCH-PROGRAM. ERROR is the 0.2 name of ERROR-OUTPUT.
+      | -ELEMENT-TYPE: CHARACTER (default) or :OCTETS / (UNSIGNED-BYTE 8) → the pipe
+      | -streams accept READ-BYTE / WRITE-BYTE / READ-SEQUENCE / WRITE-SEQUENCE on
+      | -octet vectors with no decoding (they may also be bivalent, e.g. SBCL).
+      | -EXTERNAL-FORMAT applies to character streams (default :UTF-8).
+      | -ENV / ENV-MODE: as BACKEND-RUN."
+      | +"Async spawn → PROCESS-HANDLE.
+      | +INPUT / OUTPUT / ERROR-OUTPUT: NIL → :STREAM (a pipe, see PROCESS-STDIN /
+      | +PROCESS-STDOUT / PROCESS-STDERR), or a pathname, :OUTPUT (error-output only),
+      | +:INTERACTIVE, as UIOP:LAUNCH-PROGRAM. ERROR is the 0.2 name of ERROR-OUTPUT.
+      | +ELEMENT-TYPE: CHARACTER (default) or :OCTETS / (UNSIGNED-BYTE 8) → the pipe
+      | +streams accept READ-BYTE / WRITE-BYTE / READ-SEQUENCE / WRITE-SEQUENCE on
+      | +octet vectors with no decoding (they may also be bivalent, e.g. SBCL).
+      | +EXTERNAL-FORMAT applies to character streams (default :UTF-8).
+      | +ENV / ENV-MODE: as BACKEND-RUN.
+      | +PROCESS-GROUP: NIL (default, the 0.3 behaviour) or T → start the child so that
+      | +PROCESS-KILL :TREE T reaches it and every descendant (see PROCESS-KILL). On
+      | +Unix the child leads a new process group (setpgid), so a group kill reaches
+      | +grandchildren such as the jobs of sh -c 'a & b'. A backend that cannot do this
+      | +(BACKEND-SUPPORTS-P :PROCESS-GROUP is NIL), or a combination it cannot honour
+      | +\(e.g. stdin inherited from a terminal), signals PROCESS-GROUP-ERROR instead of
+      | +silently launching a lone child."
+      | @@ lisp:/src/protocol.lisp/defgeneric process-kill @@
+      | -
+      | -(defgeneric process-kill (handle &key force))
+      | +
+      | +(defgeneric process-kill (handle &key force tree)
+      | +  (:documentation "Stop the process. → T.
+      | +FORCE NIL asks politely (SIGTERM; Windows: taskkill without /F, which console
+      | +programs ignore); FORCE T cannot be refused (SIGKILL / TerminateProcess).
+      | +TREE NIL (default) signals the direct child only: its descendants survive.
+      | +TREE T stops the child and its descendants. The handle must come from LAUNCH
+      | +or RUN with :PROCESS-GROUP T; otherwise PROCESS-GROUP-ERROR, with a CONTINUE
+      | +restart that kills the direct child only. Unix: the signal goes to the
+      | +child's process group (killpg), even after the child itself exited, so
+      | +grandchildren still in the group are reached; a descendant that moved to
+      | +another group or session (setsid, a pty) is not. Windows: taskkill /T /F /PID,
+      | +which walks parent pids at kill time (always forced); descendants whose parent
+      | +already exited are not reached. Killing an exited process is not an error."))
+      | @@ lisp:/src/protocol.lisp/defun kill/2 @@
+      | -(handle &key force)
+      | +(handle &key force tree)
+      | @@ lisp:/src/protocol.lisp/defun kill/3 @@
+      | -(process-kill handle :force force)
+      | +(process-kill handle :force force :tree tree)
     apply-diff a diff state-equal b => T
 
 --- 5g. a side that does not read clean: lisp-source-unreadable, use-text-diff restart
@@ -775,7 +916,7 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
 ========================================================================
 
 --- 6a. register-diff-engine and find-diff-engine
-    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {8005AEEED3}>
+    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {80064A89C3}>
     find-diff-engine :env is the registered instance => T
     registering :env again keeps the first instance => T
 
@@ -845,5 +986,153 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
       | -DEBUG=0
       | +TZ=UTC
     apply-diff ta diff state-equal tb => T
+
+========================================================================
+== Demo 7 — DuckDB SQL Introduction (duckdb.org tutorial) on sql-query-duckdb + sql-backend-duckdb
+========================================================================
+    cl-stack-duckdb 2.0.1.0, DuckDB library v2.0.1
+    connection driver :DUCKDB → dialect DUCKDB-DIALECT
+
+--- Creating a New Table
+    SQL> CREATE TABLE "weather" ("city" VARCHAR(80), "temp_lo" INTEGER, "temp_hi" INTEGER, "prcp" FLOAT, "date" DATE)
+    SQL> CREATE TABLE "cities" ("name" VARCHAR(80), "lat" NUMERIC, "lon" NUMERIC)
+    SQL> SELECT "table_name" FROM information_schema.tables ORDER BY "table_name"
+    tables => T
+
+--- Populating a Table with Rows
+    SQL> INSERT INTO "weather" VALUES ('San Francisco', 46, 50, 0.25, CAST('1994-11-27' AS DATE))
+    SQL> INSERT INTO "cities" VALUES ('San Francisco', -194.0, 53.0)
+    SQL> INSERT INTO "weather" ("city", "temp_lo", "temp_hi", "prcp", "date") VALUES ('San Francisco', 43, 57, 0.0, CAST('1994-11-29' AS DATE))
+    SQL> INSERT INTO "weather" ("date", "city", "temp_hi", "temp_lo") VALUES (CAST('1994-11-29' AS DATE), 'Hayward', 54, 37)
+    SQL> CREATE TABLE weather_csv AS SELECT * FROM weather LIMIT 0
+    (0 rows)
+    SQL> COPY "weather_csv" FROM '~/Projects/cl-workspace/cl-stack-demos/harness/data/fixtures/duckdb/weather.csv'
+    SQL> SELECT * FROM "weather_csv"
+    COPY weather FROM 'weather.csv' loads the same three rows => T
+
+--- Querying a Table
+    SQL> SELECT * FROM "weather"
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │
+    │ San Francisco │ 43      │ 57      │ 0.0  │ 1994-11-29 │
+    │ Hayward       │ 37      │ 54      │ NULL │ 1994-11-29 │
+    SELECT * FROM weather => T
+    SQL> SELECT "city", (("temp_hi" + "temp_lo") / 2) AS "temp_avg", "date" FROM "weather"
+    │ city          │ temp_avg │ date       │
+    ├───────────────┼──────────┼────────────┤
+    │ San Francisco │ 48.0     │ 1994-11-27 │
+    │ San Francisco │ 50.0     │ 1994-11-29 │
+    │ Hayward       │ 45.5     │ 1994-11-29 │
+    SELECT city, (temp_hi + temp_lo) / 2 AS temp_avg, date => T
+    SQL> SELECT * FROM "weather" WHERE (("city" = 'San Francisco') AND ("prcp" > 0.0))
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │
+    WHERE city = 'San Francisco' AND prcp > 0.0 => T
+    SQL> SELECT * FROM "weather" ORDER BY "city", "temp_lo"
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┤
+    │ Hayward       │ 37      │ 54      │ NULL │ 1994-11-29 │
+    │ San Francisco │ 43      │ 57      │ 0.0  │ 1994-11-29 │
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │
+    ORDER BY city, temp_lo => T
+    SQL> SELECT DISTINCT "city" FROM "weather" ORDER BY "city"
+    │ city          │
+    ├───────────────┤
+    │ Hayward       │
+    │ San Francisco │
+    SELECT DISTINCT city ORDER BY city => T
+
+--- Joins between Tables
+    SQL> SELECT * FROM weather, cities WHERE city = name
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │ name          │ lat  │ lon │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┼───────────────┼──────┼─────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │ San Francisco │ -194 │ 53  │
+    │ San Francisco │ 43      │ 57      │ 0.0  │ 1994-11-29 │ San Francisco │ -194 │ 53  │
+    the tutorial's implicit join, verbatim: SELECT * FROM weather, cities WHERE city = name => T
+    SQL> SELECT "weather"."city", "weather"."temp_lo", "weather"."temp_hi", "weather"."prcp", "weather"."date", "cities"."lon", "cities"."lat" FROM "weather" INNER JOIN "cities" ON ("weather"."city" = "cities"."name")
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │ lon │ lat  │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┼─────┼──────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │ 53  │ -194 │
+    │ San Francisco │ 43      │ 57      │ 0.0  │ 1994-11-29 │ 53  │ -194 │
+    qualified columns, INNER JOIN … ON weather.city = cities.name => T
+    SQL> SELECT * FROM "weather" LEFT JOIN "cities" ON ("weather"."city" = "cities"."name")
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │ name          │ lat  │ lon  │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┼───────────────┼──────┼──────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │ San Francisco │ -194 │ 53   │
+    │ San Francisco │ 43      │ 57      │ 0.0  │ 1994-11-29 │ San Francisco │ -194 │ 53   │
+    │ Hayward       │ 37      │ 54      │ NULL │ 1994-11-29 │ NULL          │ NULL │ NULL │
+    LEFT OUTER JOIN keeps Hayward with NULL city columns => T
+
+--- Aggregate Functions
+    SQL> SELECT max("temp_lo") FROM "weather"
+    │ max(temp_lo) │
+    ├──────────────┤
+    │ 46           │
+    SELECT max(temp_lo) → 46 => T
+    the tutorial's deliberate mistake — an aggregate in WHERE:
+    SQL> SELECT "city" FROM "weather" WHERE ("temp_lo" = max("temp_lo"))
+    signalled SQL-PROGRAMMING-ERROR:
+      DuckDB error (binder): Binder Error: WHERE clause cannot contain aggregates!
+
+LINE 1: SELECT "city" FROM "weather" WHERE ("temp_lo" = max("temp_lo"))
+                                                        ^^^^^^^^^^^^^^
+    the Binder Error the tutorial shows => T
+    SQL> SELECT "city" FROM "weather" WHERE ("temp_lo" = (SELECT max("temp_lo") FROM "weather"))
+    │ city          │
+    ├───────────────┤
+    │ San Francisco │
+    … and its fix, a subquery → San Francisco => T
+    SQL> SELECT "city", max("temp_lo") FROM "weather" GROUP BY "city"
+    │ city          │ max(temp_lo) │
+    ├───────────────┼──────────────┤
+    │ San Francisco │ 46           │
+    │ Hayward       │ 37           │
+    GROUP BY city => T
+    SQL> SELECT "city", max("temp_lo") FROM "weather" GROUP BY "city" HAVING (max("temp_lo") < 40)
+    │ city    │ max(temp_lo) │
+    ├─────────┼──────────────┤
+    │ Hayward │ 37           │
+    … HAVING max(temp_lo) < 40 => T
+    SQL> SELECT "city", max("temp_lo") FROM "weather" WHERE "city" LIKE 'S%' GROUP BY "city" HAVING (max("temp_lo") < 40)
+    (0 rows)
+    … WHERE city LIKE 'S%' … HAVING max(temp_lo) < 40 → no rows => T
+
+--- Updates
+    SQL> UPDATE "weather" SET "temp_hi" = ("temp_hi" - 2), "temp_lo" = ("temp_lo" - 2) WHERE ("date" > CAST('1994-11-28' AS DATE))
+    SQL> SELECT * FROM "weather"
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │
+    │ San Francisco │ 41      │ 55      │ 0.0  │ 1994-11-29 │
+    │ Hayward       │ 35      │ 52      │ NULL │ 1994-11-29 │
+    rows after UPDATE => T
+
+--- Deletions
+    SQL> DELETE FROM "weather" WHERE ("city" = 'Hayward')
+    SQL> SELECT * FROM "weather"
+    │ city          │ temp_lo │ temp_hi │ prcp │ date       │
+    ├───────────────┼─────────┼─────────┼──────┼────────────┤
+    │ San Francisco │ 46      │ 50      │ 0.25 │ 1994-11-27 │
+    │ San Francisco │ 41      │ 55      │ 0.0  │ 1994-11-29 │
+    rows after DELETE => T
+
+--- Beyond the tutorial: Parquet, QUALIFY, the columnar API
+    SQL> COPY "weather_csv" TO '<tmp>/duckdb-demo-tmp1CXFJSK9.parquet' (FORMAT parquet, COMPRESSION zstd)
+    SQL> SELECT * EXCLUDE ("prcp") FROM read_parquet('<tmp>/duckdb-demo-tmp1CXFJSK9.parquet') QUALIFY (row_number() OVER (PARTITION BY city ORDER BY temp_hi DESC) = 1) ORDER BY "city"
+    │ city          │ temp_lo │ temp_hi │ date       │
+    ├───────────────┼─────────┼─────────┼────────────┤
+    │ Hayward       │ 37      │ 54      │ 1994-11-29 │
+    │ San Francisco │ 43      │ 57      │ 1994-11-29 │
+    warmest day per city, from the Parquet file (QUALIFY, * EXCLUDE) => T
+    appended 100000 rows; read back column-wise in 49 chunks of ≤ 2048
+    100000 rows => T
+    SQL> SELECT "city", round(avg("temp"), 2) AS "avg", round(min("temp"), 2) AS "min", round(max("temp"), 2) AS "max" FROM "readings" GROUP BY "city" ORDER BY "city"
+    │ city          │ avg   │ min  │ max  │
+    ├───────────────┼───────┼──────┼──────┤
+    │ Hayward       │ 40.03 │ 20.0 │ 60.0 │
+    │ San Francisco │ 40.03 │ 20.0 │ 60.0 │
+    avg / min / max per city => T
 
 == all demos finished
