@@ -1,5 +1,5 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-; cl-repo: dependencies from cl-repo.lock (33 packages)
+; cl-repo: dependencies from cl-repo.lock (39 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -44,14 +44,14 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3>
 WARNING:
    redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-CONNECTION>
 WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo.lisp" (written 28 NOV 2026 08:46:08 AM):
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo.lisp" (written 28 NOV 2026 09:26:30 AM):
 
 ; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo-tmpGHU3ALSV.fasl
-; compilation finished in 0:00:00.019
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/run.lisp" (written 28 NOV 2026 08:33:39 AM):
+; compilation finished in 0:00:00.023
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/run.lisp" (written 28 NOV 2026 09:17:31 AM):
 
 ; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/run-tmpAAURSO1.fasl
-; compilation finished in 0:00:00.000
+; compilation finished in 0:00:00.001
 
 ========================================================================
 == Demo 1: diff-protocol 0.3.0
@@ -383,7 +383,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     (schema-snapshot-equal folded v2 :dialect :sqlite3) => T
     fold of the inverted ops from v2 = v1 => T
     diff-schema v2 v2 :complete t => no ops => T
-    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009339CE3}> conflicts with snapshot: no column ITEMS.LEGACY
+    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8007534353}> conflicts with snapshot: no column ITEMS.LEGACY
 
 --- 3b. alter-column-op on SQLite: table rebuild, data preserved
     op: alter-column-op items: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
@@ -916,7 +916,7 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
 ========================================================================
 
 --- 6a. register-diff-engine and find-diff-engine
-    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {80064A89C3}>
+    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {800667B333}>
     find-diff-engine :env is the registered instance => T
     registering :env again keeps the first instance => T
 
@@ -1134,5 +1134,25 @@ LINE 1: SELECT "city" FROM "weather" WHERE ("temp_lo" = max("temp_lo"))
     │ Hayward       │ 40.03 │ 20.0 │ 60.0 │
     │ San Francisco │ 40.03 │ 20.0 │ 60.0 │
     avg / min / max per city => T
+
+--- Phase 5: Arrow tables (cl-stack-duckdb/arrow, arrow-protocol)
+    query-arrow → 3 rows in 1 record batch(es); schema:
+      city: :UTF8
+      temp_lo: :INT32
+      temp_hi: :INT32
+      prcp: :FLOAT32
+      date: :DATE32
+    date is date32 days since 1970 (1994-11-29 = 9098) => T
+    Arrow IPC file: 1262 bytes
+    IPC round trip keeps every column => T
+    SQL> SELECT * FROM "weather_arrow"
+    append-arrow-table (appender) → the same rows back in DuckDB => T
+    nested columns: highs (:LIST :INT32), range (:STRUCT ("lo" :INT32) ("hi" :INT32))
+    SQL> SELECT * FROM "weather_nested" ORDER BY "city"
+    │ city          │ highs   │ range                     │
+    ├───────────────┼─────────┼───────────────────────────┤
+    │ Hayward       │ (54)    │ (("lo" . 37) ("hi" . 54)) │
+    │ San Francisco │ (50 57) │ (("lo" . 43) ("hi" . 57)) │
+    nested table through arrow-protocol's Parquet writer, read by DuckDB => T
 
 == all demos finished

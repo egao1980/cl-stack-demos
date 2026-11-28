@@ -11,7 +11,8 @@
                (:version "sql-migrate" "0.2.1")
                (:version "sql-query-sqlite3" "0.2.0")
                (:version "sql-backend-sqlite3" "0.2.0")
-               (:version "cl-stack-duckdb" "2.0.1.0")
+               (:version "cl-stack-duckdb" "2.0.1.1")
+               "cl-stack-duckdb/arrow"
                (:version "sql-backend-duckdb" "0.1.0")
                (:version "sql-query" "0.2.3")
                (:version "sql-query-duckdb" "0.1.0"))
