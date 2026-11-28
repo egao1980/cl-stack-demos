@@ -78,6 +78,20 @@
 (defun arrow-col (table name)
   (coerce (arrow:arrow-array-values (arrow:table-column table name)) 'list))
 
+(orm:defmodel duck-station ()
+  (id :integer :primary-key t :autoincrement t)
+  (name :text :not-null t :unique t)
+  (lat (:decimal 9 6))
+  (:table stations))
+
+(orm:defmodel duck-station-v2 ()
+  "DUCK-STATION with an elevation column (same table)."
+  (id :integer :primary-key t :autoincrement t)
+  (name :text :not-null t :unique t)
+  (lat (:decimal 9 6))
+  (elevation :double)
+  (:table stations))
+
 (defun demo-duckdb ()
   (banner "Demo 7 — DuckDB SQL Introduction (duckdb.org tutorial) on sql-query-duckdb + sql-backend-duckdb")
   (say "cl-stack-duckdb ~A, DuckDB library ~A" "2.0.1.0" (ddb:library-version))
@@ -249,6 +263,64 @@
                                                         (q:label (q:sql-func :round (q:sql-func :min :temp) 2) :min)
                                                         (q:label (q:sql-func :round (q:sql-func :max :temp) 2) :max))
                                              (q:from :readings) (q:group-by :city) (q:order-by :city))))))))
+
+    (demo-step ("Beyond the tutorial: PIVOT / UNPIVOT, ASOF JOIN, sql-orm on DuckDB")
+      (check "PIVOT (SELECT city, temp_hi …) ON city USING max(temp_hi) → one column per city"
+             (same-rows (duck c (qd:pivot (q:select (q:columns :city :temp_hi) (q:from :weather_csv)) :on :city :using (q:sql-func :max :temp_hi)))
+                        '((54 57))))
+      (check "… GROUP BY date, the SQL-standard form (FROM … PIVOT (… FOR city IN (…)))"
+             (same-rows (duck c (q:select (q:columns :*)
+                                          (q:from (qd:pivot-from :weather_csv (q:label (q:sql-func :max :temp_hi) :hi)
+                                                                 :for (qd:pivot-in :city "San Francisco" "Hayward")
+                                                                 :group-by :date))
+                                          (q:order-by :date)))
+                        '(("1994-11-27" 50 nil) ("1994-11-29" 57 54))
+                        :ordered t))
+      (check "UNPIVOT temp_lo, temp_hi back to rows"
+             (= 6 (length (duck c (q:select (q:columns :*)
+                                            (q:from (q:subquery (qd:unpivot :weather_csv :on '(:temp_lo :temp_hi)
+                                                                                         :into-name :kind :value :temp)))
+                                            (q:order-by :city :date :kind))))))
+      (duck c (q:create-table :alerts
+                (q:column :city :type '(:varchar 80))
+                (q:column :day :type :date))
+            :show nil)
+      (sql:execute c "INSERT INTO alerts VALUES ('San Francisco', '1994-11-28'), ('San Francisco', '1994-11-30'), ('Hayward', '1994-11-28')")
+      (check "ASOF LEFT JOIN: the latest weather on or before each alert (Hayward had none yet)"
+             (same-rows (duck c (q:select (q:columns :a.city :a.day (q:label :w.date :as_of) :w.temp_hi)
+                                          (q:from :alerts :a)
+                                          (qd:asof-left-join :weather_csv :w
+                                                             (q:on (q:sql-and (:= :a.city :w.city) (:>= :a.day :w.date))))
+                                          (q:order-by :a.city :a.day)))
+                        '(("Hayward" "1994-11-28" nil nil)
+                          ("San Francisco" "1994-11-28" "1994-11-27" 50)
+                          ("San Francisco" "1994-11-30" "1994-11-29" 57))
+                        :ordered t))
+      ;; sql-orm: a model, ensure-schema, the live catalog read back.
+      (let ((orm:*orm-connection* c))
+        (orm:ensure-schema c 'duck-station)
+        (say "ensure-schema → ~A" (q:compile-sql (q:create-table-from (orm:model-sql-table 'duck-station) :if-not-exists t)
+                                                 :dialect (q:dialect-for-connection c)))
+        (orm:persist (make-instance 'duck-station :name "San Francisco" :lat 37.7749d0))
+        (let* ((hayward (orm:persist (make-instance 'duck-station :name "Hayward" :lat 37.6688d0)))
+               (live (orm:reflect-schema c :exclude (lambda (name) (string/= name "stations"))))
+               (model (orm:schema-snapshot '(duck-station))))
+          (dolist (col (cdr (first live)))
+            (say "  reflected ~A ~A~:[~; pk~]~:[~; autoincrement~]~:[~; not-null~]~:[~; unique~]"
+                 (orm:column-info-name col) (orm:column-info-type col)
+                 (orm:column-info-primary-key col) (orm:column-info-autoincrement col)
+                 (orm:column-info-not-null col) (orm:column-info-unique col)))
+          (check "persist reads the sequence key back (RETURNING)" (eql 2 (slot-value hayward 'id)))
+          (check "reflect-schema = the model snapshot" (orm:schema-snapshot-equal live model :dialect :duckdb))
+          (check "diff-schema live → model :complete t has nothing to do"
+                 (null (orm:diff-schema live model :complete t :dialect :duckdb)))
+          (let ((ops (orm:diff-schema model (orm:schema-snapshot '(duck-station-v2))
+                                      :complete t :dialect :duckdb)))
+            (orm:upgrade-schema c ops)
+            (check "add a column with upgrade-schema → reflected"
+                   (equal '("id" "name" "lat" "elevation")
+                          (mapcar #'orm:column-info-name
+                                  (cdr (first (orm:reflect-schema c :exclude (lambda (name) (string/= name "stations"))))))))))))
 
     (demo-step ("Phase 5: Arrow tables (cl-stack-duckdb/arrow, arrow-protocol)")
       (let* ((native (sql:raw-connection c))
