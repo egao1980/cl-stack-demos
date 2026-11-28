@@ -9,7 +9,9 @@
                     (#:sql #:sql-protocol)
                     (#:q #:sql-query)
                     (#:qd #:sql-query-duckdb)
-                    (#:ddb #:cl-stack-duckdb))
+                    (#:ddb #:cl-stack-duckdb)
+                    (#:dda #:cl-stack-duckdb/arrow)
+                    (#:arrow #:arrow-protocol))
   (:export #:run-demos))
 
 (in-package #:harness-demos-data)

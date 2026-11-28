@@ -68,6 +68,16 @@
   (uiop:native-namestring
    (asdf:system-relative-pathname "harness-demos-data" "fixtures/duckdb/weather.csv")))
 
+(defun arrow-type-text (type)
+  "TYPE with struct fields shown as (name type)."
+  (cond ((arrow:arrow-field-p type)
+         (list (arrow:arrow-field-name type) (arrow-type-text (arrow:arrow-field-type type))))
+        ((consp type) (mapcar #'arrow-type-text type))
+        (t type)))
+
+(defun arrow-col (table name)
+  (coerce (arrow:arrow-array-values (arrow:table-column table name)) 'list))
+
 (defun demo-duckdb ()
   (banner "Demo 7 — DuckDB SQL Introduction (duckdb.org tutorial) on sql-query-duckdb + sql-backend-duckdb")
   (say "cl-stack-duckdb ~A, DuckDB library ~A" "2.0.1.0" (ddb:library-version))
@@ -238,4 +248,32 @@
                (= 2 (length (duck c (q:select (q:columns :city (q:label (q:sql-func :round (q:sql-func :avg :temp) 2) :avg)
                                                         (q:label (q:sql-func :round (q:sql-func :min :temp) 2) :min)
                                                         (q:label (q:sql-func :round (q:sql-func :max :temp) 2) :max))
-                                             (q:from :readings) (q:group-by :city) (q:order-by :city))))))))))
+                                             (q:from :readings) (q:group-by :city) (q:order-by :city))))))))
+
+    (demo-step ("Phase 5: Arrow tables (cl-stack-duckdb/arrow, arrow-protocol)")
+      (let* ((native (sql:raw-connection c))
+             (tb (dda:query-arrow native "SELECT city, temp_lo, temp_hi, prcp, date FROM weather_csv ORDER BY city, temp_lo")))
+        (say "query-arrow → ~D rows in ~D record batch(es); schema:" (arrow:arrow-table-num-rows tb)
+             (length (arrow:arrow-table-batches tb)))
+        (dolist (f (arrow:arrow-schema-fields (arrow:arrow-table-schema tb)))
+          (say "  ~A: ~S" (arrow:arrow-field-name f) (arrow-type-text (arrow:arrow-field-type f))))
+        (check "date is date32 days since 1970 (1994-11-29 = 9098)" (equal '(9098 9098 9096) (arrow-col tb "date")))
+        (let* ((ipc (arrow:encode tb :format :arrow))
+               (back (arrow:decode ipc :format :arrow)))
+          (say "Arrow IPC file: ~D bytes" (length ipc))
+          (check "IPC round trip keeps every column" (every (lambda (n) (equalp (arrow-col tb n) (arrow-col back n)))
+                                                         '("city" "temp_lo" "temp_hi" "prcp" "date")))
+          (dda:append-arrow-table native "weather_arrow" back :create t)
+          (check "append-arrow-table (appender) → the same rows back in DuckDB"
+                 (same-rows (duck c (q:select (q:columns :*) (q:from :weather_arrow)) :show nil) +weather-3+))))
+      (let* ((native (sql:raw-connection c))
+             (nested (dda:query-arrow native "SELECT city, list(temp_hi ORDER BY date) AS highs, {'lo': min(temp_lo), 'hi': max(temp_hi)} AS range FROM weather_csv GROUP BY city ORDER BY city")))
+        (say "nested columns: highs ~S, range ~S"
+             (arrow-type-text (arrow:arrow-field-type (second (arrow:arrow-schema-fields (arrow:arrow-table-schema nested)))))
+             (arrow-type-text (arrow:arrow-field-type (third (arrow:arrow-schema-fields (arrow:arrow-table-schema nested))))))
+        (dda:append-arrow-table native "weather_nested" nested :create t)
+        (check "nested table through arrow-protocol's Parquet writer, read by DuckDB"
+               (same-rows (duck c (q:select (q:columns :*) (q:from :weather_nested) (q:order-by :city)))
+                          '(("Hayward" (54) (("lo" . 37) ("hi" . 54)))
+                            ("San Francisco" (50 57) (("lo" . 43) ("hi" . 57))))
+                          :ordered t))))))
