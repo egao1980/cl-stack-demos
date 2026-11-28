@@ -1,5 +1,11 @@
 WARNING: System definition file #P"~/.cl-repository-client/trivial-garbage-0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
-; cl-repo: dependencies from cl-repo.lock (39 packages)
+; cl-repo: cl-repo.lock is not current (sql-orm not installed or too old); resolving
+; cl-repo: ensure deps for local harness-demos-data → sql-orm
+; cl-repo: found sql-orm:0.4.0 in https://ghcr.io (CL-REPO)
+Pulling egao1980/cl-systems/sql-orm:0.4.0 from https://ghcr.io...
+  Recorded file manifest (25 files)
+Installed sql-orm 0.4.0 to ~/.local/share/cl-repository/systems/sql-orm/0.4.0/
+; cl-repo: wrote cl-repo.lock (39 packages)
 This is SBCL 2.6.9, an implementation of ANSI Common Lisp.
 More information about SBCL is available at <http://www.sbcl.org/>.
 
@@ -8,6 +14,73 @@ It is mostly in the public domain; some portions are provided under
 BSD-style licenses.  See the CREDITS and COPYING files in the
 distribution for more information.
 WARNING: System definition file #P"~/.local/share/cl-repository/systems/trivial-garbage/0.21/trivial-garbage.asd" contains definition for system "trivial-garbage-tests". Please only define "trivial-garbage" and secondary systems with a name starting with "trivial-garbage/" (e.g. "trivial-garbage/test") in that file.
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/package.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/package-tmpGHU3ALSV.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/meta.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/meta-tmpAAURSO1.fasl
+; compilation finished in 0:00:00.014
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/defmodel.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/defmodel-tmp5GEXGEG5.fasl
+; compilation finished in 0:00:00.009
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/persistence.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; file: ~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/persistence.lisp
+; in: DEFMETHOD REFRESH (MODEL)
+;     (SQL-ORM::PK (SQL-ORM:MODEL-PRIMARY-KEY SQL-ORM::OBJECT))
+; 
+; caught STYLE-WARNING:
+;   The variable PK is defined but never used.
+
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/persistence-tmpAR3FSGEY.fasl
+; compilation finished in 0:00:00.022
+WARNING:
+   Lisp compilation had style-warnings while
+   compiling #<CL-SOURCE-FILE "sql-orm" "persistence">
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/relations.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/relations-tmpJAIDFZTC.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/schema.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/schema-tmp8V3J6PE9.fasl
+; compilation finished in 0:00:00.025
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/algebra.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/algebra-tmp9V47YWQF.fasl
+; compilation finished in 0:00:00.034
+; compiling file "~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/reflect.lisp" (written 28 NOV 2026 03:45:53 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-orm/0.4.0/src/reflect-tmp9BN22RMA.fasl
+; compilation finished in 0:00:00.058
+; compiling file "~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/package.lisp" (written 20 NOV 2026 08:26:03 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/package-tmp1CXFJSK9.fasl
+; compilation finished in 0:00:00.000
+; compiling file "~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/conditions.lisp" (written 20 NOV 2026 08:26:03 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/conditions-tmpX4BRKI0R.fasl
+; compilation finished in 0:00:00.002
+; compiling file "~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/engine.lisp" (written 20 NOV 2026 08:26:03 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/engine-tmpQ371UGST.fasl
+; compilation finished in 0:00:00.013
+; compiling file "~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/directory.lisp" (written 20 NOV 2026 08:26:03 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/directory-tmp2OWI3Q7U.fasl
+; compilation finished in 0:00:00.011
+; compiling file "~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/target.lisp" (written 20 NOV 2026 08:26:03 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/target-tmp9KKTJMYV.fasl
+; compilation finished in 0:00:00.021
+; compiling file "~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/runner.lisp" (written 20 NOV 2026 08:26:03 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/sql-migrate/0.2.1/src/runner-tmpJU0JWO19.fasl
+; compilation finished in 0:00:00.007
 WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-ERROR>
 WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-WARNING>
 WARNING: redefining DEFTYPE type to be a class: DBI.ERROR:<DBI-INTERFACE-ERROR>
@@ -44,14 +117,236 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3>
 WARNING:
    redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-CONNECTION>
 WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
-; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo.lisp" (written 28 NOV 2026 09:26:30 AM):
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/package.lisp" (written 23 NOV 2026 03:09:17 PM):
 
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo-tmpGHU3ALSV.fasl
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/package-tmpZX2WN8N4.fasl
+; compilation finished in 0:00:00.001
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/conditions.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/conditions-tmpOU81XRV0.fasl
+; compilation finished in 0:00:00.002
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/types.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/types-tmpY2ML9CFA.fasl
+; compilation finished in 0:00:00.030
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/array.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/array-tmpX2JYJDQE.fasl
+; compilation finished in 0:00:00.005
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/table.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; file: ~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/table.lisp
+; in: DEFUN MAKE-TABLE
+;     'NIL
+; 
+; note: deleting unreachable code
+
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/table-tmpOPCILR65.fasl
+; compilation finished in 0:00:00.025
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/flatbuffers.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/flatbuffers-tmpRV9F8A9A.fasl
 ; compilation finished in 0:00:00.023
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/ipc.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; file: ~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/ipc.lisp
+; in: DEFUN %DOUBLE-FLOAT-BITS
+;     (MULTIPLE-VALUE-BIND (ARROW-PROTOCOL::HI ARROW-PROTOCOL::LO)
+;         (SB-KERNEL:DOUBLE-FLOAT-BITS ARROW-PROTOCOL::S)
+;       (LOGIOR (LOGAND ARROW-PROTOCOL::LO 4294967295)
+;               (ASH (LOGAND ARROW-PROTOCOL::HI 4294967295) 32)))
+; 
+; note: deleting unreachable code
+
+; in: DEFUN %READ-SCHEMA
+;     'NIL
+; 
+; note: deleting unreachable code
+
+; in: DEFUN %READ-RECORD-BATCH
+;     'NIL
+; 
+; note: deleting unreachable code
+; 
+; note: deleting unreachable code
+
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/ipc-tmpK2ZAJT4I.fasl
+; compilation finished in 0:00:00.089
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/rle.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/rle-tmpUX5S4ADN.fasl
+; compilation finished in 0:00:00.014
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/delta.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/delta-tmp10401X32.fasl
+; compilation finished in 0:00:00.041
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/dremel.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; file: ~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/dremel.lisp
+; in: DEFUN %SHRED-VALUE
+;     (ARROW-PROTOCOL::REP
+;      (ARROW-PROTOCOL::PQ-NODE-REPETITION ARROW-PROTOCOL::NODE))
+; 
+; caught STYLE-WARNING:
+;   The variable REP is defined but never used.
+
+; in: DEFUN UNSHRED-LEAF
+;     (DEFUN ARROW-PROTOCOL::UNSHRED-LEAF
+;            (ARROW-PROTOCOL::NODE VALUES ARROW-PROTOCOL::DEFS
+;             ARROW-PROTOCOL::REPS)
+;       "Reconstruct an arrow-array for a single flat leaf (no children)."
+;       (LET ((ARROW-PROTOCOL::N (LENGTH VALUES)) (ARROW-PROTOCOL::ACC 'NIL))
+;         (LOOP ARROW-PROTOCOL::FOR ARROW-PROTOCOL::I ARROW-PROTOCOL::FROM 0 ARROW-PROTOCOL::BELOW ARROW-PROTOCOL::N
+;               ARROW-PROTOCOL::FOR ARROW-PROTOCOL::V = (AREF VALUES
+;                                                             ARROW-PROTOCOL::I)
+;               ARROW-PROTOCOL::FOR ...)
+;         (ARROW-PROTOCOL:MAKE-ARROW-ARRAY
+;          (OR (ARROW-PROTOCOL::PQ-NODE-ARROW-TYPE ARROW-PROTOCOL::NODE) :NULL)
+;          (NREVERSE ARROW-PROTOCOL::ACC))))
+; --> SB-IMPL::%DEFUN SB-IMPL::%DEFUN SB-INT:NAMED-LAMBDA 
+; ==>
+;   #'(SB-INT:NAMED-LAMBDA ARROW-PROTOCOL::UNSHRED-LEAF
+;         (ARROW-PROTOCOL::NODE VALUES ARROW-PROTOCOL::DEFS ARROW-PROTOCOL::REPS)
+;       (DECLARE (SB-C::TOP-LEVEL-FORM))
+;       "Reconstruct an arrow-array for a single flat leaf (no children)."
+;       (BLOCK ARROW-PROTOCOL::UNSHRED-LEAF
+;         (LET ((ARROW-PROTOCOL::N #) (ARROW-PROTOCOL::ACC 'NIL))
+;           (LOOP ARROW-PROTOCOL::FOR ARROW-PROTOCOL::I ARROW-PROTOCOL::FROM 0 ARROW-PROTOCOL::BELOW ARROW-PROTOCOL::N
+;                 ARROW-PROTOCOL::FOR ARROW-PROTOCOL::V = (AREF VALUES
+;                                                               ARROW-PROTOCOL::I)
+;                 ARROW-PROTOCOL::FOR ...)
+;           (ARROW-PROTOCOL:MAKE-ARROW-ARRAY (OR # :NULL)
+;                                            (NREVERSE ARROW-PROTOCOL::ACC)))))
+; 
+; caught STYLE-WARNING:
+;   The variable REPS is defined but never used.
+
+; in: DEFUN %GROUP-BY-ROWS
+;     (DEFUN ARROW-PROTOCOL::%GROUP-BY-ROWS
+;            (ARROW-PROTOCOL::DEFS ARROW-PROTOCOL::REPS ARROW-PROTOCOL::MAX-REP)
+;       "Split a leaf stream into per-row index ranges. → list of (start . end)"
+;       (LET ((ARROW-PROTOCOL::RANGES 'NIL)
+;             (ARROW-PROTOCOL::START 0)
+;             (ARROW-PROTOCOL::N (LENGTH ARROW-PROTOCOL::REPS)))
+;         (LOOP ARROW-PROTOCOL::FOR ARROW-PROTOCOL::I ARROW-PROTOCOL::FROM 0 ARROW-PROTOCOL::BELOW ARROW-PROTOCOL::N
+;               WHEN (AND (PLUSP ARROW-PROTOCOL::I) (ZEROP #))
+;               DO (PUSH (CONS ARROW-PROTOCOL::START ARROW-PROTOCOL::I)
+;                        ARROW-PROTOCOL::RANGES) (SETF ARROW-PROTOCOL::START
+;                                                        ARROW-PROTOCOL::I))
+;         (WHEN (OR (PLUSP ARROW-PROTOCOL::N) (ZEROP ARROW-PROTOCOL::N))
+;           (PUSH (CONS ARROW-PROTOCOL::START ARROW-PROTOCOL::N)
+;                 ARROW-PROTOCOL::RANGES))
+;         (NREVERSE ARROW-PROTOCOL::RANGES)))
+; --> SB-IMPL::%DEFUN SB-IMPL::%DEFUN SB-INT:NAMED-LAMBDA 
+; ==>
+;   #'(SB-INT:NAMED-LAMBDA ARROW-PROTOCOL::%GROUP-BY-ROWS
+;         (ARROW-PROTOCOL::DEFS ARROW-PROTOCOL::REPS ARROW-PROTOCOL::MAX-REP)
+;       (DECLARE (SB-C::TOP-LEVEL-FORM))
+;       "Split a leaf stream into per-row index ranges. → list of (start . end)"
+;       (BLOCK ARROW-PROTOCOL::%GROUP-BY-ROWS
+;         (LET ((ARROW-PROTOCOL::RANGES 'NIL)
+;               (ARROW-PROTOCOL::START 0)
+;               (ARROW-PROTOCOL::N #))
+;           (LOOP ARROW-PROTOCOL::FOR ARROW-PROTOCOL::I ARROW-PROTOCOL::FROM 0 ARROW-PROTOCOL::BELOW ARROW-PROTOCOL::N
+;                 WHEN (AND # #)
+;                 DO (PUSH # ARROW-PROTOCOL::RANGES) (SETF #))
+;           (WHEN (OR # #) (PUSH # ARROW-PROTOCOL::RANGES))
+;           (NREVERSE ARROW-PROTOCOL::RANGES))))
+; 
+; caught STYLE-WARNING:
+;   The variable DEFS is defined but never used.
+; 
+; caught STYLE-WARNING:
+;   The variable MAX-REP is defined but never used.
+
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/dremel-tmpZ7CBRM0G.fasl
+; compilation finished in 0:00:00.036
+WARNING:
+   Lisp compilation had style-warnings while
+   compiling #<CL-SOURCE-FILE "arrow-protocol" "dremel">
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/compress.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/compress-tmp9OZEQ0G2.fasl
+; compilation finished in 0:00:00.015
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/crypto.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/crypto-tmpB2JTL1W9.fasl
+; compilation finished in 0:00:00.007
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/parquet.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; file: ~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/parquet.lisp
+; in: DEFUN READ-PAGE-HEADER
+;     (ARROW-PROTOCOL::IS-DICT NIL)
+; 
+; caught STYLE-WARNING:
+;   The variable IS-DICT is assigned but never read.
+
+;     (ARROW-PROTOCOL::V2 NIL)
+; 
+; caught STYLE-WARNING:
+;   The variable V2 is assigned but never read.
+
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/parquet-tmpP3BI68WQ.fasl
+; compilation finished in 0:00:00.173
+WARNING:
+   Lisp compilation had style-warnings while
+   compiling #<CL-SOURCE-FILE "arrow-protocol" "parquet">
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/protocol.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/protocol-tmpQDARA81Z.fasl
+; compilation finished in 0:00:00.021
+; compiling file "~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/serdes.lisp" (written 23 NOV 2026 03:09:17 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/arrow-protocol/0.1.2/src/serdes-tmpYEMMM7SE.fasl
+; compilation finished in 0:00:00.018
+; compiling file "~/.local/share/cl-repository/systems/cl-stack-duckdb/2.0.1.1/src/arrow.lisp" (written 28 NOV 2026 09:26:07 AM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/.local/share/cl-repository/systems/cl-stack-duckdb/2.0.1.1/src/arrow-tmp73HU0RPK.fasl
+; compilation finished in 0:00:00.043
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/package.lisp" (written 28 NOV 2026 03:12:41 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/package-tmpIO5N7K88.fasl
+; compilation finished in 0:00:00.003
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/diff-demo.lisp" (written 23 NOV 2026 12:37:27 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/diff-demo-tmpCM21U60Z.fasl
+; compilation finished in 0:00:00.008
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/revision-demo.lisp" (written 23 NOV 2026 12:37:27 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/revision-demo-tmp9DT7SEFG.fasl
+; compilation finished in 0:00:00.007
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/orm-demo.lisp" (written 23 NOV 2026 12:37:27 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/orm-demo-tmp8065ESJT.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/migrate-demo.lisp" (written 23 NOV 2026 12:37:27 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/migrate-demo-tmp7S8Z6FGF.fasl
+; compilation finished in 0:00:00.013
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/lisp-diff-demo.lisp" (written 23 NOV 2026 12:37:27 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/lisp-diff-demo-tmpSIT3QPKP.fasl
+; compilation finished in 0:00:00.007
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/engine-api-demo.lisp" (written 23 NOV 2026 12:37:27 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/engine-api-demo-tmpE0PA0714.fasl
+; compilation finished in 0:00:00.010
+; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo.lisp" (written 28 NOV 2026 03:36:40 PM):
+
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/duckdb-demo-tmpJRWHHVG0.fasl
+; compilation finished in 0:00:00.040
 ; compiling file "~/Projects/cl-workspace/cl-stack-demos/harness/data/run.lisp" (written 28 NOV 2026 09:17:31 AM):
 
-; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/run-tmpAAURSO1.fasl
+; wrote ~/.cache/common-lisp/cl-repo/sbcl-2.6.9-macosx-arm64~/Projects/cl-workspace/cl-stack-demos/harness/data/run-tmp4WZVROCX.fasl
 ; compilation finished in 0:00:00.001
+; 
+; compilation unit finished
+;   caught 7 STYLE-WARNING conditions
+;   printed 5 notes
 
 ========================================================================
 == Demo 1: diff-protocol 0.3.0
@@ -383,7 +678,7 @@ WARNING: redefining DEFTYPE type to be a class: DBD.SQLITE3:<DBD-SQLITE3-QUERY>
     (schema-snapshot-equal folded v2 :dialect :sqlite3) => T
     fold of the inverted ops from v2 = v1 => T
     diff-schema v2 v2 :complete t => no ops => T
-    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8007534353}> conflicts with snapshot: no column ITEMS.LEGACY
+    folding the same ops onto v2 signals SNAPSHOT-CONFLICT: sql-orm: op #<SQL-ORM:DROP-COLUMN-OP {8009F943B3}> conflicts with snapshot: no column ITEMS.LEGACY
 
 --- 3b. alter-column-op on SQLite: table rebuild, data preserved
     op: alter-column-op items: QTY INTEGER  =>  QTY INTEGER NOT NULL DEFAULT 0
@@ -916,7 +1211,7 @@ SQL: INSERT INTO sql_migrate_version (version_num) VALUES (?)
 ========================================================================
 
 --- 6a. register-diff-engine and find-diff-engine
-    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {800667B333}>
+    registered => #<HARNESS-DEMOS-DATA::ENV-DIFF-ENGINE {8005504EE3}>
     find-diff-engine :env is the registered instance => T
     registering :env again keeps the first instance => T
 
@@ -1119,8 +1414,8 @@ LINE 1: SELECT "city" FROM "weather" WHERE ("temp_lo" = max("temp_lo"))
     rows after DELETE => T
 
 --- Beyond the tutorial: Parquet, QUALIFY, the columnar API
-    SQL> COPY "weather_csv" TO '<tmp>/duckdb-demo-tmp1CXFJSK9.parquet' (FORMAT parquet, COMPRESSION zstd)
-    SQL> SELECT * EXCLUDE ("prcp") FROM read_parquet('<tmp>/duckdb-demo-tmp1CXFJSK9.parquet') QUALIFY (row_number() OVER (PARTITION BY city ORDER BY temp_hi DESC) = 1) ORDER BY "city"
+    SQL> COPY "weather_csv" TO '<tmp>/duckdb-demo-tmpOHM494YR.parquet' (FORMAT parquet, COMPRESSION zstd)
+    SQL> SELECT * EXCLUDE ("prcp") FROM read_parquet('<tmp>/duckdb-demo-tmpOHM494YR.parquet') QUALIFY (row_number() OVER (PARTITION BY city ORDER BY temp_hi DESC) = 1) ORDER BY "city"
     │ city          │ temp_lo │ temp_hi │ date       │
     ├───────────────┼─────────┼─────────┼────────────┤
     │ Hayward       │ 37      │ 54      │ 1994-11-29 │
@@ -1134,6 +1429,45 @@ LINE 1: SELECT "city" FROM "weather" WHERE ("temp_lo" = max("temp_lo"))
     │ Hayward       │ 40.03 │ 20.0 │ 60.0 │
     │ San Francisco │ 40.03 │ 20.0 │ 60.0 │
     avg / min / max per city => T
+
+--- Beyond the tutorial: PIVOT / UNPIVOT, ASOF JOIN, sql-orm on DuckDB
+    SQL> PIVOT (SELECT "city", "temp_hi" FROM "weather_csv") ON "city" USING max("temp_hi")
+    │ Hayward │ San Francisco │
+    ├─────────┼───────────────┤
+    │ 54      │ 57            │
+    PIVOT (SELECT city, temp_hi …) ON city USING max(temp_hi) → one column per city => T
+    SQL> SELECT * FROM "weather_csv" PIVOT (max("temp_hi") AS "hi" FOR "city" IN ('San Francisco', 'Hayward') GROUP BY "date") ORDER BY "date"
+    │ date       │ San Francisco_hi │ Hayward_hi │
+    ├────────────┼──────────────────┼────────────┤
+    │ 1994-11-27 │ 50               │ NULL       │
+    │ 1994-11-29 │ 57               │ 54         │
+    … GROUP BY date, the SQL-standard form (FROM … PIVOT (… FOR city IN (…))) => T
+    SQL> SELECT * FROM (UNPIVOT "weather_csv" ON "temp_lo", "temp_hi" INTO NAME "kind" VALUE "temp") ORDER BY "city", "date", "kind"
+    │ city          │ prcp │ date       │ kind    │ temp │
+    ├───────────────┼──────┼────────────┼─────────┼──────┤
+    │ Hayward       │ NULL │ 1994-11-29 │ temp_hi │ 54   │
+    │ Hayward       │ NULL │ 1994-11-29 │ temp_lo │ 37   │
+    │ San Francisco │ 0.25 │ 1994-11-27 │ temp_hi │ 50   │
+    │ San Francisco │ 0.25 │ 1994-11-27 │ temp_lo │ 46   │
+    │ San Francisco │ 0.0  │ 1994-11-29 │ temp_hi │ 57   │
+    │ San Francisco │ 0.0  │ 1994-11-29 │ temp_lo │ 43   │
+    UNPIVOT temp_lo, temp_hi back to rows => T
+    SQL> CREATE TABLE "alerts" ("city" VARCHAR(80), "day" DATE)
+    SQL> SELECT "a"."city", "a"."day", "w"."date" AS "as_of", "w"."temp_hi" FROM "alerts" AS "a" ASOF LEFT JOIN "weather_csv" AS "w" ON (("a"."city" = "w"."city") AND ("a"."day" >= "w"."date")) ORDER BY "a"."city", "a"."day"
+    │ city          │ day        │ as_of      │ temp_hi │
+    ├───────────────┼────────────┼────────────┼─────────┤
+    │ Hayward       │ 1994-11-28 │ NULL       │ NULL    │
+    │ San Francisco │ 1994-11-28 │ 1994-11-27 │ 50      │
+    │ San Francisco │ 1994-11-30 │ 1994-11-29 │ 57      │
+    ASOF LEFT JOIN: the latest weather on or before each alert (Hayward had none yet) => T
+    ensure-schema → CREATE SEQUENCE IF NOT EXISTS "stations_id_seq"; CREATE TABLE IF NOT EXISTS "stations" ("id" INTEGER PRIMARY KEY DEFAULT nextval('stations_id_seq') NOT NULL, "name" VARCHAR NOT NULL UNIQUE, "lat" DECIMAL(9, 6))
+      reflected id INTEGER pk autoincrement not-null
+      reflected name VARCHAR not-null unique
+      reflected lat DECIMAL(9,6)
+    persist reads the sequence key back (RETURNING) => T
+    reflect-schema = the model snapshot => T
+    diff-schema live → model :complete t has nothing to do => T
+    add a column with upgrade-schema → reflected => T
 
 --- Phase 5: Arrow tables (cl-stack-duckdb/arrow, arrow-protocol)
     query-arrow → 3 rows in 1 record batch(es); schema:
